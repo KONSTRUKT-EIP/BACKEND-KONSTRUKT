@@ -42,6 +42,7 @@ jobs:
   test:
     name: Run Tests 🏆​
     runs-on: ubuntu-latest
+    environment: BACKEND
     needs: build
     steps:
       - name: Checkout repository
