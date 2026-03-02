@@ -11,6 +11,28 @@
 npm install
 ```
 
+## Base de données (PostgreSQL + Prisma) 🗄️
+
+1. Créer un fichier `.env` à partir de l'exemple :
+```bash
+cp .env.example .env
+```
+
+2. Démarrer PostgreSQL en local :
+```bash
+docker compose up -d
+```
+
+3. Générer le client Prisma :
+```bash
+npm run db:generate
+```
+
+4. Créer la base et appliquer la première migration :
+```bash
+npm run db:migrate -- --name init
+```
+
 ## Lancer le serveur en développement 🚀
 ```bash
 npm run start:dev

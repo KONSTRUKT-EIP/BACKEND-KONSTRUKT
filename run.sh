@@ -5,6 +5,15 @@ set -e
 # Usage: ./run.sh [backend|clean|cs]
 
 if [ "$1" = "backend" ]; then
+  echo "[Konstrukt BACKEND] Démarrage de la base Postgres (service db)..."
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose up -d db
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose up -d db
+  else
+    echo "[Konstrukt BACKEND] Docker Compose introuvable. Lance Postgres manuellement (localhost:5432) ou installe Docker + Compose."
+    exit 1
+  fi
   echo "[Konstrukt BACKEND] Installation des dépendances backend..."
   npm install
   echo "[Konstrukt BACKEND] Lancement du backend..."
