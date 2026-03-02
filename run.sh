@@ -2,7 +2,7 @@
 
 set -e
 
-# Usage: ./run.sh [backend|clean]
+# Usage: ./run.sh [backend|clean|cs]
 
 if [ "$1" = "backend" ]; then
   echo "[Konstrukt BACKEND] Installation des dépendances backend..."
@@ -12,8 +12,12 @@ if [ "$1" = "backend" ]; then
 elif [ "$1" = "clean" ]; then
   echo "[Konstrukt BACKEND] Clean du backend..."
   rm -rf dist
+  rm -rf node_modules
   echo "[Konstrukt BACKEND] Clean terminé."
+elif [ "$1" = "cs" ]; then
+  echo "[Konstrukt BACKEND] Lint du code avec ESLint..."
+  npx eslint 'src/**/*.ts'
 else
-  echo "Usage: ./run.sh backend | clean"
+  echo "Usage: ./run.sh backend | clean | cs"
   exit 1
 fi
