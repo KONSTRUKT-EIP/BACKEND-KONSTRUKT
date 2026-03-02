@@ -21,9 +21,8 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm ci
-      - name: Build (run.sh)
-        run: ./run.sh backend
-        shell: bash
+      - name: Build backend
+        run: npm run build
 
   test:
     name: Run Tests 🏆​
@@ -41,6 +40,6 @@ jobs:
       - name: Run Unit Tests (TU)
         run: npm run test
       - name: Run Integration Tests (TI)
-        run: npm run test:integration || true
+        run: npm run test:integration
       - name: Run End-to-End Tests (TF)
-        run: npm run test:e2e || true
+        run: npm run test:e2e
