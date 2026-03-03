@@ -71,7 +71,10 @@ export class UserController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.userService.update(id, result.data);
+    // Map password to passwordHash if present
+    const { password, ...rest } = result.data;
+    const updateData = password ? { ...rest, passwordHash: password } : rest;
+    return this.userService.update(id, updateData);
   }
 
   @Delete(':id')

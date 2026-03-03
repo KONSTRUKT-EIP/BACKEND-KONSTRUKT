@@ -186,16 +186,21 @@ describe('UserController (e2e)', () => {
       const userId = '123e4567-e89b-12d3-a456-426614174001';
       const updateDto = {
         email: 'updated@example.com',
+        password: 'updatedHash',
+        role: UserRole.ADMIN,
+        firstName: 'UpdatedFirst',
+        lastName: 'UpdatedLast',
+        organizationId: '123e4567-e89b-12d3-a456-426614174099',
       };
 
       const expectedUser = {
         id: userId,
         email: 'updated@example.com',
-        passwordHash: 'hash',
+        passwordHash: 'updatedHash',
         role: UserRole.ADMIN,
-        firstName: 'John',
-        lastName: 'Doe',
-        organizationId: '123e4567-e89b-12d3-a456-426614174000',
+        firstName: 'UpdatedFirst',
+        lastName: 'UpdatedLast',
+        organizationId: '123e4567-e89b-12d3-a456-426614174099',
         createdAt: new Date().toISOString(),
       };
 
