@@ -1,4 +1,16 @@
 services:
+  backend:
+    build: .
+    container_name: konstrukt-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-konstrukt}:${POSTGRES_PASSWORD:-konstrukt}@db:5432/${POSTGRES_DB:-konstrukt}?schema=public"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
   db:
     image: postgres:16-alpine
     container_name: konstrukt-postgres
