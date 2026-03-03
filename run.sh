@@ -5,19 +5,27 @@ set -e
 # Usage: ./run.sh [backend|clean|cs]
 
 if [ "$1" = "backend" ]; then
-  echo "[Konstrukt BACKEND] Démarrage de la base Postgres (service db)..."
+  echo "[Konstrukt BACKEND] Démarrage du backend et de la base Postgres via Docker Compose..."
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    docker compose up -d db
+    docker compose up -d --build
   elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose up -d db
+    docker-compose up -d --build
+  fi
+  echo "[Konstrukt BACKEND] Les services sont lancés"
+  echo "[Konstrukt BACKEND] Accès API : http://localhost:3000"
+  echo "[Konstrukt BACKEND] Accès DB : postgresql://konstrukt:konstrukt@localhost:5432/konstrukt"
+  echo "[Konstrukt BACKEND] Pour arrêter les services : ./run.sh stop"
+  echo "[Konstrukt BACKEND] Pour voir les logs : docker compose logs -f"
+elif [ "$1" = "build" ]; then
+  echo "[Konstrukt BACKEND] Build des images Docker..."
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose build
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose build
   else
-    echo "[Konstrukt BACKEND] Docker Compose introuvable. Lance Postgres manuellement (localhost:5432) ou installe Docker + Compose."
+    echo "[Konstrukt BACKEND] Docker Compose introuvable. Installe Docker + Compose."
     exit 1
   fi
-  echo "[Konstrukt BACKEND] Installation des dépendances backend..."
-  npm install
-  echo "[Konstrukt BACKEND] Lancement du backend..."
-  npm run start:dev
 elif [ "$1" = "clean" ]; then
   echo "[Konstrukt BACKEND] Clean du backend..."
   rm -rf dist
@@ -26,7 +34,15 @@ elif [ "$1" = "clean" ]; then
 elif [ "$1" = "cs" ]; then
   echo "[Konstrukt BACKEND] Lint du code avec ESLint..."
   npx eslint 'src/**/*.ts'
+elif [ "$1" = "stop" ]; then
+  echo "[Konstrukt BACKEND] Arrêt de tous les services Docker Compose..."
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose down
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose down
+  fi
+  echo "[Konstrukt BACKEND] Tous les services sont arrêtés"
 else
-  echo "Usage: ./run.sh backend | clean | cs"
+  echo "Usage: ./run.sh backend | build | clean | cs | stop"
   exit 1
 fi
