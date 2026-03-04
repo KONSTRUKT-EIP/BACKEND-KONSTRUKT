@@ -7,10 +7,12 @@ describe('DashboardService', () => {
   let service: DashboardService;
   let mockResourceFindMany: jest.Mock;
   let mockResourceUsageFindMany: jest.Mock;
+  let mockDeliveryFindMany: jest.Mock;
 
   beforeEach(async () => {
     mockResourceFindMany = jest.fn();
     mockResourceUsageFindMany = jest.fn();
+    mockDeliveryFindMany = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -20,12 +22,38 @@ describe('DashboardService', () => {
           useValue: {
             resource: { findMany: mockResourceFindMany },
             resourceUsage: { findMany: mockResourceUsageFindMany },
+            delivery: { findMany: mockDeliveryFindMany },
           },
         },
       ],
     }).compile();
 
     service = module.get<DashboardService>(DashboardService);
+  });
+
+  describe('getRecentOrders', () => {
+    it('should return mock orders with correct structure', async () => {
+      const query = { page: 1, pageSize: 10 };
+      mockDeliveryFindMany.mockResolvedValue([
+        {
+          id: 'order_1',
+          createdAt: new Date(),
+          quantity: 3,
+          resource: {
+            name: 'Armature 12mm',
+            unitPrice: 120,
+          },
+        },
+      ]);
+      const result = await service.getRecentOrders(query);
+      expect(result.orders).toBeInstanceOf(Array);
+      expect(result.orders[0]).toHaveProperty('id');
+      expect(result.orders[0]).toHaveProperty('productName');
+      expect(result.orders[0]).toHaveProperty('productIcon');
+      expect(result.orders[0]).toHaveProperty('price');
+      expect(result.orders[0]).toHaveProperty('totalOrder');
+      expect(result.orders[0]).toHaveProperty('total');
+    });
   });
 
   it('should be defined', () => {
