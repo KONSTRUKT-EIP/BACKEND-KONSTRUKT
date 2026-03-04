@@ -66,7 +66,7 @@ describe('UserController', () => {
       expect(result).toEqual(expectedUser);
       expect(mockUserService.create).toHaveBeenCalledWith({
         email: createUserInput.email,
-        passwordHash: createUserInput.password,
+        password: createUserInput.password,
         role: createUserInput.role,
         firstName: createUserInput.firstName,
         lastName: createUserInput.lastName,
