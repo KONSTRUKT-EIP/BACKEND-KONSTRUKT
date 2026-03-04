@@ -5,46 +5,46 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
-    constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
   async getUsers() {
     const users = await this.prismaService.user.findMany({
-        select: {
+      select: {
+        id: true,
+        firstName: true,
+        email: true,
+        lastName: true,
+        role: true,
+        organization: {
+          select: {
             id: true,
-            firstName: true,
-            email: true,
-            lastName: true,
-            role: true,
-            organization: {
-                select: {
-                    id: true,
-                    name: true,
-                }
-            },
-            password: false,
-        }
+            name: true,
+          },
+        },
+        password: false,
+      },
     });
     return users;
   }
 
-  async getUser({userId} : {userId: string}) {
+  async getUser({ userId }: { userId: string }) {
     const users = await this.prismaService.user.findMany({
       where: {
         id: userId,
       },
-        select: {
+      select: {
+        id: true,
+        firstName: true,
+        email: true,
+        lastName: true,
+        role: true,
+        organization: {
+          select: {
             id: true,
-            firstName: true,
-            email: true,
-            lastName: true,
-            role: true,
-            organization: {
-                select: {
-                    id: true,
-                    name: true,
-                }
-            },
-            password: false,
-        }
+            name: true,
+          },
+        },
+        password: false,
+      },
     });
     return users;
   }
@@ -53,7 +53,14 @@ export class UserService {
     return this.prismaService.user.findUnique({ where: { email } });
   }
 
-    async createUser(data: { email: string; password: string; firstName: string; lastName: string; role?: UserRole; organizationId: string }) {
+  async createUser(data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role?: UserRole;
+    organizationId: string;
+  }) {
     const password = await bcrypt.hash(data.password, 10);
     return this.prismaService.user.create({
       data: {
@@ -63,7 +70,7 @@ export class UserService {
         lastName: data.lastName,
         role: data.role ?? UserRole.OUVRIER,
         organization: {
-          connect: { id: data.organizationId }
+          connect: { id: data.organizationId },
         },
       },
     });

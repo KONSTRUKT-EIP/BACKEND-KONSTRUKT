@@ -7,44 +7,50 @@ import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class AuthService {
-    constructor(private readonly userService: UserService, private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+  ) {}
 
-    async login({authBody}: {authBody: authBody}) {
-        const existingUser = await this.userService.findByEmail(authBody.email);
+  async login({ authBody }: { authBody: authBody }) {
+    const existingUser = await this.userService.findByEmail(authBody.email);
 
-        if (!existingUser) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
-
-        const isPasswordValid = await compare(authBody.password, existingUser.password);
-        if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
-        return this.authenticateUser({ userId: existingUser.id });
+    if (!existingUser) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    async register({registerBody}: {registerBody: registerBody}) {
-        const existingUser = await this.userService.findByEmail(registerBody.email);
+    const isPasswordValid = await compare(
+      authBody.password,
+      existingUser.password,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    return this.authenticateUser({ userId: existingUser.id });
+  }
 
-        if (existingUser) {
-            throw new UnauthorizedException('Email already in use');
-        }
+  async register({ registerBody }: { registerBody: registerBody }) {
+    const existingUser = await this.userService.findByEmail(registerBody.email);
 
-        const newUser = await this.userService.createUser({
-            email: registerBody.email,
-            password: registerBody.password,
-            firstName: registerBody.firstName,
-            lastName: registerBody.lastName,
-            organizationId: registerBody.organizationId,
-        });
-
-        return this.authenticateUser({ userId: newUser.id });
+    if (existingUser) {
+      throw new UnauthorizedException('Email already in use');
     }
 
-    private async authenticateUser({ userId }: userPayload) {
-        const payload: userPayload = { userId };
-        return {
-            access_token: await this.jwtService.signAsync(payload),
-        };
-    }
+    const newUser = await this.userService.createUser({
+      email: registerBody.email,
+      password: registerBody.password,
+      firstName: registerBody.firstName,
+      lastName: registerBody.lastName,
+      organizationId: registerBody.organizationId,
+    });
+
+    return this.authenticateUser({ userId: newUser.id });
+  }
+
+  private async authenticateUser({ userId }: userPayload) {
+    const payload: userPayload = { userId };
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+    };
+  }
 }

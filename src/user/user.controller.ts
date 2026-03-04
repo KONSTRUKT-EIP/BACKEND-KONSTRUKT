@@ -12,13 +12,22 @@ export class UserController {
 
   @Get(':userId')
   getUser(@Param('userId') userId: string) {
-    return this.userService.getUser({ 
-        userId,
+    return this.userService.getUser({
+      userId,
     });
   }
 
   @Post()
-  createUser(@Body() body: { email: string; password: string; firstName: string; lastName: string; organizationId: string }) {
+  createUser(
+    @Body()
+    body: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      organizationId: string;
+    },
+  ) {
     return this.userService.createUser(body);
   }
 }
