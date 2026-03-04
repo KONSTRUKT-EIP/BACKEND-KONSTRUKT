@@ -2,7 +2,7 @@ import { UserRole } from '@prisma/client';
 
 export class CreateUserDto {
   email: string;
-  passwordHash: string;
+  password: string;
   role: UserRole;
   firstName: string;
   lastName: string;
