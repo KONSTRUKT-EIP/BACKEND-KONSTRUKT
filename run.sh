@@ -34,6 +34,15 @@ elif [ "$1" = "clean" ]; then
 elif [ "$1" = "cs" ]; then
   echo "[Konstrukt BACKEND] Lint du code avec ESLint..."
   npx eslint 'src/**/*.ts'
+elif [ "$1" = "test" ]; then
+  echo "[Konstrukt BACKEND] Exécution des tests..."
+  npm test
+elif [ "$1" = "test:e2e" ]; then
+  echo "[Konstrukt BACKEND] Exécution des tests e2e..."
+  npm run test:e2e
+elif [ "$1" = "test:cov" ]; then
+  echo "[Konstrukt BACKEND] Exécution des tests avec couverture..."
+  npm run test:cov
 elif [ "$1" = "stop" ]; then
   echo "[Konstrukt BACKEND] Arrêt de tous les services Docker Compose..."
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
@@ -43,6 +52,6 @@ elif [ "$1" = "stop" ]; then
   fi
   echo "[Konstrukt BACKEND] Tous les services sont arrêtés"
 else
-  echo "Usage: ./run.sh backend | build | clean | cs | stop"
+  echo "Usage: ./run.sh backend | build | clean | cs | test | test:e2e | test:cov | stop"
   exit 1
 fi
