@@ -9,7 +9,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import type { requestWithUser } from './jwt.strategy';
-import { UserService } from 'src/user/user.service';
+import { UserService } from '../users/user.service';
 
 export type authBody = { email: string; password: string };
 export type registerBody = {
@@ -26,6 +26,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly userService: UserService,
   ) {}
+
   @Post('login')
   async login(@Body() authBody: authBody) {
     return await this.authService.login({ authBody });
