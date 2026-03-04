@@ -1,4 +1,10 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiTags, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { RolesGuard } from '../auth/roles.guard';
@@ -7,6 +13,7 @@ import { UserRole } from '../../shared/types/roles.enum';
 import {
   DashboardSummaryQueryDto,
   DashboardSummaryResponseDto,
+  DashboardSummaryQuerySchema,
 } from './dto/dashboard-summary.dto';
 
 @ApiTags('Dashboard')
@@ -33,9 +40,16 @@ export class DashboardController {
     description: 'End date (YYYY-MM-DD)',
   })
   @ApiResponse({ status: 200, type: DashboardSummaryResponseDto })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
   async getSummary(
     @Query() query: DashboardSummaryQueryDto,
   ): Promise<DashboardSummaryResponseDto> {
-    return this.dashboardService.getSummary(query);
+    const result = DashboardSummaryQuerySchema.safeParse(query);
+    if (!result.success) {
+      throw new BadRequestException(
+        'Validation failed: ' + JSON.stringify(result.error.issues),
+      );
+    }
+    return this.dashboardService.getSummary(result.data);
   }
 }

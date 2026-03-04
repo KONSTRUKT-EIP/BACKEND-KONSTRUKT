@@ -20,22 +20,10 @@ export class DashboardService {
       if (query.startDate || query.endDate) {
         const dateFilter: { gte?: Date; lte?: Date } = {};
         if (query.startDate) {
-          const startDate = new Date(query.startDate);
-          if (isNaN(startDate.getTime())) {
-            throw new Error(
-              `Invalid startDate format: ${query.startDate}. Expected format: YYYY-MM-DD`,
-            );
-          }
-          dateFilter.gte = startDate;
+          dateFilter.gte = new Date(query.startDate);
         }
         if (query.endDate) {
-          const endDate = new Date(query.endDate);
-          if (isNaN(endDate.getTime())) {
-            throw new Error(
-              `Invalid endDate format: ${query.endDate}. Expected format: YYYY-MM-DD`,
-            );
-          }
-          dateFilter.lte = endDate;
+          dateFilter.lte = new Date(query.endDate);
         }
         usageQuery.where = { date: dateFilter };
       }

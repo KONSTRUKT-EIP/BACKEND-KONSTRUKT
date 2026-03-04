@@ -72,7 +72,6 @@ describe('DashboardService Integration', () => {
   it('should return summary with mocked data', async () => {
     const query: DashboardSummaryQueryDto = {};
     const result = await service.getSummary(query);
-    
     expect(result.globalProgress).toBeDefined();
     expect(result.globalSpent).toBeDefined();
     expect(result.categories.length).toBe(4);

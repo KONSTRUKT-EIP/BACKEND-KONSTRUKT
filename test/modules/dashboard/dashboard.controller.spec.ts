@@ -52,4 +52,22 @@ describe('DashboardController', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(service.getSummary).toHaveBeenCalledWith(query);
   });
+
+  it('should validate date format', async () => {
+    const query: DashboardSummaryQueryDto = {
+      startDate: 'invalid-date',
+    };
+    await expect(controller.getSummary(query)).rejects.toThrow();
+  });
+
+  it('should accept valid date format', async () => {
+    const query: DashboardSummaryQueryDto = {
+      startDate: '2024-01-01',
+      endDate: '2024-12-31',
+    };
+    const result = await controller.getSummary(query);
+    expect(result).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(service.getSummary).toHaveBeenCalledWith(query);
+  });
 });

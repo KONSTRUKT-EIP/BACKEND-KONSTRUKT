@@ -1,9 +1,17 @@
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
 
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
 export const DashboardSummaryQuerySchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z
+    .string()
+    .regex(dateRegex, 'Date must be in YYYY-MM-DD format')
+    .optional(),
+  endDate: z
+    .string()
+    .regex(dateRegex, 'Date must be in YYYY-MM-DD format')
+    .optional(),
 });
 
 export class DashboardSummaryQueryDto {
