@@ -12,7 +12,6 @@ export class AuthService {
         const { email, password } = authBody;
 
         const hashedPassword = await this.hashPassword(password);
-        console.log('Hashed password:', hashedPassword, password);
 
         const existingUser = await this.prisma.user.findUnique({
             where: {

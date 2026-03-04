@@ -36,7 +36,7 @@ export class UserController {
       result.data;
     return this.userService.create({
       email,
-      passwordHash: password,
+      password: password,
       role,
       firstName,
       lastName,
