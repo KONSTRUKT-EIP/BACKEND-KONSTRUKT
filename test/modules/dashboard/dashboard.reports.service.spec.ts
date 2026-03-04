@@ -31,7 +31,7 @@ describe('DashboardService (reports)', () => {
     const result = await service.getReports(query);
     expect(result.kpiCards).toEqual([
       { label: 'Voiles', percentage: 50, spent: 5000 },
-      { label: 'Planchers', percentage: 40, spent: 2000 },
+      { label: 'Planchers', percentage: 20, spent: 2000 },
     ]);
     expect(result.totalBudget).toBe(20000);
     expect(result.totalSpent).toBe(7000);
