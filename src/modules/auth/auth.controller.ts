@@ -29,7 +29,10 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({ summary: 'User login' })
-  @ApiResponse({ status: 200, description: 'Login successful, returns JWT access token.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful, returns JWT access token.',
+  })
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   async login(@Body() dto: LoginDto) {
     return await this.authService.login(dto);
@@ -37,7 +40,10 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
-  @ApiResponse({ status: 201, description: 'User registered, returns JWT access token.' })
+  @ApiResponse({
+    status: 201,
+    description: 'User registered, returns JWT access token.',
+  })
   @ApiResponse({ status: 401, description: 'Email already in use.' })
   async register(@Body() dto: RegisterDto) {
     return await this.authService.register(dto);
