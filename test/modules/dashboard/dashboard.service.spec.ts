@@ -4,6 +4,27 @@ import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/dashboard-summary.dto';
 
 describe('DashboardService', () => {
+  describe('getArmatureAnalytics', () => {
+    it('should return analytics data with correct structure', async () => {
+      mockResourceFindMany.mockResolvedValue([
+        { id: 1, name: 'Voiles', quantity: 10, unitPrice: 5 },
+        { id: 2, name: 'Planchers', quantity: 20, unitPrice: 2 },
+      ]);
+      mockResourceUsageFindMany.mockResolvedValue([
+        { resourceId: 1, quantity: 2, date: new Date('2024-01-01') },
+        { resourceId: 2, quantity: 5, date: new Date('2024-01-02') },
+      ]);
+      const query = { startDate: '2024-01-01', endDate: '2024-12-31' };
+      const result = await service.getArmatureAnalytics(query);
+      expect(result).toHaveProperty('kpiCards');
+      expect(result).toHaveProperty('chartData');
+      expect(result).toHaveProperty('filters');
+      expect(result).toHaveProperty('donutChart');
+      expect(result).toHaveProperty('totalBudget');
+      expect(result).toHaveProperty('totalSpent');
+      expect(result).toHaveProperty('overallPercentage');
+    });
+  });
   let service: DashboardService;
   let mockResourceFindMany: jest.Mock;
   let mockResourceUsageFindMany: jest.Mock;
