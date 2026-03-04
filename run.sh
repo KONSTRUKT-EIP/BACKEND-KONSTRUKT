@@ -34,6 +34,16 @@ elif [ "$1" = "clean" ]; then
 elif [ "$1" = "cs" ]; then
   echo "[Konstrukt BACKEND] Lint du code avec ESLint..."
   npx eslint 'src/**/*.ts'
+elif [ "$1" = "cs:fix" ]; then
+  echo "[Konstrukt BACKEND] Correction automatique du coding style..."
+  npx eslint 'src/**/*.ts' --fix
+  echo "[Konstrukt BACKEND] Vérification que la compilation TypeScript est toujours valide..."
+  if npx tsc --noEmit; then
+    echo "[Konstrukt BACKEND] Coding style corrigé et compilation OK."
+  else
+    echo "[Konstrukt BACKEND] ESLint a introduit des erreurs de compilation. Vérification des changements..."
+    exit 1
+  fi
 elif [ "$1" = "test" ]; then
   echo "[Konstrukt BACKEND] Exécution des tests..."
   npm test
@@ -52,6 +62,6 @@ elif [ "$1" = "stop" ]; then
   fi
   echo "[Konstrukt BACKEND] Tous les services sont arrêtés"
 else
-  echo "Usage: ./run.sh backend | build | clean | cs | test | test:e2e | test:cov | stop"
+  echo "Usage: ./run.sh backend | build | clean | cs | cs:fix | test | test:e2e | test:cov | stop"
   exit 1
 fi

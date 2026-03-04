@@ -44,7 +44,7 @@ describe('UserService', () => {
     it('should create a user', async () => {
       const createUserDto: CreateUserDto = {
         email: 'test@example.com',
-        passwordHash: 'hashedPassword123',
+        password: 'hashedPassword123',
         role: UserRole.ADMIN,
         firstName: 'John',
         lastName: 'Doe',
@@ -65,7 +65,7 @@ describe('UserService', () => {
       expect(mockPrismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: createUserDto.email,
-          passwordHash: createUserDto.passwordHash,
+          password: createUserDto.password,
           role: createUserDto.role,
           firstName: createUserDto.firstName,
           lastName: createUserDto.lastName,

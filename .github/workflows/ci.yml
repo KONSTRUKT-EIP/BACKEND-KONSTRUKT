@@ -57,6 +57,8 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     environment: BACKEND
+    env:
+      DATABASE_URL: postgresql://konstrukt:konstrukt@localhost:5432/konstrukt
     needs: build
     steps:
       - name: Checkout repository
@@ -67,8 +69,8 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm ci
-      - name: Export DATABASE_URL
-        run: echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+      - name: Run database migrations
+        run: npx prisma migrate deploy
       - name: Run Unit Tests (TU)
         run: npm run test
       - name: Run Integration Tests (TI)
