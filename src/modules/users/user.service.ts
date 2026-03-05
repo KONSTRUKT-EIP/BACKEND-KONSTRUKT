@@ -26,7 +26,7 @@ export class UserService {
   }
 
   async getUser({ userId }: { userId: string }) {
-    return this.prisma.user.findMany({
+    return this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -47,7 +47,7 @@ export class UserService {
     firstName: string;
     lastName: string;
     role?: UserRole;
-    organizationId: string;
+    organizationId?: string;
   }) {
     const password = await bcrypt.hash(data.password, 10);
     return this.prisma.user.create({
@@ -57,7 +57,9 @@ export class UserService {
         firstName: data.firstName,
         lastName: data.lastName,
         role: data.role ?? UserRole.OUVRIER,
-        organization: { connect: { id: data.organizationId } },
+        ...(data.organizationId && {
+          organization: { connect: { id: data.organizationId } },
+        }),
       },
     });
   }
