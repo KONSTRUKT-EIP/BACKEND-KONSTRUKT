@@ -35,6 +35,32 @@ describe('DashboardController (e2e)', () => {
     await app.init();
   });
 
+  it('/dashboard/armature/analytics (GET) should return analytics data', async () => {
+    interface AnalyticsResponse {
+      kpiCards: any[];
+      chartData: any[];
+      filters: any[];
+      donutChart: { data: any[] };
+      totalBudget: number;
+      totalSpent: number;
+      overallPercentage: number;
+    }
+    const response = await request(app.getHttpServer())
+      .get(
+        '/dashboard/armature/analytics?startDate=2024-01-01&endDate=2024-12-31',
+      )
+      .set('Authorization', 'Bearer test-token')
+      .expect(200);
+    const responseBody = response.body as AnalyticsResponse;
+    expect(responseBody).toHaveProperty('kpiCards');
+    expect(responseBody).toHaveProperty('chartData');
+    expect(responseBody).toHaveProperty('filters');
+    expect(responseBody).toHaveProperty('donutChart');
+    expect(responseBody).toHaveProperty('totalBudget');
+    expect(responseBody).toHaveProperty('totalSpent');
+    expect(responseBody).toHaveProperty('overallPercentage');
+  });
+
   it('/dashboard/armature/orders/recent (GET) should return recent orders', async () => {
     interface Order {
       id: string;

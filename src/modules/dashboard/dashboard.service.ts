@@ -132,6 +132,12 @@ export class DashboardService {
   async getReports(
     query: ArmatureReportsQueryDto,
   ): Promise<ArmatureReportsResponseDto> {
+    return this.getArmatureAnalytics(query);
+  }
+
+  async getArmatureAnalytics(
+    query: ArmatureReportsQueryDto,
+  ): Promise<ArmatureReportsResponseDto> {
     try {
       const parsedCategories: string[] =
         typeof query.categories === 'string'
@@ -257,7 +263,7 @@ export class DashboardService {
         overallPercentage,
       };
     } catch (error) {
-      console.error('Error in getReports:', error);
+      console.error('Error in getArmatureAnalytics:', error);
       throw error;
     }
   }

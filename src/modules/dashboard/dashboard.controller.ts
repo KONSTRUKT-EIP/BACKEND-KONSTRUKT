@@ -104,6 +104,50 @@ export class DashboardController {
     return await this.dashboardService.getReports(result.data);
   }
 
+  @Get('analytics')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    example: '2024-01-01',
+    description: 'Start date (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    example: '2024-12-31',
+    description: 'End date (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'categories',
+    required: false,
+    type: String,
+    example: 'voiles,planchers',
+    description: 'Comma-separated list of categories to filter',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Analytics data',
+    type: ArmatureReportsResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async getArmatureAnalytics(
+    @Query() query: ArmatureReportsQueryDto,
+  ): Promise<ArmatureReportsResponseDto> {
+    const result = ArmatureReportsQuerySchema.safeParse(query);
+    if (!result.success) {
+      throw new BadRequestException(
+        'Validation failed: ' + JSON.stringify(result.error.issues),
+      );
+    }
+    return await this.dashboardService.getArmatureAnalytics(result.data);
+  }
+
   @Get('orders/recent')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
