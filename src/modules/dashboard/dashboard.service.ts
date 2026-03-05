@@ -40,11 +40,16 @@ export class DashboardService {
       }
       const usages = await this.prisma.resourceUsage.findMany(usageQuery);
 
-      const categories = ['Voiles', 'Planchers', 'Poutres', 'Superstructure'];
+      const categories = [
+        { id: 1, name: 'Voiles' },
+        { id: 2, name: 'Planchers' },
+        { id: 3, name: 'Poutres' },
+        { id: 4, name: 'Superstructure' },
+      ];
 
       const categoryKpis: CategoryKpiDto[] = categories.map((cat) => {
         const catResources = resources.filter((r) =>
-          r.name.toLowerCase().includes(cat.toLowerCase()),
+          r.name.toLowerCase().includes(cat.name.toLowerCase()),
         );
         const catUsages = usages.filter((u) =>
           catResources.some((r) => r.id === u.resourceId),
@@ -64,7 +69,7 @@ export class DashboardService {
               100,
           ),
         );
-        return { name: cat, progress, spent };
+        return { id: cat.id, name: cat.name, progress, spent };
       });
 
       const globalProgress = Math.round(

@@ -32,6 +32,9 @@ export class DashboardSummaryQueryDto {
 
 export class CategoryKpiDto {
   @ApiProperty()
+  id: number;
+
+  @ApiProperty()
   name: string;
 
   @ApiProperty()

@@ -10,6 +10,7 @@ import { DashboardService } from './dashboard.service';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   DashboardSummaryQueryDto,
   DashboardSummaryResponseDto,
@@ -34,7 +35,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('summary')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiQuery({
     name: 'startDate',
@@ -65,7 +66,7 @@ export class DashboardController {
   }
 
   @Get('reports')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiQuery({
     name: 'startDate',
