@@ -1,9 +1,11 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 
 export type userPayload = {
   userId: string;
+  role: UserRole;
 };
 export type requestWithUser = { user: userPayload };
 
@@ -17,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: userPayload) {
-    return { userId: payload.userId };
+  validate(payload: userPayload): userPayload {
+    return { userId: payload.userId, role: payload.role };
   }
 }

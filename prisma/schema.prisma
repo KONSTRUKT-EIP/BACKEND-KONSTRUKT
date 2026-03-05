@@ -111,14 +111,27 @@ model User {
 	createdAt      DateTime     @default(now())
 
 	organization  Organization?  @relation(fields: [organizationId], references: [id])
-	uploadedDocs  Document[]    @relation("DocumentUploadedBy")
-	reports       Report[]      @relation("ReportGeneratedBy")
-	assignedTasks Task[]        @relation("TaskAssignedTo")
-	taskProgress  TaskProgress[]
-	resourceUsage ResourceUsage[]
-	workforce     WorkforceEntry[] @relation("WorkforceEntryWorker")
+	uploadedDocs   Document[]      @relation("DocumentUploadedBy")
+	reports        Report[]        @relation("ReportGeneratedBy")
+	assignedTasks  Task[]          @relation("TaskAssignedTo")
+	taskProgress   TaskProgress[]
+	resourceUsage  ResourceUsage[]
+	workforce      WorkforceEntry[] @relation("WorkforceEntryWorker")
+	refreshTokens  RefreshToken[]
 
 	@@index([organizationId])
+}
+
+model RefreshToken {
+	id        String   @id @default(uuid()) @db.Uuid
+	userId    String   @db.Uuid
+	token     String   @unique
+	expiresAt DateTime
+	createdAt DateTime @default(now())
+
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+	@@index([userId])
 }
 
 model Site {
