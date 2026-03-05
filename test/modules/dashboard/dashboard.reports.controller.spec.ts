@@ -6,6 +6,7 @@ import { RolesGuard } from '../../../src/modules/auth/roles.guard';
 
 describe('DashboardController (reports)', () => {
   let controller: DashboardController;
+  let service: DashboardService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
