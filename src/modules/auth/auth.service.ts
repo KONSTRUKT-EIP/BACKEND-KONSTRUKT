@@ -14,6 +14,7 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
+    console.log('[LOGIN] Tentative:', dto);
     const existingUser = await this.userService.findByEmail(dto.email);
 
     if (!existingUser) {
@@ -28,6 +29,7 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
+    console.log('[REGISTER] Tentative:', dto);
     const existingUser = await this.userService.findByEmail(dto.email);
 
     if (existingUser) {
