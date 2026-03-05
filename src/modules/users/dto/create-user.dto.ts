@@ -6,5 +6,5 @@ export class CreateUserDto {
   role: UserRole;
   firstName: string;
   lastName: string;
-  organizationId: string;
+  organizationId?: string;
 }

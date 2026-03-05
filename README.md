@@ -33,6 +33,11 @@ npm run db:generate
 npm run db:migrate -- --name init
 ```
 
+5. Appliquer les migrations en attente (ex: après un `git pull`) :
+```bash
+npx prisma migrate deploy
+```
+
 ## Lancer le serveur en développement 🚀
 ```bash
 npm run start:dev

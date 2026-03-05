@@ -7,7 +7,7 @@ export const createUserSchema = z.object({
   role: z.nativeEnum(UserRole),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  organizationId: z.string().uuid(),
+  organizationId: z.string().uuid().optional(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

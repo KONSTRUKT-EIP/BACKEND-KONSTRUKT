@@ -10,7 +10,7 @@ describe('DashboardService (reports)', () => {
     prisma = {
       resource: { findMany: jest.fn() },
       resourceUsage: { findMany: jest.fn() },
-    } as Partial<PrismaService> as PrismaService;
+    } as unknown as PrismaService;
     service = new DashboardService(prisma);
   });
 

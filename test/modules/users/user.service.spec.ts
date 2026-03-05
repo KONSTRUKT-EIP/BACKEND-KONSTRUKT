@@ -8,6 +8,17 @@ import { UpdateUserDto } from '../../../src/modules/users/dto/update-user.dto';
 describe('UserService', () => {
   let service: UserService;
 
+  const userSelect = {
+    id: true,
+    email: true,
+    firstName: true,
+    lastName: true,
+    role: true,
+    organizationId: true,
+    createdAt: true,
+    password: false,
+  };
+
   const mockPrismaService = {
     user: {
       create: jest.fn(),
@@ -15,7 +26,9 @@ describe('UserService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -53,7 +66,11 @@ describe('UserService', () => {
 
       const expectedUser = {
         id: '123e4567-e89b-12d3-a456-426614174001',
-        ...createUserDto,
+        email: createUserDto.email,
+        role: createUserDto.role,
+        firstName: createUserDto.firstName,
+        lastName: createUserDto.lastName,
+        organizationId: createUserDto.organizationId,
         createdAt: new Date(),
       };
 
@@ -65,7 +82,7 @@ describe('UserService', () => {
       expect(mockPrismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: createUserDto.email,
-          password: createUserDto.password,
+          password: expect.stringMatching(/^\$2b\$/),
           role: createUserDto.role,
           firstName: createUserDto.firstName,
           lastName: createUserDto.lastName,
@@ -73,6 +90,7 @@ describe('UserService', () => {
             connect: { id: createUserDto.organizationId },
           },
         },
+        select: userSelect,
       });
     });
   });
@@ -102,12 +120,13 @@ describe('UserService', () => {
         },
       ];
 
-      mockPrismaService.user.findMany.mockResolvedValue(expectedUsers);
+      const total = 2;
+      mockPrismaService.$transaction.mockResolvedValue([expectedUsers, total]);
 
-      const result = await service.findAll();
+      const result = await service.findAll(1, 20);
 
-      expect(result).toEqual(expectedUsers);
-      expect(mockPrismaService.user.findMany).toHaveBeenCalled();
+      expect(result).toEqual({ data: expectedUsers, total, page: 1, limit: 20 });
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
     });
   });
 
@@ -132,6 +151,7 @@ describe('UserService', () => {
       expect(result).toEqual(expectedUser);
       expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
         where: { id: userId },
+        select: userSelect,
       });
     });
   });
@@ -167,6 +187,7 @@ describe('UserService', () => {
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { id: userId },
         data: updateUserDto,
+        select: userSelect,
       });
     });
   });
@@ -189,7 +210,7 @@ describe('UserService', () => {
 
       const result = await service.remove(userId);
 
-      expect(result).toEqual(expectedUser);
+      expect(result).toEqual({ message: `User ${userId} deleted` });
       expect(mockPrismaService.user.delete).toHaveBeenCalledWith({
         where: { id: userId },
       });

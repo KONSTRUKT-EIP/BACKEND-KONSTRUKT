@@ -12,7 +12,9 @@ const mockPrismaService = {
     findUnique: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
   },
+  $transaction: jest.fn(),
   $connect: jest.fn(),
   $disconnect: jest.fn(),
 };
@@ -42,7 +44,7 @@ describe('App (e2e)', () => {
   });
 
   it('/users (GET) should return 200', () => {
-    mockPrismaService.user.findMany.mockResolvedValue([]);
+    mockPrismaService.$transaction.mockResolvedValue([[], 0]);
     return request(app.getHttpServer()).get('/users').expect(200);
   });
 });
