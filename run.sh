@@ -53,6 +53,14 @@ elif [ "$1" = "test:e2e" ]; then
 elif [ "$1" = "test:cov" ]; then
   echo "[Konstrukt BACKEND] Exécution des tests avec couverture..."
   npm run test:cov
+elif [ "$1" = "test:all" ]; then
+  echo "[Konstrukt BACKEND] === Étape 1/3 : Tests unitaires ==="
+  npm test
+  echo "[Konstrukt BACKEND] === Étape 2/3 : Tests e2e ==="
+  npm run test:e2e
+  echo "[Konstrukt BACKEND] === Étape 3/3 : Tests avec couverture ==="
+  npm run test:cov
+  echo "[Konstrukt BACKEND] Tous les tests sont passés avec succès."
 elif [ "$1" = "stop" ]; then
   echo "[Konstrukt BACKEND] Arrêt de tous les services Docker Compose..."
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
@@ -62,6 +70,6 @@ elif [ "$1" = "stop" ]; then
   fi
   echo "[Konstrukt BACKEND] Tous les services sont arrêtés"
 else
-  echo "Usage: ./run.sh backend | build | clean | cs | cs:fix | test | test:e2e | test:cov | stop"
+  echo "Usage: ./run.sh backend | build | clean | cs | cs:fix | test | test:e2e | test:cov | test:all | stop"
   exit 1
 fi

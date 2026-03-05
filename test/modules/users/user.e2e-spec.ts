@@ -16,7 +16,9 @@ describe('UserController (e2e)', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -136,17 +138,18 @@ describe('UserController (e2e)', () => {
         },
       ];
 
-      mockPrismaService.user.findMany.mockResolvedValue(expectedUsers);
+      mockPrismaService.$transaction.mockResolvedValue([expectedUsers, 2]);
 
       return request(app.getHttpServer())
         .get('/users')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveLength(2);
-          expect((res.body as Array<{ email: string }>)[0].email).toBe(
+          const body = res.body as { data: Array<{ email: string }> };
+          expect(body.data).toHaveLength(2);
+          expect(body.data[0].email).toBe(
             'user1@example.com',
           );
-          expect((res.body as Array<{ email: string }>)[1].email).toBe(
+          expect(body.data[1].email).toBe(
             'user2@example.com',
           );
         });
@@ -238,7 +241,9 @@ describe('UserController (e2e)', () => {
         .delete(`/users/${userId}`)
         .expect(200)
         .expect((res) => {
-          expect((res.body as { id: string }).id).toBe(userId);
+          expect((res.body as { message: string }).message).toBe(
+            `User ${userId} deleted`,
+          );
         });
     });
   });
