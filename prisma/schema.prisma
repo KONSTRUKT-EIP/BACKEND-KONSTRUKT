@@ -102,7 +102,7 @@ model Organization {
 
 model User {
 	id             String       @id @default(uuid()) @db.Uuid
-	organizationId String       @db.Uuid
+	organizationId String?      @db.Uuid
 	email          String       @unique
 	password   String
 	role           UserRole
@@ -110,7 +110,7 @@ model User {
 	lastName       String
 	createdAt      DateTime     @default(now())
 
-	organization  Organization  @relation(fields: [organizationId], references: [id])
+	organization  Organization?  @relation(fields: [organizationId], references: [id])
 	uploadedDocs  Document[]    @relation("DocumentUploadedBy")
 	reports       Report[]      @relation("ReportGeneratedBy")
 	assignedTasks Task[]        @relation("TaskAssignedTo")
