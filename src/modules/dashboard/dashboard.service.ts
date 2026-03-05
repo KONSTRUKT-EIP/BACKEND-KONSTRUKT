@@ -15,6 +15,8 @@ import {
   AnalyticsDonutDto,
   DonutDataPointDto,
 } from './dto/armature-reports.dto';
+import { RecentOrdersQueryDto } from './dto/recent-orders.query.dto';
+import { RecentOrdersResponseDto, OrderDto } from './dto/recent-orders.dto';
 
 @Injectable()
 export class DashboardService {
@@ -82,7 +84,58 @@ export class DashboardService {
     }
   }
 
+  async getRecentOrders(
+    query: RecentOrdersQueryDto,
+  ): Promise<RecentOrdersResponseDto> {
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 10;
+
+    const where: Prisma.DeliveryFindManyArgs['where'] = {};
+
+    if (query.startDate || query.endDate) {
+      const dateFilter: { gte?: Date; lte?: Date } = {};
+      if (query.startDate) {
+        dateFilter.gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.lte = endDate;
+      }
+      where.createdAt = dateFilter;
+    }
+
+    const deliveries = await this.prisma.delivery.findMany({
+      where,
+      include: {
+        resource: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+
+    const orders: OrderDto[] = deliveries.map((delivery) => ({
+      id: delivery.id,
+      productName: delivery.resource.name,
+      productIcon: '',
+      price: Number(delivery.resource.unitPrice),
+      totalOrder: Number(delivery.quantity),
+      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+    }));
+
+    return { orders };
+  }
+
   async getReports(
+    query: ArmatureReportsQueryDto,
+  ): Promise<ArmatureReportsResponseDto> {
+    return this.getArmatureAnalytics(query);
+  }
+
+  async getArmatureAnalytics(
     query: ArmatureReportsQueryDto,
   ): Promise<ArmatureReportsResponseDto> {
     try {
@@ -210,7 +263,7 @@ export class DashboardService {
         overallPercentage,
       };
     } catch (error) {
-      console.error('Error in getReports:', error);
+      console.error('Error in getArmatureAnalytics:', error);
       throw error;
     }
   }

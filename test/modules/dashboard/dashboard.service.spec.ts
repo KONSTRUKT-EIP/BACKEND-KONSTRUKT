@@ -4,13 +4,36 @@ import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/dashboard-summary.dto';
 
 describe('DashboardService', () => {
+  describe('getArmatureAnalytics', () => {
+    it('should return analytics data with correct structure', async () => {
+      mockResourceFindMany.mockResolvedValue([
+        { id: 1, name: 'Voiles', quantity: 10, unitPrice: 5 },
+        { id: 2, name: 'Planchers', quantity: 20, unitPrice: 2 },
+      ]);
+      mockResourceUsageFindMany.mockResolvedValue([
+        { resourceId: 1, quantity: 2, date: new Date('2024-01-01') },
+        { resourceId: 2, quantity: 5, date: new Date('2024-01-02') },
+      ]);
+      const query = { startDate: '2024-01-01', endDate: '2024-12-31' };
+      const result = await service.getArmatureAnalytics(query);
+      expect(result).toHaveProperty('kpiCards');
+      expect(result).toHaveProperty('chartData');
+      expect(result).toHaveProperty('filters');
+      expect(result).toHaveProperty('donutChart');
+      expect(result).toHaveProperty('totalBudget');
+      expect(result).toHaveProperty('totalSpent');
+      expect(result).toHaveProperty('overallPercentage');
+    });
+  });
   let service: DashboardService;
   let mockResourceFindMany: jest.Mock;
   let mockResourceUsageFindMany: jest.Mock;
+  let mockDeliveryFindMany: jest.Mock;
 
   beforeEach(async () => {
     mockResourceFindMany = jest.fn();
     mockResourceUsageFindMany = jest.fn();
+    mockDeliveryFindMany = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -20,12 +43,38 @@ describe('DashboardService', () => {
           useValue: {
             resource: { findMany: mockResourceFindMany },
             resourceUsage: { findMany: mockResourceUsageFindMany },
+            delivery: { findMany: mockDeliveryFindMany },
           },
         },
       ],
     }).compile();
 
     service = module.get<DashboardService>(DashboardService);
+  });
+
+  describe('getRecentOrders', () => {
+    it('should return mock orders with correct structure', async () => {
+      const query = { page: 1, pageSize: 10 };
+      mockDeliveryFindMany.mockResolvedValue([
+        {
+          id: 'order_1',
+          createdAt: new Date(),
+          quantity: 3,
+          resource: {
+            name: 'Armature 12mm',
+            unitPrice: 120,
+          },
+        },
+      ]);
+      const result = await service.getRecentOrders(query);
+      expect(result.orders).toBeInstanceOf(Array);
+      expect(result.orders[0]).toHaveProperty('id');
+      expect(result.orders[0]).toHaveProperty('productName');
+      expect(result.orders[0]).toHaveProperty('productIcon');
+      expect(result.orders[0]).toHaveProperty('price');
+      expect(result.orders[0]).toHaveProperty('totalOrder');
+      expect(result.orders[0]).toHaveProperty('total');
+    });
   });
 
   it('should be defined', () => {

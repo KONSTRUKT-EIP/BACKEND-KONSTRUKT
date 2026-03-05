@@ -27,6 +27,21 @@ describe('DashboardController', () => {
                 ],
               }),
             ),
+            getRecentOrders: jest.fn(() =>
+              Promise.resolve({
+                orders: [
+                  {
+                    id: 'order_1',
+                    productName: 'Armature 12mm',
+                    productIcon:
+                      'https://cdn.konstrukt.com/icons/armature12.png',
+                    price: 120,
+                    totalOrder: 3,
+                    total: 360,
+                  },
+                ],
+              }),
+            ),
           },
         },
       ],
@@ -37,6 +52,20 @@ describe('DashboardController', () => {
 
     controller = module.get<DashboardController>(DashboardController);
     service = module.get<DashboardService>(DashboardService);
+  });
+
+  it('should return recent orders with correct structure', async () => {
+    const query = { page: 1, pageSize: 10 };
+    const result = await controller.getRecentOrders(query);
+    expect(result.orders).toBeInstanceOf(Array);
+    expect(result.orders[0]).toHaveProperty('id');
+    expect(result.orders[0]).toHaveProperty('productName');
+    expect(result.orders[0]).toHaveProperty('productIcon');
+    expect(result.orders[0]).toHaveProperty('price');
+    expect(result.orders[0]).toHaveProperty('totalOrder');
+    expect(result.orders[0]).toHaveProperty('total');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(service.getRecentOrders).toHaveBeenCalledWith(query);
   });
 
   it('should be defined', () => {
