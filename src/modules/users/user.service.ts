@@ -66,25 +66,48 @@ export class UserService {
 
   // --- CRUD methods ---
 
+  private readonly userSelect = {
+    id: true,
+    email: true,
+    firstName: true,
+    lastName: true,
+    role: true,
+    organizationId: true,
+    createdAt: true,
+    password: false,
+  } as const;
+
   async create(data: CreateUserDto) {
+    const password = await bcrypt.hash(data.password, 10);
     return this.prisma.user.create({
       data: {
         email: data.email,
-        password: data.password,
+        password,
         role: data.role,
         firstName: data.firstName,
         lastName: data.lastName,
-        organization: { connect: { id: data.organizationId } },
+        ...(data.organizationId && {
+          organization: { connect: { id: data.organizationId } },
+        }),
       },
+      select: this.userSelect,
     });
   }
 
-  async findAll() {
-    return this.prisma.user.findMany();
+  async findAll(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({ skip, take: limit, select: this.userSelect }),
+      this.prisma.user.count(),
+    ]);
+    return { data, total, page, limit };
   }
 
   async findOne(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: this.userSelect,
+    });
   }
 
   async findByEmail(email: string) {
@@ -92,10 +115,15 @@ export class UserService {
   }
 
   async update(id: string, data: UpdateUserDto) {
-    return this.prisma.user.update({ where: { id }, data });
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: this.userSelect,
+    });
   }
 
   async remove(id: string) {
-    return this.prisma.user.delete({ where: { id } });
+    await this.prisma.user.delete({ where: { id } });
+    return { message: `User ${id} deleted` };
   }
 }
