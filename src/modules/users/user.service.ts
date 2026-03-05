@@ -56,7 +56,7 @@ export class UserService {
         password,
         firstName: data.firstName,
         lastName: data.lastName,
-        role: data.role ?? UserRole.OUVRIER,
+        role: data.role ?? UserRole.ADMIN,
         ...(data.organizationId && {
           organization: { connect: { id: data.organizationId } },
         }),
