@@ -36,7 +36,8 @@ export class AuthController {
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({
     status: 200,
-    description: 'Login successful, returns JWT access token and refresh token.',
+    description:
+      'Login successful, returns JWT access token and refresh token.',
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   @ApiResponse({ status: 429, description: 'Too many requests.' })
@@ -64,7 +65,10 @@ export class AuthController {
     status: 200,
     description: 'Returns new access token and rotated refresh token.',
   })
-  @ApiResponse({ status: 401, description: 'Refresh token invalid or expired.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Refresh token invalid or expired.',
+  })
   async refresh(@Body() dto: RefreshTokenDto) {
     return await this.authService.refreshTokens(dto.refreshToken);
   }
@@ -85,7 +89,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Change password for the authenticated user' })
   @ApiResponse({ status: 200, description: 'Password changed successfully.' })
   @ApiResponse({ status: 400, description: 'Validation error.' })
-  @ApiResponse({ status: 401, description: 'Old password incorrect or unauthorized.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Old password incorrect or unauthorized.',
+  })
   async changePassword(
     @Request() request: requestWithUser,
     @Body() dto: ChangePasswordDto,
