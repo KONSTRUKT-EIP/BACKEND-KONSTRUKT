@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { RolesGuard } from '../../../src/modules/auth/roles.guard';
+import { JwtAuthGuard } from '../../../src/modules/auth/jwt-auth.guard';
 
 describe('DashboardController (e2e)', () => {
   let app: INestApplication<App>;
@@ -27,6 +28,8 @@ describe('DashboardController (e2e)', () => {
         $connect: jest.fn(),
         $disconnect: jest.fn(),
       })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
