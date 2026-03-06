@@ -56,7 +56,22 @@ describe('GenericTableService Integration', () => {
         ...tableDto,
         createdAt: new Date(),
         updatedAt: new Date(),
-        rows: [],
+        rows: [
+          {
+            id: rowId1,
+            tableId,
+            data: { name: 'Item 1', quantity: 10, price: 99.99 },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: rowId2,
+            tableId,
+            data: { name: 'Item 2', quantity: 5, price: 149.99 },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
       };
 
       (prisma.genericTable.create as jest.Mock).mockResolvedValue(mockTable);
@@ -107,8 +122,9 @@ describe('GenericTableService Integration', () => {
         mockRow2,
       ]);
 
-      // Fix: Mock findUnique before listRows
-      (prisma.genericTable.findUnique as jest.Mock).mockResolvedValue(mockTable);
+      (prisma.genericTable.findUnique as jest.Mock).mockResolvedValue(
+        mockTable,
+      );
 
       const allRows = await service.listRows(tableId);
       expect(allRows).toHaveLength(2);
