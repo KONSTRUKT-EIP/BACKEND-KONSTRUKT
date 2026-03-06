@@ -112,7 +112,7 @@ describe('UserService', () => {
           id: '123e4567-e89b-12d3-a456-426614174002',
           email: 'user2@example.com',
           passwordHash: 'hash2',
-          role: UserRole.VIEWER,
+          role: UserRole.COLLABORATEUR,
           firstName: 'Jane',
           lastName: 'Smith',
           organizationId: '123e4567-e89b-12d3-a456-426614174000',
