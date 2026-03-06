@@ -35,7 +35,11 @@ export class SiteController {
   @Get()
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Lister tous les chantiers' })
-  @ApiQuery({ name: 'organizationId', required: false, description: 'Filtrer par organisation' })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    description: 'Filtrer par organisation',
+  })
   @ApiResponse({ status: 200, description: 'Liste des chantiers' })
   findAll(@Query('organizationId') organizationId?: string) {
     return this.service.findAll(organizationId);

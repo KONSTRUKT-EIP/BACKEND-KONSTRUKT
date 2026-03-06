@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
-import { CreateSiteDto } from './dto/create-site.dto';
+import { CreateSiteDto, SiteStatus } from './dto/create-site.dto';
 import { UpdateSiteDto } from './dto/update-site.dto';
 
 @Injectable()
@@ -41,7 +41,7 @@ export class SiteService {
         postalCode: dto.postalCode,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : null,
-        status: dto.status as any,
+        status: dto.status as SiteStatus,
         budget: dto.budget,
       },
       include: { organization: { select: { id: true, name: true } } },
@@ -56,7 +56,7 @@ export class SiteService {
         ...dto,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-        status: dto.status as any,
+        status: dto.status as SiteStatus,
       },
     });
   }

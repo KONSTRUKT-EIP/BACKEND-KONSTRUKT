@@ -9,7 +9,10 @@ import {
 } from 'class-validator';
 
 export class CreateOrderDto {
-  @ApiProperty({ example: '00000000-0000-0000-0000-000000000010', description: 'Resource UUID' })
+  @ApiProperty({
+    example: '00000000-0000-0000-0000-000000000010',
+    description: 'Resource UUID',
+  })
   @IsUUID('4')
   resourceId: string;
 
@@ -18,11 +21,17 @@ export class CreateOrderDto {
   @Min(1)
   quantity: number;
 
-  @ApiProperty({ example: '00000000-0000-0000-0000-000000000003', description: 'Site UUID' })
+  @ApiProperty({
+    example: '00000000-0000-0000-0000-000000000003',
+    description: 'Site UUID',
+  })
   @IsUUID('4')
   siteId: string;
 
-  @ApiProperty({ example: '2026-04-15', description: 'Expected delivery date (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2026-04-15',
+    description: 'Expected delivery date (YYYY-MM-DD)',
+  })
   @IsDateString()
   expectedDate: string;
 

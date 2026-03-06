@@ -110,7 +110,11 @@ export class AuthController {
   @Patch('change-password')
   @ApiOperation({ summary: 'Change password for the authenticated user' })
   @ApiBody({ type: ChangePasswordDto })
-  @ApiResponse({ status: 200, description: 'Password changed successfully.', schema: { example: { message: 'Password changed successfully' } } })
+  @ApiResponse({
+    status: 200,
+    description: 'Password changed successfully.',
+    schema: { example: { message: 'Password changed successfully' } },
+  })
   @ApiResponse({ status: 400, description: 'Validation error.' })
   @ApiResponse({
     status: 401,

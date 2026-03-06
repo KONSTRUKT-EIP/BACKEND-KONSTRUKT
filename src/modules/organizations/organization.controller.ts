@@ -41,7 +41,7 @@ export class OrganizationController {
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Récupérer une organisation par ID' })
-  @ApiParam({ name: 'id', description: 'UUID de l\'organisation' })
+  @ApiParam({ name: 'id', description: "UUID de l'organisation" })
   @ApiResponse({ status: 200, description: 'Organisation trouvée' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   findOne(@Param('id') id: string) {
@@ -59,7 +59,7 @@ export class OrganizationController {
   @Put(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Mettre à jour une organisation' })
-  @ApiParam({ name: 'id', description: 'UUID de l\'organisation' })
+  @ApiParam({ name: 'id', description: "UUID de l'organisation" })
   @ApiResponse({ status: 200, description: 'Organisation mise à jour' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto) {
@@ -69,7 +69,7 @@ export class OrganizationController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Supprimer une organisation' })
-  @ApiParam({ name: 'id', description: 'UUID de l\'organisation' })
+  @ApiParam({ name: 'id', description: "UUID de l'organisation" })
   @ApiResponse({ status: 200, description: 'Organisation supprimée' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   remove(@Param('id') id: string) {

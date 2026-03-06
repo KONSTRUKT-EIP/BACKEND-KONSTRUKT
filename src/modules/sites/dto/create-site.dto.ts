@@ -5,7 +5,6 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsPostalCode,
   IsString,
   IsUUID,
   Min,
@@ -20,7 +19,10 @@ export enum SiteStatus {
 }
 
 export class CreateSiteDto {
-  @ApiProperty({ example: '00000000-0000-0000-0000-000000000001', description: "ID de l'organisation" })
+  @ApiProperty({
+    example: '00000000-0000-0000-0000-000000000001',
+    description: "ID de l'organisation",
+  })
   @IsUUID('4')
   organizationId: string;
 
@@ -44,11 +46,17 @@ export class CreateSiteDto {
   @IsNotEmpty()
   postalCode: string;
 
-  @ApiProperty({ example: '2026-01-01', description: 'Date de début (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2026-01-01',
+    description: 'Date de début (YYYY-MM-DD)',
+  })
   @IsDateString()
   startDate: string;
 
-  @ApiPropertyOptional({ example: '2026-12-31', description: 'Date de fin (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2026-12-31',
+    description: 'Date de fin (YYYY-MM-DD)',
+  })
   @IsOptional()
   @IsDateString()
   endDate?: string;

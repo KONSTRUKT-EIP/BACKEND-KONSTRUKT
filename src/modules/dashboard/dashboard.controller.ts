@@ -78,7 +78,9 @@ export class DashboardController {
   }
 
   @Get('resources')
-  @ApiOperation({ summary: 'List all available resources (for order creation)' })
+  @ApiOperation({
+    summary: 'List all available resources (for order creation)',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of resources',
