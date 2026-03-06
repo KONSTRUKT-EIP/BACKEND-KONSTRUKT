@@ -1,11 +1,11 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../shared/types/roles.enum';
 
 export type userPayload = {
   userId: string;
-  role: UserRole;
+  role?: UserRole;
 };
 export type requestWithUser = { user: userPayload };
 

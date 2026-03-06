@@ -13,8 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import { userPayload } from './jwt.strategy';
 import { UserService } from '../users/user.service';
 import { PrismaService } from '../../lib/prisma/prisma.service';
-import { randomBytes } from 'crypto';
-import { UserRole } from '@prisma/client';
+import { randomBytes, createHash } from 'crypto';
+import { UserRole } from '../../shared/types/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -65,8 +65,9 @@ export class AuthService {
   }
 
   async refreshTokens(token: string) {
+    const tokenHash = createHash('sha256').update(token).digest('hex');
     const stored = await this.prisma.refreshToken.findUnique({
-      where: { token },
+      where: { tokenHash },
     });
 
     if (!stored || stored.expiresAt < new Date()) {
@@ -79,12 +80,12 @@ export class AuthService {
     // Token rotation: delete the old token
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
 
-    const user = await this.userService.findByEmail(
-      (await this.userService.getUser({ userId: stored.userId }))!.email,
-    );
+    const user = await this.prisma.user.findUnique({
+      where: { id: stored.userId },
+    });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new UnauthorizedException('Refresh token invalid or expired');
     }
 
     return this.authenticateUser({ userId: user.id, role: user.role });
@@ -114,7 +115,10 @@ export class AuthService {
       data: { password: hashedPassword },
     });
 
-    this.logger.log(`[CHANGE_PASSWORD] Password updated for user: ${userId}`);
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+    this.logger.log(
+      `[CHANGE_PASSWORD] Password updated and refresh tokens revoked for user: ${userId}`,
+    );
     return { message: 'Password changed successfully' };
   }
 
@@ -129,10 +133,11 @@ export class AuthService {
     const access_token = await this.jwtService.signAsync(payload);
 
     const refreshToken = randomBytes(64).toString('hex');
+    const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await this.prisma.refreshToken.create({
-      data: { userId, token: refreshToken, expiresAt },
+      data: { userId, tokenHash, expiresAt },
     });
 
     return { access_token, refresh_token: refreshToken };

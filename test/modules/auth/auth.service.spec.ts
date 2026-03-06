@@ -151,6 +151,7 @@ describe('AuthService', () => {
     it('should return new tokens on valid refresh token', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(mockRefreshToken);
       prisma.refreshToken.delete.mockResolvedValue(mockRefreshToken);
+      prisma.user.findUnique.mockResolvedValue(mockUser);
       (userService.getUser as jest.Mock).mockResolvedValue(mockUser);
       (userService.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
