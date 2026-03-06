@@ -6,12 +6,21 @@ set -e
 
 if [ "$1" = "backend" ]; then
   echo "[Konstrukt BACKEND] Démarrage du backend et de la base Postgres via Docker Compose..."
-  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    docker compose up -d --build
-  elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose up -d --build
+  if [ "$2" = "--no-build" ]; then
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+      docker compose up -d
+    elif command -v docker-compose >/dev/null 2>&1; then
+      docker-compose up -d
+    fi
+    echo "[Konstrukt BACKEND] Les services sont lancés (sans rebuild)"
+  else
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+      docker compose up -d --build
+    elif command -v docker-compose >/dev/null 2>&1; then
+      docker-compose up -d --build
+    fi
+    echo "[Konstrukt BACKEND] Les services sont lancés (avec rebuild)"
   fi
-  echo "[Konstrukt BACKEND] Les services sont lancés"
   echo "[Konstrukt BACKEND] Accès API : http://localhost:3000"
   echo "[Konstrukt BACKEND] Accès DB : postgresql://konstrukt:konstrukt@localhost:5432/konstrukt"
   echo "[Konstrukt BACKEND] Pour arrêter les services : ./run.sh stop"
