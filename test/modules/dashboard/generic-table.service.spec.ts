@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { GenericTableService } from '../../../src/modules/dashboard/generic-table.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { CreateGenericTableDto } from '../../../src/modules/dashboard/dto/create-generic-table.dto';
 import { UpdateGenericTableDto } from '../../../src/modules/dashboard/dto/update-generic-table.dto';
 import { CreateGenericTableRowDto } from '../../../src/modules/dashboard/dto/create-generic-table-row.dto';
 import { UpdateGenericTableRowDto } from '../../../src/modules/dashboard/dto/update-generic-table-row.dto';
+import { Prisma } from '@prisma/client';
 
 describe('GenericTableService', () => {
   let service: GenericTableService;
@@ -91,6 +93,15 @@ describe('GenericTableService', () => {
         include: { rows: true },
       });
     });
+
+    it('should throw NotFoundException when table not found', async () => {
+      const tableId = '550e8400-e29b-41d4-a716-446655440099';
+      jest.spyOn(prisma.genericTable, 'findUnique').mockResolvedValueOnce(null);
+
+      await expect(service.getTable(tableId)).rejects.toThrow(
+        new NotFoundException(`Table with ID ${tableId} not found`),
+      );
+    });
   });
 
   describe('updateTable', () => {
@@ -109,6 +120,23 @@ describe('GenericTableService', () => {
         data: dto,
       });
     });
+
+    it('should throw NotFoundException when table not found', async () => {
+      const tableId = '550e8400-e29b-41d4-a716-446655440099';
+      const dto: UpdateGenericTableDto = { name: 'Updated' };
+      const error = new Prisma.PrismaClientKnownRequestError(
+        'Record not found',
+        {
+          code: 'P2025',
+          clientVersion: '5.0.0',
+        },
+      );
+      jest.spyOn(prisma.genericTable, 'update').mockRejectedValueOnce(error);
+
+      await expect(service.updateTable(tableId, dto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
   describe('deleteTable', () => {
@@ -122,6 +150,22 @@ describe('GenericTableService', () => {
       expect(prisma.genericTable.delete).toHaveBeenCalledWith({
         where: { id: tableId },
       });
+    });
+
+    it('should throw NotFoundException when table not found', async () => {
+      const tableId = '550e8400-e29b-41d4-a716-446655440099';
+      const error = new Prisma.PrismaClientKnownRequestError(
+        'Record not found',
+        {
+          code: 'P2025',
+          clientVersion: '5.0.0',
+        },
+      );
+      jest.spyOn(prisma.genericTable, 'delete').mockRejectedValueOnce(error);
+
+      await expect(service.deleteTable(tableId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -166,6 +210,23 @@ describe('GenericTableService', () => {
         data: dto,
       });
     });
+
+    it('should throw NotFoundException when table not found', async () => {
+      const dto: CreateGenericTableRowDto = {
+        tableId: '550e8400-e29b-41d4-a716-446655440099',
+        data: { col1: 'value1' },
+      };
+      const error = new Prisma.PrismaClientKnownRequestError(
+        'Foreign key constraint failed',
+        {
+          code: 'P2003',
+          clientVersion: '5.0.0',
+        },
+      );
+      jest.spyOn(prisma.genericTableRow, 'create').mockRejectedValueOnce(error);
+
+      await expect(service.addRow(dto)).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('updateRow', () => {
@@ -184,6 +245,23 @@ describe('GenericTableService', () => {
         data: dto,
       });
     });
+
+    it('should throw NotFoundException when row not found', async () => {
+      const rowId = '550e8400-e29b-41d4-a716-446655440099';
+      const dto: UpdateGenericTableRowDto = { data: { col1: 'updated' } };
+      const error = new Prisma.PrismaClientKnownRequestError(
+        'Record not found',
+        {
+          code: 'P2025',
+          clientVersion: '5.0.0',
+        },
+      );
+      jest.spyOn(prisma.genericTableRow, 'update').mockRejectedValueOnce(error);
+
+      await expect(service.updateRow(rowId, dto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
   describe('deleteRow', () => {
@@ -197,6 +275,20 @@ describe('GenericTableService', () => {
       expect(prisma.genericTableRow.delete).toHaveBeenCalledWith({
         where: { id: rowId },
       });
+    });
+
+    it('should throw NotFoundException when row not found', async () => {
+      const rowId = '550e8400-e29b-41d4-a716-446655440099';
+      const error = new Prisma.PrismaClientKnownRequestError(
+        'Record not found',
+        {
+          code: 'P2025',
+          clientVersion: '5.0.0',
+        },
+      );
+      jest.spyOn(prisma.genericTableRow, 'delete').mockRejectedValueOnce(error);
+
+      await expect(service.deleteRow(rowId)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -212,6 +304,15 @@ describe('GenericTableService', () => {
         where: { id: rowId },
       });
     });
+
+    it('should throw NotFoundException when row not found', async () => {
+      const rowId = '550e8400-e29b-41d4-a716-446655440099';
+      jest
+        .spyOn(prisma.genericTableRow, 'findUnique')
+        .mockResolvedValueOnce(null);
+
+      await expect(service.getRow(rowId)).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('listRows', () => {
@@ -225,6 +326,15 @@ describe('GenericTableService', () => {
       expect(prisma.genericTableRow.findMany).toHaveBeenCalledWith({
         where: { tableId },
       });
+    });
+
+    it('should throw NotFoundException when table not found', async () => {
+      const tableId = '550e8400-e29b-41d4-a716-446655440099';
+      jest.spyOn(prisma.genericTable, 'findUnique').mockResolvedValueOnce(null);
+
+      await expect(service.listRows(tableId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

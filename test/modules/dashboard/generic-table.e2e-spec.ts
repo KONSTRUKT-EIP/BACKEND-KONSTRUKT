@@ -63,7 +63,7 @@ describe('GenericTableController (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -71,7 +71,7 @@ describe('GenericTableController (e2e)', () => {
         transform: true,
       }),
     );
-    
+
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     await app.init();
   });
@@ -254,7 +254,6 @@ describe('GenericTableController (e2e)', () => {
         .post(`/dashboard/tables/${mockTableId}/rows`)
         .set('Authorization', 'Bearer test-token')
         .send({
-          tableId: mockTableId,
           data: { name: 'Test Item', quantity: 10, price: 99.99 },
         })
         .expect(201);
@@ -360,6 +359,17 @@ describe('GenericTableController (e2e)', () => {
         data: { data: { name: 'Updated Item', quantity: 20, price: 199.99 } },
       });
     });
+
+    it('should return 400 when trying to update tableId', async () => {
+      await request(app.getHttpServer())
+        .put(`/dashboard/tables/rows/${mockRowId}`)
+        .set('Authorization', 'Bearer test-token')
+        .send({
+          tableId: '550e8400-e29b-41d4-a716-446655440099',
+          data: { name: 'Updated Item' },
+        })
+        .expect(400);
+    });
   });
 
   describe('/dashboard/tables/rows/:id (DELETE)', () => {
@@ -394,7 +404,6 @@ describe('GenericTableController (e2e)', () => {
         .post(`/dashboard/tables/${mockTableId}/rows`)
         .set('Authorization', 'Bearer test-token')
         .send({
-          tableId: mockTableId,
           data: { name: 'Item', value: 100 },
         })
         .expect(201);

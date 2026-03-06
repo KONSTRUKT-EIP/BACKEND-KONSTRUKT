@@ -3,7 +3,7 @@ import { GenericTableController } from '../../../src/modules/dashboard/generic-t
 import { GenericTableService } from '../../../src/modules/dashboard/generic-table.service';
 import { CreateGenericTableDto } from '../../../src/modules/dashboard/dto/create-generic-table.dto';
 import { UpdateGenericTableDto } from '../../../src/modules/dashboard/dto/update-generic-table.dto';
-import { CreateGenericTableRowDto } from '../../../src/modules/dashboard/dto/create-generic-table-row.dto';
+import { AddGenericTableRowDto } from '../../../src/modules/dashboard/dto/add-generic-table-row.dto';
 import { UpdateGenericTableRowDto } from '../../../src/modules/dashboard/dto/update-generic-table-row.dto';
 
 describe('GenericTableController', () => {
@@ -136,8 +136,7 @@ describe('GenericTableController', () => {
   describe('addRow', () => {
     it('should add a row to a table', async () => {
       const tableId = '550e8400-e29b-41d4-a716-446655440000';
-      const dto: CreateGenericTableRowDto = {
-        tableId,
+      const dto: AddGenericTableRowDto = {
         data: { col1: 'value1', col2: 42 },
       };
 
@@ -145,7 +144,7 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual(mockRow);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.addRow).toHaveBeenCalledWith(dto);
+      expect(service.addRow).toHaveBeenCalledWith({ tableId, data: dto.data });
     });
   });
 

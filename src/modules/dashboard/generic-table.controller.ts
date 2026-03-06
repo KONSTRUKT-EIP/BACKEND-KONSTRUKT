@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,19 +15,27 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { GenericTableService } from './generic-table.service';
 import { CreateGenericTableDto } from './dto/create-generic-table.dto';
 import { UpdateGenericTableDto } from './dto/update-generic-table.dto';
-import { CreateGenericTableRowDto } from './dto/create-generic-table-row.dto';
+import { AddGenericTableRowDto } from './dto/add-generic-table-row.dto';
 import { UpdateGenericTableRowDto } from './dto/update-generic-table-row.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '../../shared/types/roles.enum';
 
 @ApiTags('Dashboard - Generic Tables')
+@ApiBearerAuth()
 @Controller('dashboard/tables')
 export class GenericTableController {
   constructor(private readonly service: GenericTableService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Create a new generic table' })
   @ApiResponse({ status: 201, description: 'Table created successfully.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
@@ -35,6 +44,8 @@ export class GenericTableController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Get a table by ID' })
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table found.' })
@@ -44,6 +55,8 @@ export class GenericTableController {
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Update a table' })
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table updated successfully.' })
@@ -54,6 +67,8 @@ export class GenericTableController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Delete a table' })
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table deleted successfully.' })
@@ -63,6 +78,8 @@ export class GenericTableController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'List all tables' })
   @ApiQuery({
     name: 'siteId',
@@ -75,6 +92,8 @@ export class GenericTableController {
   }
 
   @Post(':tableId/rows')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Add a row to a table' })
   @ApiParam({ name: 'tableId', description: 'Table UUID' })
   @ApiResponse({ status: 201, description: 'Row added successfully.' })
@@ -82,12 +101,14 @@ export class GenericTableController {
   @ApiResponse({ status: 404, description: 'Table not found.' })
   addRow(
     @Param('tableId') tableId: string,
-    @Body() dto: CreateGenericTableRowDto,
+    @Body() dto: AddGenericTableRowDto,
   ) {
-    return this.service.addRow({ ...dto, tableId });
+    return this.service.addRow({ tableId, data: dto.data });
   }
 
   @Get(':tableId/rows')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'List all rows in a table' })
   @ApiParam({ name: 'tableId', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'List of rows.' })
@@ -97,6 +118,8 @@ export class GenericTableController {
   }
 
   @Get('rows/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Get a row by ID' })
   @ApiParam({ name: 'id', description: 'Row UUID' })
   @ApiResponse({ status: 200, description: 'Row found.' })
@@ -106,6 +129,8 @@ export class GenericTableController {
   }
 
   @Put('rows/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Update a row' })
   @ApiParam({ name: 'id', description: 'Row UUID' })
   @ApiResponse({ status: 200, description: 'Row updated successfully.' })
@@ -116,6 +141,8 @@ export class GenericTableController {
   }
 
   @Delete('rows/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Delete a row' })
   @ApiParam({ name: 'id', description: 'Row UUID' })
   @ApiResponse({ status: 200, description: 'Row deleted successfully.' })

@@ -1,6 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateGenericTableRowDto } from './create-generic-table-row.dto';
+import { IsObject, IsOptional } from 'class-validator';
 
-export class UpdateGenericTableRowDto extends PartialType(
-  CreateGenericTableRowDto,
-) {}
+export class UpdateGenericTableRowDto {
+  @IsObject()
+  @IsOptional()
+  data?: Record<string, any>;
+}
