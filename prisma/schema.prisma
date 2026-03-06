@@ -142,6 +142,7 @@ model Site {
 	documents    Document[]
 	reports      Report[]
 	workforceDays WorkforceDay[]
+	genericTables GenericTable[]
 
 	@@index([organizationId])
 }
@@ -335,6 +336,32 @@ model WorkforceEntry {
 
 	@@index([workforceDayId])
 	@@index([workerId])
+}
+
+model GenericTable {
+	id        String   @id @default(uuid()) @db.Uuid
+	siteId    String   @db.Uuid
+	name      String
+	columns   Json
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	site Site              @relation(fields: [siteId], references: [id])
+	rows GenericTableRow[]
+
+	@@index([siteId])
+}
+
+model GenericTableRow {
+	id        String   @id @default(uuid()) @db.Uuid
+	tableId   String   @db.Uuid
+	data      Json
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	table GenericTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+	@@index([tableId])
 }
 
 model test {
