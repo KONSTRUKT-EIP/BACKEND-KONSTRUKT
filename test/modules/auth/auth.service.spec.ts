@@ -44,7 +44,7 @@ describe('AuthService', () => {
     userService = {
       findByEmail: jest.fn(),
       createUser: jest.fn(),
-      getUser: jest.fn(),
+      findOne: jest.fn(),
     };
     jwtService = {
       signAsync: jest.fn().mockResolvedValue('signed-jwt-token'),
@@ -152,7 +152,7 @@ describe('AuthService', () => {
       prisma.refreshToken.findUnique.mockResolvedValue(mockRefreshToken);
       prisma.refreshToken.delete.mockResolvedValue(mockRefreshToken);
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      (userService.getUser as jest.Mock).mockResolvedValue(mockUser);
+      (userService.findOne as jest.Mock).mockResolvedValue(mockUser);
       (userService.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.refreshTokens('random-refresh-token');

@@ -6,6 +6,8 @@ import { PrismaModule } from './lib/prisma/prisma.module';
 import { UserModule } from './modules/users/user.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { OrganizationModule } from './modules/organizations/organization.module';
+import { SiteModule } from './modules/sites/site.module';
 
 @Controller()
 export class AppController {
@@ -27,6 +29,8 @@ export class AppController {
     UserModule,
     AuthModule,
     DashboardModule,
+    OrganizationModule,
+    SiteModule,
   ],
   controllers: [AppController],
   providers: [

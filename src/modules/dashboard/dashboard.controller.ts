@@ -1,11 +1,20 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Query,
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -21,22 +30,23 @@ import {
   ArmatureReportsResponseDto,
   ArmatureReportsQuerySchema,
 } from './dto/armature-reports.dto';
-
 import {
   RecentOrdersQueryDto,
   RecentOrdersQuerySchema,
 } from './dto/recent-orders.query.dto';
-import { RecentOrdersResponseDto } from './dto/recent-orders.dto';
+import { RecentOrdersResponseDto, OrderDto } from './dto/recent-orders.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
 @Controller('dashboard/armature')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('summary')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @ApiOperation({ summary: 'Get dashboard summary (KPIs + category progress)' })
   @ApiQuery({
     name: 'startDate',
     required: false,
@@ -53,6 +63,8 @@ export class DashboardController {
   })
   @ApiResponse({ status: 200, type: DashboardSummaryResponseDto })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   async getSummary(
     @Query() query: DashboardSummaryQueryDto,
   ): Promise<DashboardSummaryResponseDto> {
@@ -65,9 +77,35 @@ export class DashboardController {
     return this.dashboardService.getSummary(result.data);
   }
 
+  @Get('resources')
+  @ApiOperation({ summary: 'List all available resources (for order creation)' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of resources',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          type: { type: 'string' },
+          unit: { type: 'string' },
+          unitPrice: { type: 'number' },
+          supplier: { type: 'string' },
+          siteId: { type: 'string' },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async getResources() {
+    return this.dashboardService.getResources();
+  }
+
   @Get('reports')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @ApiOperation({ summary: 'Get armature reports (KPI cards + chart + donut)' })
   @ApiQuery({
     name: 'startDate',
     required: false,
@@ -106,8 +144,7 @@ export class DashboardController {
   }
 
   @Get('analytics')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @ApiOperation({ summary: 'Get armature analytics (same as reports, alias)' })
   @ApiQuery({
     name: 'startDate',
     required: false,
@@ -129,11 +166,7 @@ export class DashboardController {
     example: 'voiles,planchers',
     description: 'Comma-separated list of categories to filter',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Analytics data',
-    type: ArmatureReportsResponseDto,
-  })
+  @ApiResponse({ status: 200, type: ArmatureReportsResponseDto })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -150,8 +183,7 @@ export class DashboardController {
   }
 
   @Get('orders/recent')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @ApiOperation({ summary: 'Get recent orders (paginated deliveries)' })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -194,5 +226,16 @@ export class DashboardController {
       );
     }
     return this.dashboardService.getRecentOrders(result.data);
+  }
+
+  @Post('orders')
+  @ApiOperation({ summary: 'Create a new delivery order' })
+  @ApiBody({ type: CreateOrderDto })
+  @ApiResponse({ status: 201, type: OrderDto })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async createOrder(@Body() dto: CreateOrderDto): Promise<OrderDto> {
+    return this.dashboardService.createOrder(dto);
   }
 }
