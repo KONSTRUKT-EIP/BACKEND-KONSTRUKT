@@ -136,16 +136,12 @@ describe('Weather Integration Tests', () => {
         .query({ city: 'Lyon' })
         .expect(200);
       const duration1 = Date.now() - start1;
-
-      // La deuxième requête devrait être plus rapide (cache)
       const start2 = Date.now();
       await request(app.getHttpServer())
         .get('/weather/forecast')
         .query({ city: 'Lyon' })
         .expect(200);
       const duration2 = Date.now() - start2;
-
-      // Le cache devrait rendre la deuxième requête significativement plus rapide
       expect(duration2).toBeLessThan(duration1);
     });
   });
