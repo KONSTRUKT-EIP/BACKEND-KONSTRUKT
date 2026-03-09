@@ -9,37 +9,6 @@ import * as bcrypt from 'bcrypt';
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // --- Rich query methods (used by auth) ---
-
-  async getUsers() {
-    return this.prisma.user.findMany({
-      select: {
-        id: true,
-        firstName: true,
-        email: true,
-        lastName: true,
-        role: true,
-        organization: { select: { id: true, name: true } },
-        password: false,
-      },
-    });
-  }
-
-  async getUser({ userId }: { userId: string }) {
-    return this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        firstName: true,
-        email: true,
-        lastName: true,
-        role: true,
-        organization: { select: { id: true, name: true } },
-        password: false,
-      },
-    });
-  }
-
   // Auth method – hashes password before storing
   async createUser(data: {
     email: string;
@@ -114,7 +83,12 @@ export class UserService {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  async update(id: string, data: UpdateUserDto) {
+  async update(id: string, dto: UpdateUserDto) {
+    const { password, ...rest } = dto;
+    const data: Record<string, unknown> = { ...rest };
+    if (password) {
+      data.password = await bcrypt.hash(password, 10);
+    }
     return this.prisma.user.update({
       where: { id },
       data,

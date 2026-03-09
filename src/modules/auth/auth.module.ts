@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
 import { UserModule } from '../users/user.module';
+import { PrismaModule } from '../../lib/prisma/prisma.module';
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not defined');
@@ -16,6 +17,7 @@ if (!process.env.JWT_SECRET) {
       signOptions: { expiresIn: '30d' },
     }),
     UserModule,
+    PrismaModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

@@ -14,6 +14,7 @@ describe('UserController', () => {
     update: jest.fn(),
     remove: jest.fn(),
   };
+  let validationPipe;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,6 +28,9 @@ describe('UserController', () => {
     }).compile();
 
     controller = module.get<UserController>(UserController);
+    // Use the same ValidationPipe as in main.ts
+    const { ValidationPipe } = require('@nestjs/common');
+    validationPipe = new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true });
   });
 
   afterEach(() => {
@@ -74,7 +78,10 @@ describe('UserController', () => {
       });
     });
 
-    it('should throw BadRequestException with invalid email', () => {
+    const { plainToInstance } = require('class-transformer');
+    const { CreateUserDto } = require('../../../src/modules/users/dto/create-user.dto');
+
+    it('should throw BadRequestException with invalid email', async () => {
       const invalidInput = {
         email: 'invalid-email',
         password: 'password123',
@@ -83,13 +90,13 @@ describe('UserController', () => {
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
       };
-
-      expect(() => controller.create(invalidInput)).toThrow(
-        BadRequestException,
-      );
+      const dto = plainToInstance(CreateUserDto, invalidInput);
+      await expect(
+        validationPipe.transform(dto, { type: 'body', metatype: CreateUserDto })
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException with short password', () => {
+    it('should throw BadRequestException with short password', async () => {
       const invalidInput = {
         email: 'test@example.com',
         password: '123',
@@ -98,13 +105,13 @@ describe('UserController', () => {
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
       };
-
-      expect(() => controller.create(invalidInput)).toThrow(
-        BadRequestException,
-      );
+      const dto = plainToInstance(CreateUserDto, invalidInput);
+      await expect(
+        validationPipe.transform(dto, { type: 'body', metatype: CreateUserDto })
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException with invalid organizationId', () => {
+    it('should throw BadRequestException with invalid organizationId', async () => {
       const invalidInput = {
         email: 'test@example.com',
         password: 'password123',
@@ -113,10 +120,10 @@ describe('UserController', () => {
         lastName: 'Doe',
         organizationId: 'not-a-uuid',
       };
-
-      expect(() => controller.create(invalidInput)).toThrow(
-        BadRequestException,
-      );
+      const dto = plainToInstance(CreateUserDto, invalidInput);
+      await expect(
+        validationPipe.transform(dto, { type: 'body', metatype: CreateUserDto })
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -201,7 +208,7 @@ describe('UserController', () => {
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
-        passwordHash: 'updatedHash',
+        password: 'updatedHash',
       });
     });
   });

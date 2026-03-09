@@ -17,6 +17,7 @@ import {
 } from './dto/armature-reports.dto';
 import { RecentOrdersQueryDto } from './dto/recent-orders.query.dto';
 import { RecentOrdersResponseDto, OrderDto } from './dto/recent-orders.dto';
+import { DASHBOARD_CATEGORIES } from './dashboard.constants';
 
 @Injectable()
 export class DashboardService {
@@ -40,12 +41,7 @@ export class DashboardService {
       }
       const usages = await this.prisma.resourceUsage.findMany(usageQuery);
 
-      const categories = [
-        { id: 1, name: 'Voiles' },
-        { id: 2, name: 'Planchers' },
-        { id: 3, name: 'Poutres' },
-        { id: 4, name: 'Superstructure' },
-      ];
+      const categories = DASHBOARD_CATEGORIES;
 
       const categoryKpis: CategoryKpiDto[] = categories.map((cat) => {
         const catResources = resources.filter((r) =>
@@ -134,6 +130,60 @@ export class DashboardService {
     return { orders };
   }
 
+  async createOrder(data: {
+    resourceId: string;
+    quantity: number;
+    siteId: string;
+    expectedDate: string;
+    supplier: string;
+  }): Promise<OrderDto> {
+    const delivery = await this.prisma.delivery.create({
+      data: {
+        resourceId: data.resourceId,
+        quantity: data.quantity,
+        siteId: data.siteId,
+        expectedDate: new Date(data.expectedDate),
+        supplier: data.supplier,
+        status: 'PLANIFIEE',
+      },
+      include: { resource: true },
+    });
+
+    return {
+      id: delivery.id,
+      productName: delivery.resource.name,
+      productIcon: '',
+      price: Number(delivery.resource.unitPrice),
+      totalOrder: Number(delivery.quantity),
+      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+    };
+  }
+
+  async getResources(): Promise<
+    {
+      id: string;
+      name: string;
+      type: string;
+      unit: string;
+      unitPrice: number;
+      supplier: string;
+      siteId: string;
+    }[]
+  > {
+    const resources = await this.prisma.resource.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return resources.map((r) => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      unit: r.unit,
+      unitPrice: Number(r.unitPrice),
+      supplier: r.supplier,
+      siteId: r.siteId,
+    }));
+  }
+
   async getReports(
     query: ArmatureReportsQueryDto,
   ): Promise<ArmatureReportsResponseDto> {
@@ -154,7 +204,7 @@ export class DashboardService {
 
       const categoryList: string[] = parsedCategories.length
         ? parsedCategories
-        : ['Voiles', 'Planchers', 'Poutres', 'Superstructure'];
+        : DASHBOARD_CATEGORIES.map((c) => c.name);
 
       const dateFilter: { gte?: Date; lte?: Date } = {};
       if (query.startDate) {
