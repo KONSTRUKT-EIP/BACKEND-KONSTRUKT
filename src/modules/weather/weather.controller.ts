@@ -48,10 +48,7 @@ export class WeatherController {
   async getWeatherBySite(
     @Param('siteId') siteId: string,
   ): Promise<WeatherForecastDto> {
-    const site = await this.siteService.getSiteById(siteId);
-    if (!site) {
-      throw new HttpException('Site non trouvé', HttpStatus.NOT_FOUND);
-    }
+    const site = await this.siteService.findOne(siteId);
     if (!site.city) {
       throw new HttpException(
         'Le site ne possède pas de ville',
@@ -117,10 +114,7 @@ export class WeatherController {
       return this.weatherService.getWeatherByCity(city);
     }
 
-    return this.weatherService.getWeatherForecast(
-      Number(latitude),
-      Number(longitude),
-    );
+    return this.weatherService.getWeatherForecast(latitude!, longitude!);
   }
 
   @Get('current')

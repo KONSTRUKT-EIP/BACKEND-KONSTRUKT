@@ -5,23 +5,161 @@ import request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { WeatherModule } from '../../../src/modules/weather/weather.module';
-import { HttpModule } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
+import { of } from 'rxjs';
+import {
+  GeocodingResponse,
+  WeatherApiResponse,
+} from '../../../src/modules/weather/interfaces/open-meteo-api.interface';
 
 describe('Weather Integration Tests', () => {
   let app: INestApplication;
 
+  const mockGeocodingParis: GeocodingResponse = {
+    results: [
+      {
+        latitude: 48.8566,
+        longitude: 2.3522,
+        name: 'Paris',
+        country: 'France',
+      },
+    ],
+  };
+
+  const mockGeocodingMarseille: GeocodingResponse = {
+    results: [
+      {
+        latitude: 43.2965,
+        longitude: 5.3698,
+        name: 'Marseille',
+        country: 'France',
+      },
+    ],
+  };
+
+  const mockGeocodingLyon: GeocodingResponse = {
+    results: [
+      {
+        latitude: 45.7597,
+        longitude: 4.8422,
+        name: 'Lyon',
+        country: 'France',
+      },
+    ],
+  };
+
+  const mockGeocodingNotFound: GeocodingResponse = {
+    results: [],
+  };
+
+  const mockWeatherData: WeatherApiResponse = {
+    latitude: 48.8566,
+    longitude: 2.3522,
+    timezone: 'Europe/Paris',
+    timezone_abbreviation: 'CET',
+    elevation: 42,
+    current: {
+      time: '2026-03-09T12:00',
+      temperature_2m: 15.5,
+      apparent_temperature: 14.2,
+      relative_humidity_2m: 65,
+      precipitation: 0,
+      weather_code: 1,
+      wind_speed_10m: 12.5,
+      wind_direction_10m: 180,
+    },
+    daily: {
+      time: [
+        '2026-03-09',
+        '2026-03-10',
+        '2026-03-11',
+        '2026-03-12',
+        '2026-03-13',
+        '2026-03-14',
+        '2026-03-15',
+      ],
+      weather_code: [1, 2, 3, 61, 1, 2, 0],
+      temperature_2m_max: [18.5, 19.2, 17.8, 16.5, 18.0, 20.1, 21.5],
+      temperature_2m_min: [10.2, 11.0, 9.5, 8.3, 10.1, 12.3, 13.0],
+      precipitation_sum: [0, 0.5, 1.2, 5.5, 0, 0.2, 0],
+      precipitation_probability_max: [10, 20, 40, 80, 15, 25, 5],
+      wind_speed_10m_max: [15.2, 18.5, 22.0, 25.3, 16.8, 14.2, 12.5],
+      sunrise: [
+        '2026-03-09T06:45',
+        '2026-03-10T06:43',
+        '2026-03-11T06:41',
+        '2026-03-12T06:39',
+        '2026-03-13T06:37',
+        '2026-03-14T06:35',
+        '2026-03-15T06:33',
+      ],
+      sunset: [
+        '2026-03-09T18:30',
+        '2026-03-10T18:32',
+        '2026-03-11T18:34',
+        '2026-03-12T18:36',
+        '2026-03-13T18:38',
+        '2026-03-14T18:40',
+        '2026-03-15T18:42',
+      ],
+    },
+  };
+
+  const mockHttpService = {
+    get: jest.fn((url: string, config?: any) => {
+      if (url.includes('geocoding-api.open-meteo.com')) {
+        const cityName = config?.params?.name;
+        if (cityName === 'Paris') {
+          return of({ data: mockGeocodingParis });
+        } else if (cityName === 'Marseille') {
+          return of({ data: mockGeocodingMarseille });
+        } else if (cityName === 'Lyon') {
+          return of({ data: mockGeocodingLyon });
+        } else {
+          return of({ data: mockGeocodingNotFound });
+        }
+      }
+      if (url.includes('api.open-meteo.com/v1/forecast')) {
+        const lat = config?.params?.latitude;
+        if (lat === 43.2965 || Math.abs(lat - 43.2965) < 0.1) {
+          return of({
+            data: {
+              ...mockWeatherData,
+              latitude: 43.2965,
+              longitude: 5.3698,
+            },
+          });
+        }
+        return of({ data: mockWeatherData });
+      }
+      return of({ data: {} });
+    }),
+  };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [WeatherModule, HttpModule],
-    }).compile();
+      imports: [WeatherModule],
+    })
+      .overrideProvider(HttpService)
+      .useValue(mockHttpService)
+      .compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        enableImplicitConversion: true,
+      }),
+    );
     await app.init();
   });
 
   afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('GET /weather/forecast', () => {
@@ -130,19 +268,21 @@ describe('Weather Integration Tests', () => {
 
   describe('Cache behavior', () => {
     it('devrait utiliser le cache pour des requêtes identiques', async () => {
-      const start1 = Date.now();
       await request(app.getHttpServer())
         .get('/weather/forecast')
         .query({ city: 'Lyon' })
         .expect(200);
-      const duration1 = Date.now() - start1;
-      const start2 = Date.now();
+
+      const callsAfterFirstRequest = mockHttpService.get.mock.calls.length;
+      expect(callsAfterFirstRequest).toBeGreaterThan(0);
+
       await request(app.getHttpServer())
         .get('/weather/forecast')
         .query({ city: 'Lyon' })
         .expect(200);
-      const duration2 = Date.now() - start2;
-      expect(duration2).toBeLessThan(duration1);
+
+      const callsAfterSecondRequest = mockHttpService.get.mock.calls.length;
+      expect(callsAfterSecondRequest).toBe(callsAfterFirstRequest);
     });
   });
 

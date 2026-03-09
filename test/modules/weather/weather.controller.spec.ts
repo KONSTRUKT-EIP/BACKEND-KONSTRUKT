@@ -45,7 +45,7 @@ describe('WeatherController', () => {
   };
 
   const mockSiteService = {
-    getSiteById: jest.fn(),
+    findOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -178,6 +178,73 @@ describe('WeatherController', () => {
       expect(mockWeatherService.getWeatherByCity).toHaveBeenCalledWith(
         'New York',
       );
+    });
+  });
+
+  describe('getWeatherBySite', () => {
+    it('devrait retourner les prévisions météo pour un site valide', async () => {
+      const mockSite = {
+        id: 'site-123',
+        organizationId: 'org-456',
+        name: 'Chantier Paris 12',
+        address: '12 rue de la Paix',
+        city: 'Paris',
+        postalCode: '75012',
+        startDate: new Date('2026-01-01'),
+        endDate: null,
+        status: 'EN_COURS',
+        budget: 100000,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockSiteService.findOne.mockResolvedValue(mockSite);
+      mockWeatherService.getWeatherByCity.mockResolvedValue(
+        mockWeatherForecast,
+      );
+
+      const result = await controller.getWeatherBySite('site-123');
+
+      expect(result).toEqual(mockWeatherForecast);
+      expect(mockSiteService.findOne).toHaveBeenCalledWith('site-123');
+      expect(mockWeatherService.getWeatherByCity).toHaveBeenCalledWith('Paris');
+    });
+
+    it("devrait lever une exception si le site n'a pas de ville", async () => {
+      const mockSiteWithoutCity = {
+        id: 'site-123',
+        organizationId: 'org-456',
+        name: 'Chantier Sans Ville',
+        address: '12 rue de la Paix',
+        city: null,
+        postalCode: '75012',
+        startDate: new Date('2026-01-01'),
+        endDate: null,
+        status: 'EN_COURS',
+        budget: 100000,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockSiteService.findOne.mockResolvedValue(mockSiteWithoutCity);
+
+      await expect(controller.getWeatherBySite('site-123')).rejects.toThrow(
+        HttpException,
+      );
+      await expect(controller.getWeatherBySite('site-123')).rejects.toThrow(
+        'Le site ne possède pas de ville',
+      );
+    });
+
+    it("devrait propager l'exception NotFoundException si le site n'existe pas", async () => {
+      mockSiteService.findOne.mockRejectedValue(
+        new HttpException('Site site-999 introuvable', 404),
+      );
+
+      await expect(controller.getWeatherBySite('site-999')).rejects.toThrow(
+        HttpException,
+      );
+      expect(mockSiteService.findOne).toHaveBeenCalledWith('site-999');
     });
   });
 

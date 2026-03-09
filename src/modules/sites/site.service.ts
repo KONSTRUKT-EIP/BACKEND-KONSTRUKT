@@ -2,17 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateSiteDto, SiteStatus } from './dto/create-site.dto';
 import { UpdateSiteDto } from './dto/update-site.dto';
-import { Site } from '@prisma/client';
 
 @Injectable()
 export class SiteService {
   constructor(private readonly prisma: PrismaService) {}
-
-  async getSiteById(siteId: string): Promise<Site | null> {
-    return this.prisma.site.findUnique({
-      where: { id: siteId },
-    });
-  }
 
   async findAll(organizationId?: string) {
     return this.prisma.site.findMany({

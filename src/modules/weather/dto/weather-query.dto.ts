@@ -1,5 +1,6 @@
 import { IsLatitude, IsLongitude, IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export class WeatherQueryDto {
   @ApiPropertyOptional({
@@ -7,6 +8,7 @@ export class WeatherQueryDto {
     example: 48.8566,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsLatitude()
   latitude?: number;
 
@@ -15,6 +17,7 @@ export class WeatherQueryDto {
     example: 2.3522,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsLongitude()
   longitude?: number;
 
