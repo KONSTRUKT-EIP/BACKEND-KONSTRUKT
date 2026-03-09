@@ -34,7 +34,7 @@ import {
   RecentOrdersQueryDto,
   RecentOrdersQuerySchema,
 } from './dto/recent-orders.query.dto';
-import { RecentOrdersResponseDto, OrderDto } from './dto/recent-orders.dto';
+import { RecentOrdersResponseDto } from './dto/recent-orders.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @ApiTags('Dashboard')
@@ -233,11 +233,11 @@ export class DashboardController {
   @Post('orders')
   @ApiOperation({ summary: 'Create a new delivery order' })
   @ApiBody({ type: CreateOrderDto })
-  @ApiResponse({ status: 201, type: OrderDto })
+  @ApiResponse({ status: 201, type: RecentOrdersResponseDto })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async createOrder(@Body() dto: CreateOrderDto): Promise<OrderDto> {
+  async createOrder(@Body() dto: CreateOrderDto): Promise<RecentOrdersResponseDto> {
     return this.dashboardService.createOrder(dto);
   }
 }

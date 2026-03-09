@@ -136,7 +136,7 @@ export class DashboardService {
     siteId: string;
     expectedDate: string;
     supplier: string;
-  }): Promise<OrderDto> {
+  }): Promise<RecentOrdersResponseDto> {
     const delivery = await this.prisma.delivery.create({
       data: {
         resourceId: data.resourceId,
@@ -150,12 +150,16 @@ export class DashboardService {
     });
 
     return {
-      id: delivery.id,
-      productName: delivery.resource.name,
-      productIcon: '',
-      price: Number(delivery.resource.unitPrice),
-      totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+      orders: [
+        {
+          id: delivery.id,
+          productName: delivery.resource.name,
+          productIcon: '',
+          price: Number(delivery.resource.unitPrice),
+          totalOrder: Number(delivery.quantity),
+          total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+        },
+      ],
     };
   }
 
