@@ -12,6 +12,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -34,10 +35,17 @@ export class AuthController {
   @Post('login')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'User login' })
+  @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
     description:
       'Login successful, returns JWT access token and refresh token.',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refresh_token: 'a3f1b2c3d4e5f6...',
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   @ApiResponse({ status: 429, description: 'Too many requests.' })
@@ -48,9 +56,16 @@ export class AuthController {
   @Post('register')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Register a new user' })
+  @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
     description: 'User registered, returns JWT access token and refresh token.',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refresh_token: 'a3f1b2c3d4e5f6...',
+      },
+    },
   })
   @ApiResponse({ status: 409, description: 'Email already in use.' })
   @ApiResponse({ status: 400, description: 'Validation error.' })
@@ -61,9 +76,16 @@ export class AuthController {
 
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token using a refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
   @ApiResponse({
     status: 200,
     description: 'Returns new access token and rotated refresh token.',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refresh_token: 'newtoken123...',
+      },
+    },
   })
   @ApiResponse({
     status: 401,
@@ -87,7 +109,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Patch('change-password')
   @ApiOperation({ summary: 'Change password for the authenticated user' })
-  @ApiResponse({ status: 200, description: 'Password changed successfully.' })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Password changed successfully.',
+    schema: { example: { message: 'Password changed successfully' } },
+  })
   @ApiResponse({ status: 400, description: 'Validation error.' })
   @ApiResponse({
     status: 401,
@@ -107,6 +134,6 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Returns the authenticated user.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async authenticateUser(@Request() request: requestWithUser) {
-    return await this.userService.getUser({ userId: request.user.userId });
+    return await this.userService.findOne(request.user.userId);
   }
 }

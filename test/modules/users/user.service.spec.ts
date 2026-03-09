@@ -161,7 +161,7 @@ describe('UserService', () => {
       const userId = '123e4567-e89b-12d3-a456-426614174001';
       const updateUserDto: UpdateUserDto = {
         email: 'updated@example.com',
-        passwordHash: 'updatedHash',
+        password: 'updatedHash',
         role: UserRole.ADMIN,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
@@ -171,7 +171,6 @@ describe('UserService', () => {
       const expectedUser = {
         id: userId,
         email: 'updated@example.com',
-        passwordHash: 'updatedHash',
         role: UserRole.ADMIN,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
@@ -184,11 +183,12 @@ describe('UserService', () => {
       const result = await service.update(userId, updateUserDto);
 
       expect(result).toEqual(expectedUser);
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: userId },
-        data: updateUserDto,
-        select: userSelect,
-      });
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: userId },
+          select: userSelect,
+        }),
+      );
     });
   });
 

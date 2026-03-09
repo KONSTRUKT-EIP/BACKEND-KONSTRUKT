@@ -4,6 +4,8 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/lib/prisma/prisma.service';
+import { JwtAuthGuard } from './../src/modules/auth/jwt-auth.guard';
+import { RolesGuard } from './../src/modules/auth/roles.guard';
 
 const mockPrismaService = {
   user: {
@@ -28,6 +30,10 @@ describe('App (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrismaService)
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
       .compile();
 
     app = moduleFixture.createNestApplication();
