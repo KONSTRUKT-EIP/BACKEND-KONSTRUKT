@@ -88,6 +88,13 @@ enum ReportType {
 	OTHER
 }
 
+enum AttendanceStatus {
+	PRESENT
+	ABSENT
+	RETARD
+	CONGE
+}
+
 model Organization {
 	id        String   @id @default(uuid()) @db.Uuid
 	name      String
@@ -117,6 +124,9 @@ model User {
 	resourceUsage  ResourceUsage[]
 	workforce      WorkforceEntry[] @relation("WorkforceEntryWorker")
 	refreshTokens  RefreshToken[]
+	ledTeams       Team[]          @relation("TeamLeader")
+	teamMemberships TeamMember[]   @relation("TeamMemberships")
+	attendances    Attendance[]    @relation("UserAttendances")
 
 	@@index([organizationId])
 }
@@ -155,6 +165,7 @@ model Site {
 	reports      Report[]
 	workforceDays WorkforceDay[]
 	genericTables GenericTable[]
+	teams        Team[]
 
 	@@index([organizationId])
 }
@@ -376,6 +387,56 @@ model GenericTableRow {
 	@@index([tableId])
 }
 
-model test {
-	id String @id @default(uuid()) @db.Uuid
+model Team {
+	id        String    @id @default(uuid()) @db.Uuid
+	siteId    String    @db.Uuid
+	name      String
+	leaderId  String?   @db.Uuid
+	createdAt DateTime  @default(now())
+	updatedAt DateTime  @updatedAt
+
+	site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+	leader      User?        @relation("TeamLeader", fields: [leaderId], references: [id])
+	members     TeamMember[]
+	attendances Attendance[]
+
+	@@index([siteId])
+	@@index([leaderId])
+}
+
+model TeamMember {
+	id       String   @id @default(uuid()) @db.Uuid
+	teamId   String   @db.Uuid
+	userId   String   @db.Uuid
+	role     String   @default("WORKER")
+	joinedAt DateTime @default(now())
+
+	team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+	user User @relation("TeamMemberships", fields: [userId], references: [id])
+
+	@@unique([teamId, userId])
+	@@index([teamId])
+	@@index([userId])
+}
+
+model Attendance {
+	id          String           @id @default(uuid()) @db.Uuid
+	teamId      String           @db.Uuid
+	userId      String           @db.Uuid
+	date        DateTime         @db.Date
+	status      AttendanceStatus
+	checkIn     DateTime?
+	checkOut    DateTime?
+	minutesLate Int?
+	notes       String?
+	createdAt   DateTime         @default(now())
+	updatedAt   DateTime         @updatedAt
+
+	team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+	user User @relation("UserAttendances", fields: [userId], references: [id])
+
+	@@unique([teamId, userId, date])
+	@@index([teamId])
+	@@index([userId])
+	@@index([date])
 }
