@@ -97,9 +97,8 @@ export class AttendanceService {
       where: { id },
       data: {
         status: dto.status,
-        checkIn: dto.checkIn !== undefined ? new Date(dto.checkIn) : undefined,
-        checkOut:
-          dto.checkOut !== undefined ? new Date(dto.checkOut) : undefined,
+        checkIn: dto.checkIn !== undefined ? (dto.checkIn ? new Date(dto.checkIn) : null) : undefined,
+        checkOut: dto.checkOut !== undefined ? (dto.checkOut ? new Date(dto.checkOut) : null) : undefined,
         minutesLate: dto.minutesLate,
         notes: dto.notes,
       },
@@ -131,10 +130,10 @@ export class AttendanceService {
       teamId,
       date,
       total: records.length,
-      presents: records.filter((r) => r.status === 'PRESENT').length,
-      absents: records.filter((r) => r.status === 'ABSENT').length,
-      retards: records.filter((r) => r.status === 'RETARD').length,
-      conges: records.filter((r) => r.status === 'CONGE').length,
+      presents: records.filter((r) => r.status === AttendanceStatus.PRESENT).length,
+      absents: records.filter((r) => r.status === AttendanceStatus.ABSENT).length,
+      retards: records.filter((r) => r.status === AttendanceStatus.RETARD).length,
+      conges: records.filter((r) => r.status === AttendanceStatus.CONGE).length,
       records,
     };
 
