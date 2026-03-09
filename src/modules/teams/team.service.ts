@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
-import { AddMemberDto } from './dto/add-member.dto';
+import { AddMemberDto, TeamMemberRole } from './dto/add-member.dto';
 
 @Injectable()
 export class TeamService {
@@ -123,7 +123,7 @@ export class TeamService {
       data: {
         teamId,
         userId: dto.userId,
-        role: dto.role ?? 'WORKER',
+        role: dto.role ?? TeamMemberRole.WORKER,
       },
       include: {
         user: {

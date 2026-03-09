@@ -1,5 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+
+export enum TeamMemberRole {
+  WORKER = 'WORKER',
+  CHEF_EQUIPE = 'CHEF_EQUIPE',
+}
 
 export class AddMemberDto {
   @ApiProperty({
@@ -10,12 +15,11 @@ export class AddMemberDto {
   userId: string;
 
   @ApiPropertyOptional({
-    example: 'CHEF_EQUIPE',
-    description: "Rôle dans l'équipe (ex: WORKER, CHEF_EQUIPE)",
-    default: 'WORKER',
+    enum: TeamMemberRole,
+    default: TeamMemberRole.WORKER,
+    description: "Rôle dans l'équipe",
   })
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  role?: string;
+  @IsEnum(TeamMemberRole)
+  role?: TeamMemberRole;
 }
