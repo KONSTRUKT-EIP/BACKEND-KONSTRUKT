@@ -38,14 +38,23 @@ export class TeamController {
   @Get()
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Lister les équipes (filtrable par chantier)' })
-  @ApiQuery({ name: 'siteId', required: false, description: 'Filtrer par chantier' })
+  @ApiQuery({
+    name: 'siteId',
+    required: false,
+    description: 'Filtrer par chantier',
+  })
   @ApiResponse({ status: 200, description: 'Liste des équipes' })
   findAll(@Query('siteId') siteId?: string) {
     return this.service.findAll(siteId);
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX, UserRole.COLLABORATEUR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+    UserRole.COLLABORATEUR,
+  )
   @ApiOperation({ summary: 'Récupérer une équipe par ID (avec membres)' })
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Équipe trouvée' })
@@ -85,7 +94,12 @@ export class TeamController {
   // ─── Membres ────────────────────────────────────────────────────────────────
 
   @Get(':id/members')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX, UserRole.COLLABORATEUR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+    UserRole.COLLABORATEUR,
+  )
   @ApiOperation({ summary: "Lister les membres d'une équipe" })
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Liste des membres' })

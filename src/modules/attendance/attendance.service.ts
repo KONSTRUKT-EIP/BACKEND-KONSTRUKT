@@ -5,7 +5,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
-import { CreateAttendanceDto, AttendanceStatus } from './dto/create-attendance.dto';
+import {
+  CreateAttendanceDto,
+  AttendanceStatus,
+} from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 
 @Injectable()
@@ -95,7 +98,8 @@ export class AttendanceService {
       data: {
         status: dto.status,
         checkIn: dto.checkIn !== undefined ? new Date(dto.checkIn) : undefined,
-        checkOut: dto.checkOut !== undefined ? new Date(dto.checkOut) : undefined,
+        checkOut:
+          dto.checkOut !== undefined ? new Date(dto.checkOut) : undefined,
         minutesLate: dto.minutesLate,
         notes: dto.notes,
       },

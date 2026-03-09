@@ -32,7 +32,15 @@ export class TeamService {
         leader: { select: { id: true, firstName: true, lastName: true } },
         members: {
           include: {
-            user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
           },
           orderBy: { joinedAt: 'asc' },
         },
@@ -84,7 +92,15 @@ export class TeamService {
     return this.prisma.teamMember.findMany({
       where: { teamId },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
       orderBy: { joinedAt: 'asc' },
     });
@@ -98,7 +114,9 @@ export class TeamService {
     });
 
     if (existing) {
-      throw new ConflictException('Cet utilisateur est déjà membre de cette équipe');
+      throw new ConflictException(
+        'Cet utilisateur est déjà membre de cette équipe',
+      );
     }
 
     return this.prisma.teamMember.create({
@@ -108,7 +126,15 @@ export class TeamService {
         role: dto.role ?? 'WORKER',
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
   }
@@ -120,12 +146,15 @@ export class TeamService {
       where: { teamId_userId: { teamId, userId } },
     });
 
-    if (!member) throw new NotFoundException('Ce membre est introuvable dans cette équipe');
+    if (!member)
+      throw new NotFoundException(
+        'Ce membre est introuvable dans cette équipe',
+      );
 
     await this.prisma.teamMember.delete({
       where: { teamId_userId: { teamId, userId } },
     });
 
-    return { message: 'Membre retiré de l\'équipe' };
+    return { message: "Membre retiré de l'équipe" };
   }
 }
