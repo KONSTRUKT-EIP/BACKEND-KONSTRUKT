@@ -9,6 +9,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { WeatherModule } from './modules/weather/weather.module';
 import { SiteModule } from './modules/sites/site.module';
 import { OrganizationModule } from './modules/organizations/organization.module';
+import { TeamModule } from './modules/teams/team.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 
 @Controller()
 export class AppController {
@@ -33,6 +35,8 @@ export class AppController {
     WeatherModule,
     SiteModule,
     OrganizationModule,
+    TeamModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [
