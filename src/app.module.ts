@@ -11,6 +11,7 @@ import { SiteModule } from './modules/sites/site.module';
 import { OrganizationModule } from './modules/organizations/organization.module';
 import { TeamModule } from './modules/teams/team.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { PlanningModule } from './modules/planning/planning.module';
 
 @Controller()
 export class AppController {
@@ -37,6 +38,7 @@ export class AppController {
     OrganizationModule,
     TeamModule,
     AttendanceModule,
+    PlanningModule,
   ],
   controllers: [AppController],
   providers: [
