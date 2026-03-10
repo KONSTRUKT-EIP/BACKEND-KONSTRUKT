@@ -50,7 +50,12 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('summary')
-  @ApiOperation({ summary: 'Get dashboard summary (KPIs + category progress)' })
+  @ApiOperation({
+    summary: 'Get dashboard summary (KPIs + category progress)',
+    description:
+      'Returns the summary last set via POST /summary if one exists, ' +
+      'otherwise computes it from database resources and usages.',
+  })
   @ApiQuery({
     name: 'startDate',
     required: false,
@@ -83,17 +88,17 @@ export class DashboardController {
 
   @Post('summary')
   @ApiOperation({
-    summary:
-      'Seed default resources per category (if missing) then return summary',
+    summary: 'Set dashboard summary values (overrides computed values)',
+    description:
+      'Directly set the globalProgress, globalSpent and per-category progress/spent values. ' +
+      'Once set, GET /summary will return these stored values instead of computing from DB.',
   })
   @ApiBody({ type: CreateSummaryDto })
   @ApiResponse({ status: 201, type: DashboardSummaryResponseDto })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async createSummary(
-    @Body() dto: CreateSummaryDto,
-  ): Promise<DashboardSummaryResponseDto> {
+  createSummary(@Body() dto: CreateSummaryDto): DashboardSummaryResponseDto {
     const result = CreateSummarySchema.safeParse(dto);
     if (!result.success) {
       throw new BadRequestException(
@@ -208,6 +213,15 @@ export class DashboardController {
       );
     }
     return await this.dashboardService.getArmatureAnalytics(result.data);
+  }
+
+  @Get('orders')
+  @ApiOperation({ summary: 'Get all orders' })
+  @ApiResponse({ status: 200, type: RecentOrdersResponseDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async getAllOrders(): Promise<RecentOrdersResponseDto> {
+    return this.dashboardService.getAllOrders();
   }
 
   @Get('orders/recent')

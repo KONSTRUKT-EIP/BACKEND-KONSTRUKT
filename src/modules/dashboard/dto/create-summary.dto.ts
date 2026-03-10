@@ -1,48 +1,65 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsISO8601, IsOptional, IsUUID } from 'class-validator';
+import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { z } from 'zod';
 
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const CategorySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  progress: z.number().min(0).max(100),
+  spent: z.number().min(0),
+});
 
 export const CreateSummarySchema = z.object({
-  siteId: z.string().uuid().optional(),
-  startDate: z
-    .string()
-    .regex(dateRegex, 'Date must be in YYYY-MM-DD format')
-    .optional(),
-  endDate: z
-    .string()
-    .regex(dateRegex, 'Date must be in YYYY-MM-DD format')
-    .optional(),
+  globalProgress: z.number().min(0).max(100),
+  globalSpent: z.number().min(0),
+  categories: z.array(CategorySchema),
 });
 
 export type CreateSummaryInput = z.infer<typeof CreateSummarySchema>;
 
+export class CreateSummaryCategoryDto {
+  @ApiProperty({ example: 1 })
+  @IsNumber()
+  id: number;
+
+  @ApiProperty({ example: 'Voiles' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ example: 0, description: 'Progress percentage (0-100)' })
+  @IsNumber()
+  progress: number;
+
+  @ApiProperty({ example: 0, description: 'Amount spent' })
+  @IsNumber()
+  spent: number;
+}
+
 export class CreateSummaryDto {
   @ApiProperty({
-    required: false,
-    example: '550e8400-e29b-41d4-a716-446655440000',
-    description: 'Site UUID — if omitted, the first available site is used',
+    example: 0,
+    description: 'Global progress percentage (0-100)',
   })
-  @IsOptional()
-  @IsUUID()
-  siteId?: string;
+  @IsNumber()
+  globalProgress: number;
+
+  @ApiProperty({ example: 0, description: 'Global amount spent' })
+  @IsNumber()
+  globalSpent: number;
 
   @ApiProperty({
-    required: false,
-    example: '2024-01-01',
-    description: 'Start date in YYYY-MM-DD format',
+    type: [CreateSummaryCategoryDto],
+    description: 'Progress and spent amount per category',
+    example: [
+      { id: 1, name: 'Voiles', progress: 0, spent: 0 },
+      { id: 2, name: 'Planchers', progress: 0, spent: 0 },
+      { id: 3, name: 'Poutres', progress: 0, spent: 0 },
+      { id: 4, name: 'Superstructure', progress: 0, spent: 0 },
+    ],
   })
-  @IsOptional()
-  @IsISO8601({ strict: false })
-  startDate?: string;
-
-  @ApiProperty({
-    required: false,
-    example: '2024-12-31',
-    description: 'End date in YYYY-MM-DD format',
-  })
-  @IsOptional()
-  @IsISO8601({ strict: false })
-  endDate?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSummaryCategoryDto)
+  categories: CreateSummaryCategoryDto[];
 }

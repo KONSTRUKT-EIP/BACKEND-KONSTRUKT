@@ -148,7 +148,7 @@ describe('Weather Integration Tests', () => {
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
-        enableImplicitConversion: true,
+        transformOptions: { enableImplicitConversion: true },
       }),
     );
     await app.init();
