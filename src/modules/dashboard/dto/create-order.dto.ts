@@ -6,6 +6,15 @@ import {
   IsString,
   Min,
 } from 'class-validator';
+import { z } from 'zod';
+
+export const CreateOrderSchema = z.object({
+  productName: z.string().min(1),
+  productIcon: z.string().optional(),
+  price: z.number().min(0),
+  totalOrder: z.number().int().min(1),
+  total: z.number().min(0),
+});
 
 export class CreateOrderDto {
   @ApiProperty({ example: 'Armature 12mm', description: 'Product name' })

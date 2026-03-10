@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsISO8601, IsOptional, IsString } from 'class-validator';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -21,6 +22,8 @@ export class ArmatureReportsQueryDto {
     example: '2024-01-01',
     description: 'Start date in YYYY-MM-DD format',
   })
+  @IsOptional()
+  @IsISO8601({ strict: false })
   startDate?: string;
 
   @ApiProperty({
@@ -28,6 +31,8 @@ export class ArmatureReportsQueryDto {
     example: '2024-12-31',
     description: 'End date in YYYY-MM-DD format',
   })
+  @IsOptional()
+  @IsISO8601({ strict: false })
   endDate?: string;
 
   @ApiProperty({
@@ -35,6 +40,8 @@ export class ArmatureReportsQueryDto {
     example: 'voiles,planchers,poutres',
     description: 'Comma-separated list of categories to filter',
   })
+  @IsOptional()
+  @IsString()
   categories?: string;
 }
 

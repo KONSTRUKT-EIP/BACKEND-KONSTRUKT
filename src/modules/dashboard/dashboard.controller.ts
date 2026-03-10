@@ -25,6 +25,7 @@ import {
   DashboardSummaryResponseDto,
   DashboardSummaryQuerySchema,
 } from './dto/dashboard-summary.dto';
+import { CreateSummaryDto, CreateSummarySchema } from './dto/create-summary.dto';
 import {
   ArmatureReportsQueryDto,
   ArmatureReportsResponseDto,
@@ -35,7 +36,7 @@ import {
   RecentOrdersQuerySchema,
 } from './dto/recent-orders.query.dto';
 import { RecentOrdersResponseDto } from './dto/recent-orders.dto';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderSchema } from './dto/create-order.dto';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
@@ -77,6 +78,28 @@ export class DashboardController {
     return this.dashboardService.getSummary(result.data);
   }
 
+  @Post('summary')
+  @ApiOperation({
+    summary:
+      'Seed default resources per category (if missing) then return summary',
+  })
+  @ApiBody({ type: CreateSummaryDto })
+  @ApiResponse({ status: 201, type: DashboardSummaryResponseDto })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async createSummary(
+    @Body() dto: CreateSummaryDto,
+  ): Promise<DashboardSummaryResponseDto> {
+    const result = CreateSummarySchema.safeParse(dto);
+    if (!result.success) {
+      throw new BadRequestException(
+        'Validation failed: ' + JSON.stringify(result.error.issues),
+      );
+    }
+    return this.dashboardService.createSummary(result.data);
+  }
+  
   @Get('resources')
   @ApiOperation({
     summary: 'List all available resources (for order creation)',
@@ -237,7 +260,15 @@ export class DashboardController {
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async createOrder(@Body() dto: CreateOrderDto): Promise<RecentOrdersResponseDto> {
-    return this.dashboardService.createOrder(dto);
+  async createOrder(
+    @Body() dto: CreateOrderDto,
+  ): Promise<RecentOrdersResponseDto> {
+    const result = CreateOrderSchema.safeParse(dto);
+    if (!result.success) {
+      throw new BadRequestException(
+        'Validation failed: ' + JSON.stringify(result.error.issues),
+      );
+    }
+    return this.dashboardService.createOrder(result.data);
   }
 }
