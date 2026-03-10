@@ -18,6 +18,7 @@ import {
 import { RecentOrdersQueryDto } from './dto/recent-orders.query.dto';
 import { RecentOrdersResponseDto, OrderDto } from './dto/recent-orders.dto';
 import { DASHBOARD_CATEGORIES } from './dashboard.constants';
+import { CreateSummaryInput } from './dto/create-summary.dto';
 
 @Injectable()
 export class DashboardService {
@@ -85,6 +86,46 @@ export class DashboardService {
     }
   }
 
+  async createSummary(
+    input: CreateSummaryInput,
+  ): Promise<DashboardSummaryResponseDto> {
+    // Resolve target site
+    let siteId = input.siteId;
+    if (!siteId) {
+      const site = await this.prisma.site.findFirst();
+      if (!site) {
+        // No site at all — fall back to plain read
+        return this.getSummary(input);
+      }
+      siteId = site.id;
+    }
+
+    // Seed one default Resource per category if none exist for this site
+    for (const cat of DASHBOARD_CATEGORIES) {
+      const existing = await this.prisma.resource.findFirst({
+        where: {
+          siteId,
+          name: { contains: cat.name, mode: 'insensitive' },
+        },
+      });
+      if (!existing) {
+        await this.prisma.resource.create({
+          data: {
+            siteId,
+            name: cat.name,
+            type: 'MATERIAU',
+            unit: 'kg',
+            quantity: 0,
+            unitPrice: 0,
+            supplier: 'À définir',
+          },
+        });
+      }
+    }
+
+    return this.getSummary(input);
+  }
+
   async getRecentOrders(
     query: RecentOrdersQueryDto,
   ): Promise<RecentOrdersResponseDto> {
@@ -131,31 +172,60 @@ export class DashboardService {
   }
 
   async createOrder(data: {
-    resourceId: string;
-    quantity: number;
-    siteId: string;
-    expectedDate: string;
-    supplier: string;
-  }): Promise<OrderDto> {
+    productName: string;
+    productIcon?: string;
+    price: number;
+    totalOrder: number;
+    total: number;
+  }): Promise<RecentOrdersResponseDto> {
+    // Find a matching resource by name, fall back to first available
+    let resource = await this.prisma.resource.findFirst({
+      where: { name: { contains: data.productName, mode: 'insensitive' } },
+    });
+    if (!resource) {
+      resource = await this.prisma.resource.findFirst();
+    }
+
+    if (!resource) {
+      // No resource in DB — return a transient order
+      return {
+        orders: [
+          {
+            id: `order_${Date.now()}`,
+            productName: data.productName,
+            productIcon: data.productIcon ?? '',
+            price: data.price,
+            totalOrder: data.totalOrder,
+            total: data.total,
+          },
+        ],
+      };
+    }
+
     const delivery = await this.prisma.delivery.create({
       data: {
-        resourceId: data.resourceId,
-        quantity: data.quantity,
-        siteId: data.siteId,
-        expectedDate: new Date(data.expectedDate),
-        supplier: data.supplier,
+        resourceId: resource.id,
+        siteId: resource.siteId,
+        quantity: data.totalOrder,
+        expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        supplier: resource.supplier,
         status: 'PLANIFIEE',
       },
       include: { resource: true },
     });
 
     return {
-      id: delivery.id,
-      productName: delivery.resource.name,
-      productIcon: '',
-      price: Number(delivery.resource.unitPrice),
-      totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+      orders: [
+        {
+          id: delivery.id,
+          productName: delivery.resource.name,
+          productIcon: data.productIcon ?? '',
+          price: Number(delivery.resource.unitPrice),
+          totalOrder: Number(delivery.quantity),
+          total:
+            Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+        },
+      ],
     };
   }
 

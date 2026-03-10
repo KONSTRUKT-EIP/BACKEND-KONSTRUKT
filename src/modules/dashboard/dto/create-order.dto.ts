@@ -1,42 +1,48 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsDateString,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
-  IsUUID,
   Min,
 } from 'class-validator';
+import { z } from 'zod';
+
+export const CreateOrderSchema = z.object({
+  productName: z.string().min(1),
+  productIcon: z.string().optional(),
+  price: z.number().min(0),
+  totalOrder: z.number().int().min(1),
+  total: z.number().min(0),
+});
 
 export class CreateOrderDto {
-  @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000010',
-    description: 'Resource UUID',
-  })
-  @IsUUID('4')
-  resourceId: string;
-
-  @ApiProperty({ example: 10, description: 'Quantity to order (min 1)' })
-  @IsNumber()
-  @Min(1)
-  quantity: number;
-
-  @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000003',
-    description: 'Site UUID',
-  })
-  @IsUUID('4')
-  siteId: string;
-
-  @ApiProperty({
-    example: '2026-04-15',
-    description: 'Expected delivery date (YYYY-MM-DD)',
-  })
-  @IsDateString()
-  expectedDate: string;
-
-  @ApiProperty({ example: 'Acier SA', description: 'Supplier name' })
+  @ApiProperty({ example: 'Armature 12mm', description: 'Product name' })
   @IsString()
   @IsNotEmpty()
-  supplier: string;
+  productName: string;
+
+  @ApiProperty({
+    example: 'https://cdn.konstrukt.com/icons/armature.png',
+    description: 'Product icon URL (optional)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  productIcon?: string;
+
+  @ApiProperty({ example: 120, description: 'Unit price' })
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @ApiProperty({ example: 5, description: 'Quantity ordered (min 1)' })
+  @IsNumber()
+  @Min(1)
+  totalOrder: number;
+
+  @ApiProperty({ example: 600, description: 'Total price' })
+  @IsNumber()
+  @Min(0)
+  total: number;
 }

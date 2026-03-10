@@ -1,10 +1,11 @@
-import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsISO8601, IsOptional } from 'class-validator';
+import { IsISO8601, IsOptional, IsUUID } from 'class-validator';
+import { z } from 'zod';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-export const DashboardSummaryQuerySchema = z.object({
+export const CreateSummarySchema = z.object({
+  siteId: z.string().uuid().optional(),
   startDate: z
     .string()
     .regex(dateRegex, 'Date must be in YYYY-MM-DD format')
@@ -15,7 +16,18 @@ export const DashboardSummaryQuerySchema = z.object({
     .optional(),
 });
 
-export class DashboardSummaryQueryDto {
+export type CreateSummaryInput = z.infer<typeof CreateSummarySchema>;
+
+export class CreateSummaryDto {
+  @ApiProperty({
+    required: false,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'Site UUID — if omitted, the first available site is used',
+  })
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
+
   @ApiProperty({
     required: false,
     example: '2024-01-01',
@@ -33,29 +45,4 @@ export class DashboardSummaryQueryDto {
   @IsOptional()
   @IsISO8601({ strict: false })
   endDate?: string;
-}
-
-export class CategoryKpiDto {
-  @ApiProperty()
-  id: number;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiProperty()
-  progress: number;
-
-  @ApiProperty()
-  spent: number;
-}
-
-export class DashboardSummaryResponseDto {
-  @ApiProperty()
-  globalProgress: number;
-
-  @ApiProperty()
-  globalSpent: number;
-
-  @ApiProperty({ type: [CategoryKpiDto] })
-  categories: CategoryKpiDto[];
 }
