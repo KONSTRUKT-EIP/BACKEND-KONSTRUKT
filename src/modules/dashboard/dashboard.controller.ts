@@ -25,7 +25,10 @@ import {
   DashboardSummaryResponseDto,
   DashboardSummaryQuerySchema,
 } from './dto/dashboard-summary.dto';
-import { CreateSummaryDto, CreateSummarySchema } from './dto/create-summary.dto';
+import {
+  CreateSummaryDto,
+  CreateSummarySchema,
+} from './dto/create-summary.dto';
 import {
   ArmatureReportsQueryDto,
   ArmatureReportsResponseDto,
@@ -99,7 +102,7 @@ export class DashboardController {
     }
     return this.dashboardService.createSummary(result.data);
   }
-  
+
   @Get('resources')
   @ApiOperation({
     summary: 'List all available resources (for order creation)',
