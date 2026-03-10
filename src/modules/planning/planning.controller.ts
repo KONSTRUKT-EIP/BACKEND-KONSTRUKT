@@ -220,8 +220,6 @@ export class PlanningController {
     return this.service.removeAction(id);
   }
 
-  // ─── Vue Semaine ────────────────────────────────────────────────────────────
-
   @Get('week')
   @Roles(
     UserRole.ADMIN,
