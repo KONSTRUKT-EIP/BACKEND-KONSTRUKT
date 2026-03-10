@@ -6,25 +6,32 @@ import {
   IsDateString,
   IsOptional,
   IsEnum,
+  IsArray,
 } from 'class-validator';
 import { TaskType } from '@prisma/client';
 
 export class CreatePlanningTaskDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6',
-    description: 'ID de la zone du chantier',
+    description: 'ID de la zone du chantier (optionnel)',
   })
   @IsUUID('all')
-  @IsNotEmpty()
-  siteZoneId: string;
+  @IsOptional()
+  siteZoneId?: string;
 
-  @ApiProperty({
-    example: 'f1e2d3c4-b5a6-4798-8901-234567890abc',
-    description: "ID de l'utilisateur assigné",
+  @ApiPropertyOptional({
+    example: [
+      'f1e2d3c4-b5a6-4798-8901-234567890abc',
+      'a2b3c4d5-e6f7-4859-9abc-def123456789',
+    ],
+    description:
+      'IDs des utilisateurs assignés (optionnel, peut être vide pour "Non attribué")',
+    type: [String],
   })
-  @IsUUID('all')
-  @IsNotEmpty()
-  assignedToId: string;
+  @IsArray()
+  @IsOptional()
+  @IsUUID('all', { each: true })
+  assignedToIds?: string[];
 
   @ApiProperty({
     example: 'Coulage dalle',

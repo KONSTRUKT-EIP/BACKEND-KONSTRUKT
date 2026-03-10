@@ -116,17 +116,17 @@ model User {
 	lastName       String
 	createdAt      DateTime     @default(now())
 
-	organization  Organization?  @relation(fields: [organizationId], references: [id])
-	uploadedDocs   Document[]      @relation("DocumentUploadedBy")
-	reports        Report[]        @relation("ReportGeneratedBy")
-	assignedTasks  Task[]          @relation("TaskAssignedTo")
-	taskProgress   TaskProgress[]
-	resourceUsage  ResourceUsage[]
-	workforce      WorkforceEntry[] @relation("WorkforceEntryWorker")
-	refreshTokens  RefreshToken[]
-	ledTeams       Team[]          @relation("TeamLeader")
-	teamMemberships TeamMember[]   @relation("TeamMemberships")
-	attendances    Attendance[]    @relation("UserAttendances")
+	organization    Organization?    @relation(fields: [organizationId], references: [id])
+	uploadedDocs    Document[]       @relation("DocumentUploadedBy")
+	reports         Report[]         @relation("ReportGeneratedBy")
+	taskAssignments TaskAssignment[]
+	taskProgress    TaskProgress[]
+	resourceUsage   ResourceUsage[]
+	workforce       WorkforceEntry[] @relation("WorkforceEntryWorker")
+	refreshTokens   RefreshToken[]
+	ledTeams        Team[]           @relation("TeamLeader")
+	teamMemberships TeamMember[]     @relation("TeamMemberships")
+	attendances     Attendance[]     @relation("UserAttendances")
 
 	@@index([organizationId])
 }
@@ -222,26 +222,39 @@ model Delivery {
 
 model Task {
 	id          String     @id @default(uuid()) @db.Uuid
-	siteZoneId  String     @db.Uuid
-	assignedToId String    @db.Uuid
+	siteZoneId  String?    @db.Uuid
 	name        String
 	description String
 	type        TaskType
 	priority    Int
 	plannedEnd  DateTime
+	time        String?
 	realStart   DateTime?
 	realEnd     DateTime?
 	status      TaskStatus
 	createdAt   DateTime   @default(now())
 
-	siteZone   SiteZone       @relation(fields: [siteZoneId], references: [id])
-	assignedTo User           @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
-	progress   TaskProgress[]
-	alerts     TaskAlert[]
+	siteZone       SiteZone?         @relation(fields: [siteZoneId], references: [id])
+	assignments    TaskAssignment[]
+	progress       TaskProgress[]
+	alerts         TaskAlert[]
 	resourceUsages ResourceUsage[]
 
 	@@index([siteZoneId])
-	@@index([assignedToId])
+}
+
+model TaskAssignment {
+	id        String   @id @default(uuid()) @db.Uuid
+	taskId    String   @db.Uuid
+	userId    String   @db.Uuid
+	createdAt DateTime @default(now())
+
+	task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+	@@unique([taskId, userId])
+	@@index([taskId])
+	@@index([userId])
 }
 
 model TaskProgress {

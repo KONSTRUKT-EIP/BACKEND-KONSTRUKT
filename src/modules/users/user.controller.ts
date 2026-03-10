@@ -26,12 +26,12 @@ import { UserRole } from '../../shared/types/roles.enum';
 @ApiTags('users')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a user' })
   @ApiResponse({ status: 201, description: 'User created.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
@@ -42,6 +42,7 @@ export class UserController {
   }
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'List of users.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
@@ -51,6 +52,7 @@ export class UserController {
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Get a user by id' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User found.' })
@@ -62,6 +64,7 @@ export class UserController {
   }
 
   @Put(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a user' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User updated.' })
@@ -74,6 +77,7 @@ export class UserController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete a user' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User deleted.' })

@@ -5,6 +5,8 @@ import {
   IsDateString,
   IsOptional,
   IsEnum,
+  IsArray,
+  ArrayMinSize,
 } from 'class-validator';
 import { TaskType, TaskStatus } from '@prisma/client';
 
@@ -18,12 +20,18 @@ export class UpdatePlanningTaskDto {
   siteZoneId?: string;
 
   @ApiPropertyOptional({
-    example: 'f1e2d3c4-b5a6-4798-8901-234567890abc',
-    description: "ID de l'utilisateur assigné",
+    example: [
+      'f1e2d3c4-b5a6-4798-8901-234567890abc',
+      'a2b3c4d5-e6f7-4859-9abc-def123456789',
+    ],
+    description: 'IDs des utilisateurs assignés (au moins 1)',
+    type: [String],
   })
-  @IsUUID('all')
+  @IsArray()
+  @IsUUID('all', { each: true })
+  @ArrayMinSize(1)
   @IsOptional()
-  assignedToId?: string;
+  assignedToIds?: string[];
 
   @ApiPropertyOptional({
     example: 'Coulage dalle',

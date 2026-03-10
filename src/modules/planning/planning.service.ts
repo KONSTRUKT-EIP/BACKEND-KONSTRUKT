@@ -21,7 +21,7 @@ interface TaskWithRelations {
   name: string;
   plannedEnd: Date;
   status: TaskStatus;
-  time?: string;
+  time?: string | null;
   alerts?: Array<{
     id: string;
     type: AlertType;
@@ -37,13 +37,12 @@ interface AlertWithTask {
     name?: string;
     siteZone?: {
       name?: string;
-    };
+    } | null;
   };
 }
 
 interface TaskUpdateData {
   siteZoneId?: string;
-  assignedToId?: string;
   name?: string;
   description?: string;
   type?: TaskType;
@@ -52,6 +51,7 @@ interface TaskUpdateData {
   status?: TaskStatus;
   realStart?: Date;
   realEnd?: Date;
+  time?: string;
 }
 
 @Injectable()
@@ -76,6 +76,13 @@ export class PlanningService {
     return 'in-progress';
   }
 
+  private formatDateLocal(date: Date): string {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   private formatTaskForFrontend(
     task: TaskWithRelations,
   ): PlanningTaskResponseDto {
@@ -88,7 +95,7 @@ export class PlanningService {
     return {
       id: task.id,
       label: task.name,
-      date: new Date(task.plannedEnd).toISOString().split('T')[0],
+      date: this.formatDateLocal(new Date(task.plannedEnd)),
       time: task.time || undefined,
       status: this.mapTaskStatus(task, hasWeatherAlert),
     };
@@ -136,9 +143,12 @@ export class PlanningService {
     } = {};
 
     if (startDate && endDate) {
+      const gteDate = new Date(startDate);
+      const lteDate = new Date(endDate);
+      lteDate.setHours(23, 59, 59, 999);
       where.plannedEnd = {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
+        gte: gteDate,
+        lte: lteDate,
       };
     }
 
@@ -156,8 +166,12 @@ export class PlanningService {
         siteZone: {
           select: { id: true, name: true },
         },
-        assignedTo: {
-          select: { id: true, firstName: true, lastName: true },
+        assignments: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+          },
         },
         alerts: {
           where: {
@@ -183,8 +197,17 @@ export class PlanningService {
         siteZone: {
           select: { id: true, name: true },
         },
-        assignedTo: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+        assignments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
         },
         alerts: {
           select: {
@@ -220,43 +243,64 @@ export class PlanningService {
   }
 
   async create(dto: CreatePlanningTaskDto): Promise<any> {
-    const siteZone = await this.prisma.siteZone.findUnique({
-      where: { id: dto.siteZoneId },
-    });
+    if (dto.siteZoneId) {
+      const siteZone = await this.prisma.siteZone.findUnique({
+        where: { id: dto.siteZoneId },
+      });
 
-    if (!siteZone) {
-      throw new NotFoundException(
-        `Zone de chantier ${dto.siteZoneId} introuvable`,
-      );
+      if (!siteZone) {
+        throw new NotFoundException(
+          `Zone de chantier ${dto.siteZoneId} introuvable`,
+        );
+      }
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: dto.assignedToId },
-    });
+    if (dto.assignedToIds && dto.assignedToIds.length > 0) {
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: dto.assignedToIds } },
+      });
 
-    if (!user) {
-      throw new NotFoundException(
-        `Utilisateur ${dto.assignedToId} introuvable`,
-      );
+      if (users.length !== dto.assignedToIds.length) {
+        const foundIds = users.map((u) => u.id);
+        const missingIds = dto.assignedToIds.filter(
+          (id) => !foundIds.includes(id),
+        );
+        throw new NotFoundException(
+          `Utilisateur(s) introuvable(s): ${missingIds.join(', ')}`,
+        );
+      }
     }
 
     const task = await this.prisma.task.create({
       data: {
-        siteZoneId: dto.siteZoneId,
-        assignedToId: dto.assignedToId,
+        ...(dto.siteZoneId ? { siteZoneId: dto.siteZoneId } : {}),
         name: dto.name,
         description: dto.description || '',
         type: dto.type,
         priority: dto.priority,
         plannedEnd: new Date(dto.plannedEnd),
+        time: dto.time || null,
         status: TaskStatus.EN_ATTENTE,
+        ...(dto.assignedToIds && dto.assignedToIds.length > 0
+          ? {
+              assignments: {
+                create: dto.assignedToIds.map((userId) => ({
+                  userId,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         siteZone: {
           select: { id: true, name: true },
         },
-        assignedTo: {
-          select: { id: true, firstName: true, lastName: true },
+        assignments: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+          },
         },
       },
     });
@@ -285,16 +329,31 @@ export class PlanningService {
       updateData.siteZoneId = dto.siteZoneId;
     }
 
-    if (typeof dto.assignedToId !== 'undefined') {
-      const user = await this.prisma.user.findUnique({
-        where: { id: dto.assignedToId },
+    if (typeof dto.assignedToIds !== 'undefined') {
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: dto.assignedToIds } },
       });
-      if (!user) {
+
+      if (users.length !== dto.assignedToIds.length) {
+        const foundIds = users.map((u) => u.id);
+        const missingIds = dto.assignedToIds.filter(
+          (id) => !foundIds.includes(id),
+        );
         throw new NotFoundException(
-          `Utilisateur ${dto.assignedToId} introuvable`,
+          `Utilisateur(s) introuvable(s): ${missingIds.join(', ')}`,
         );
       }
-      updateData.assignedToId = dto.assignedToId;
+
+      await this.prisma.taskAssignment.deleteMany({
+        where: { taskId: id },
+      });
+
+      await this.prisma.taskAssignment.createMany({
+        data: dto.assignedToIds.map((userId) => ({
+          taskId: id,
+          userId,
+        })),
+      });
     }
 
     if (typeof dto.name !== 'undefined') {
@@ -321,6 +380,9 @@ export class PlanningService {
     if (typeof dto.realEnd !== 'undefined') {
       updateData.realEnd = new Date(dto.realEnd);
     }
+    if (typeof dto.time !== 'undefined') {
+      updateData.time = dto.time || undefined;
+    }
 
     const task = await this.prisma.task.update({
       where: { id },
@@ -329,8 +391,12 @@ export class PlanningService {
         siteZone: {
           select: { id: true, name: true },
         },
-        assignedTo: {
-          select: { id: true, firstName: true, lastName: true },
+        assignments: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+          },
         },
       },
     });
