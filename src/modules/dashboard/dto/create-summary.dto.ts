@@ -1,16 +1,35 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { z } from 'zod';
 
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
 const CategorySchema = z.object({
-  id: z.number(),
+  id: z.number().int(),
   name: z.string(),
   progress: z.number().min(0).max(100),
   spent: z.number().min(0),
 });
 
 export const CreateSummarySchema = z.object({
+  siteId: z.string().uuid().optional(),
+  startDate: z
+    .string()
+    .regex(dateRegex, 'Date must be in YYYY-MM-DD format')
+    .optional(),
+  endDate: z
+    .string()
+    .regex(dateRegex, 'Date must be in YYYY-MM-DD format')
+    .optional(),
   globalProgress: z.number().min(0).max(100),
   globalSpent: z.number().min(0),
   categories: z.array(CategorySchema),
@@ -37,6 +56,21 @@ export class CreateSummaryCategoryDto {
 }
 
 export class CreateSummaryDto {
+  @ApiProperty({ required: false, description: 'Filter by site UUID' })
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
+
+  @ApiProperty({ required: false, example: '2025-01-01', description: 'Start date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsISO8601()
+  startDate?: string;
+
+  @ApiProperty({ required: false, example: '2025-12-31', description: 'End date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsISO8601()
+  endDate?: string;
+
   @ApiProperty({
     example: 0,
     description: 'Global progress percentage (0-100)',

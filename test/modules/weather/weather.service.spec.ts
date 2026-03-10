@@ -293,7 +293,7 @@ describe('WeatherService', () => {
   describe('Cache management', () => {
     it('devrait nettoyer le cache expiré', () => {
       const cacheKey = 'test_key';
-      service['setCache'](cacheKey, { data: 'test' } as unknown as Parameters<typeof service['setCache']>[1]);
+      service['setCache'](cacheKey, { latitude: 48.8566, longitude: 2.3522 });
 
       // Simuler l'expiration en modifiant le timestamp
       const cached = service['cache'].get(cacheKey);
@@ -309,7 +309,7 @@ describe('WeatherService', () => {
 
     it('ne devrait pas supprimer le cache valide', () => {
       const cacheKey = 'test_key';
-      const testData = { data: 'test' } as unknown as Parameters<typeof service['setCache']>[1];
+      const testData: { latitude: number; longitude: number } = { latitude: 48.8566, longitude: 2.3522 };
       service['setCache'](cacheKey, testData);
 
       service.clearExpiredCache();

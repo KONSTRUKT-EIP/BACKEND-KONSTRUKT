@@ -96,7 +96,7 @@ export class DashboardService {
     this.summaryState = {
       globalProgress: input.globalProgress,
       globalSpent: input.globalSpent,
-      categories: input.categories,
+      categories: input.categories.map((c) => ({ ...c })),
     };
     return this.summaryState;
   }

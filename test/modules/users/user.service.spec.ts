@@ -216,4 +216,106 @@ describe('UserService', () => {
       });
     });
   });
+
+  // ─── createUser (auth method) ─────────────────────────────────────────────
+  describe('createUser', () => {
+    it('should hash the password and create the user', async () => {
+      const input = {
+        email: 'auth@example.com',
+        password: 'PlainPass1!',
+        firstName: 'Auth',
+        lastName: 'User',
+      };
+      const createdUser = {
+        id: 'user-auth-1',
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: UserRole.ADMIN,
+        organizationId: null,
+        createdAt: new Date(),
+      };
+      mockPrismaService.user.create.mockResolvedValue(createdUser);
+
+      const result = await service.createUser(input);
+
+      expect(result).toEqual(createdUser);
+      // The password passed to prisma.create should be a bcrypt hash, not the plain text
+      const callData = mockPrismaService.user.create.mock.calls[0][0].data;
+      expect(callData.password).toMatch(/^\$2b\$/);
+      expect(callData.password).not.toBe(input.password);
+    });
+
+    it('should connect organization when organizationId is provided', async () => {
+      const orgId = 'org-uuid-1';
+      const input = {
+        email: 'auth@example.com',
+        password: 'PlainPass1!',
+        firstName: 'Auth',
+        lastName: 'User',
+        organizationId: orgId,
+      };
+      mockPrismaService.user.create.mockResolvedValue({ id: 'u1' });
+
+      await service.createUser(input);
+
+      const callData = mockPrismaService.user.create.mock.calls[0][0].data;
+      expect(callData.organization).toEqual({ connect: { id: orgId } });
+    });
+
+    it('should not include organization key when organizationId is absent', async () => {
+      const input = {
+        email: 'noorg@example.com',
+        password: 'PlainPass1!',
+        firstName: 'No',
+        lastName: 'Org',
+      };
+      mockPrismaService.user.create.mockResolvedValue({ id: 'u2' });
+
+      await service.createUser(input);
+
+      const callData = mockPrismaService.user.create.mock.calls[0][0].data;
+      expect(callData).not.toHaveProperty('organization');
+    });
+  });
+
+  // ─── findByEmail ──────────────────────────────────────────────────────────
+  describe('findByEmail', () => {
+    it('should return the user when found', async () => {
+      const email = 'found@example.com';
+      const user = { id: 'u-3', email, password: '$2b$hash', role: UserRole.ADMIN };
+      mockPrismaService.user.findUnique.mockResolvedValue(user);
+
+      const result = await service.findByEmail(email);
+
+      expect(result).toEqual(user);
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { email },
+      });
+    });
+
+    it('should return null when user is not found', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      const result = await service.findByEmail('notfound@example.com');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  // ─── update without password ──────────────────────────────────────────────
+  describe('update (no password change)', () => {
+    it('should update user fields without hashing when no password is provided', async () => {
+      const userId = '123e4567-e89b-12d3-a456-426614174001';
+      const dto: UpdateUserDto = { firstName: 'Changed' };
+      mockPrismaService.user.update.mockResolvedValue({ id: userId, firstName: 'Changed' });
+
+      await service.update(userId, dto);
+
+      const callData = mockPrismaService.user.update.mock.calls[0][0].data;
+      expect(callData).not.toHaveProperty('password');
+      expect(callData.firstName).toBe('Changed');
+    });
+  });
 });
+

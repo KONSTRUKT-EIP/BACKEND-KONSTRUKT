@@ -27,13 +27,17 @@ describe('DashboardService', () => {
   });
   let service: DashboardService;
   let mockResourceFindMany: jest.Mock;
+  let mockResourceFindFirst: jest.Mock;
   let mockResourceUsageFindMany: jest.Mock;
   let mockDeliveryFindMany: jest.Mock;
+  let mockDeliveryCreate: jest.Mock;
 
   beforeEach(async () => {
     mockResourceFindMany = jest.fn();
+    mockResourceFindFirst = jest.fn();
     mockResourceUsageFindMany = jest.fn();
     mockDeliveryFindMany = jest.fn();
+    mockDeliveryCreate = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -41,9 +45,15 @@ describe('DashboardService', () => {
         {
           provide: PrismaService,
           useValue: {
-            resource: { findMany: mockResourceFindMany },
+            resource: {
+              findMany: mockResourceFindMany,
+              findFirst: mockResourceFindFirst,
+            },
             resourceUsage: { findMany: mockResourceUsageFindMany },
-            delivery: { findMany: mockDeliveryFindMany },
+            delivery: {
+              findMany: mockDeliveryFindMany,
+              create: mockDeliveryCreate,
+            },
           },
         },
       ],
@@ -132,6 +142,211 @@ describe('DashboardService', () => {
           lte: new Date('2024-12-31'),
         },
       },
+    });
+  });
+
+  // ─── getSummary — summaryState caching ──────────────────────────────────
+  describe('getSummary() with stored summaryState', () => {
+    it('should return stored summaryState without querying the DB', async () => {
+      const stored = {
+        globalProgress: 75,
+        globalSpent: 5000,
+        categories: [{ id: 1, name: 'Voiles', progress: 75, spent: 5000 }],
+      };
+      // Seed the state directly
+      service['summaryState'] = stored;
+
+      const result = await service.getSummary({});
+
+      expect(result).toEqual(stored);
+      expect(mockResourceFindMany).not.toHaveBeenCalled();
+      expect(mockResourceUsageFindMany).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── createSummary ───────────────────────────────────────────────────────
+  describe('createSummary()', () => {
+    it('should store the summary and return it', () => {
+      const input = {
+        globalProgress: 60,
+        globalSpent: 3000,
+        categories: [
+          { id: 1, name: 'Voiles', progress: 60, spent: 3000 },
+        ],
+      };
+
+      const result = service.createSummary(input);
+
+      expect(result).toEqual(input);
+      expect(service['summaryState']).toEqual(input);
+    });
+
+    it('should deep-clone categories so mutations do not affect the stored state', () => {
+      const cats = [{ id: 1, name: 'Voiles', progress: 50, spent: 1000 }];
+      service.createSummary({ globalProgress: 50, globalSpent: 1000, categories: cats });
+
+      // Mutate the original array after storing
+      cats[0].progress = 99;
+
+      expect(service['summaryState']!.categories[0].progress).toBe(50);
+    });
+
+    it('should make getSummary return the stored state on next call', async () => {
+      const input = {
+        globalProgress: 42,
+        globalSpent: 420,
+        categories: [{ id: 1, name: 'Voiles', progress: 42, spent: 420 }],
+      };
+      service.createSummary(input);
+
+      const result = await service.getSummary({});
+
+      expect(result).toEqual(input);
+      expect(mockResourceFindMany).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── getAllOrders ────────────────────────────────────────────────────────
+  describe('getAllOrders()', () => {
+    it('should return all deliveries mapped to OrderDto shape', async () => {
+      mockDeliveryFindMany.mockResolvedValue([
+        {
+          id: 'del-1',
+          createdAt: new Date(),
+          quantity: 5,
+          resource: { name: 'Armature 12mm', unitPrice: 100 },
+        },
+        {
+          id: 'del-2',
+          createdAt: new Date(),
+          quantity: 2,
+          resource: { name: 'Poutre HEA200', unitPrice: 250 },
+        },
+      ]);
+
+      const result = await service.getAllOrders();
+
+      expect(result.orders).toHaveLength(2);
+      expect(result.orders[0]).toEqual({
+        id: 'del-1',
+        productName: 'Armature 12mm',
+        productIcon: '',
+        price: 100,
+        totalOrder: 5,
+        total: 500,
+      });
+      expect(mockDeliveryFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
+      );
+    });
+
+    it('should return an empty orders array when there are no deliveries', async () => {
+      mockDeliveryFindMany.mockResolvedValue([]);
+
+      const result = await service.getAllOrders();
+
+      expect(result.orders).toEqual([]);
+    });
+  });
+
+  // ─── createOrder ─────────────────────────────────────────────────────────
+  describe('createOrder()', () => {
+    const orderData = {
+      productName: 'Armature 12mm',
+      productIcon: '',
+      price: 100,
+      totalOrder: 5,
+      total: 500,
+    };
+
+    const mockResource = {
+      id: 'res-1',
+      name: 'Armature 12mm',
+      unitPrice: 100,
+      siteId: 'site-1',
+      supplier: 'Acier SA',
+    };
+
+    const mockDelivery = {
+      id: 'del-new',
+      quantity: 5,
+      resource: { name: 'Armature 12mm', unitPrice: 100 },
+    };
+
+    it('should create a delivery when a matching resource is found by name', async () => {
+      mockResourceFindFirst
+        .mockResolvedValueOnce(mockResource); // name match
+      mockDeliveryCreate.mockResolvedValue(mockDelivery);
+
+      const result = await service.createOrder(orderData);
+
+      expect(mockDeliveryCreate).toHaveBeenCalledTimes(1);
+      expect(result.orders[0].id).toBe('del-new');
+      expect(result.orders[0].productName).toBe('Armature 12mm');
+    });
+
+    it('should fall back to first resource when name does not match', async () => {
+      mockResourceFindFirst
+        .mockResolvedValueOnce(null)     // no name match
+        .mockResolvedValueOnce(mockResource); // fallback
+      mockDeliveryCreate.mockResolvedValue(mockDelivery);
+
+      const result = await service.createOrder({ ...orderData, productName: 'Unknown' });
+
+      expect(result.orders[0].id).toBe('del-new');
+    });
+
+    it('should return a transient order (no DB create) when no resource exists', async () => {
+      mockResourceFindFirst
+        .mockResolvedValueOnce(null) // no name match
+        .mockResolvedValueOnce(null); // no fallback
+
+      const result = await service.createOrder(orderData);
+
+      expect(mockDeliveryCreate).not.toHaveBeenCalled();
+      expect(result.orders[0].productName).toBe('Armature 12mm');
+      expect(typeof result.orders[0].id).toBe('string');
+    });
+  });
+
+  // ─── getResources ─────────────────────────────────────────────────────────
+  describe('getResources()', () => {
+    it('should return resources mapped to plain objects with numeric unitPrice', async () => {
+      mockResourceFindMany.mockResolvedValue([
+        {
+          id: 'res-1',
+          name: 'Armature 12mm',
+          type: 'STEEL',
+          unit: 'kg',
+          unitPrice: '120.50',
+          supplier: 'Acier SA',
+          siteId: 'site-1',
+        },
+      ]);
+
+      const result = await service.getResources();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        id: 'res-1',
+        name: 'Armature 12mm',
+        type: 'STEEL',
+        unit: 'kg',
+        unitPrice: 120.5,
+        supplier: 'Acier SA',
+        siteId: 'site-1',
+      });
+      expect(mockResourceFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { name: 'asc' } }),
+      );
+    });
+
+    it('should return an empty array when there are no resources', async () => {
+      mockResourceFindMany.mockResolvedValue([]);
+
+      const result = await service.getResources();
+
+      expect(result).toEqual([]);
     });
   });
 });
