@@ -61,12 +61,20 @@ export class CreateSummaryDto {
   @IsUUID()
   siteId?: string;
 
-  @ApiProperty({ required: false, example: '2025-01-01', description: 'Start date (YYYY-MM-DD)' })
+  @ApiProperty({
+    required: false,
+    example: '2025-01-01',
+    description: 'Start date (YYYY-MM-DD)',
+  })
   @IsOptional()
   @IsISO8601()
   startDate?: string;
 
-  @ApiProperty({ required: false, example: '2025-12-31', description: 'End date (YYYY-MM-DD)' })
+  @ApiProperty({
+    required: false,
+    example: '2025-12-31',
+    description: 'End date (YYYY-MM-DD)',
+  })
   @IsOptional()
   @IsISO8601()
   endDate?: string;
