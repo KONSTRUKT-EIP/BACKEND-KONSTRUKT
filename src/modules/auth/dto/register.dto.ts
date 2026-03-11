@@ -40,6 +40,6 @@ export class RegisterDto {
     required: false,
   })
   @IsOptional()
-  @IsUUID('4', { message: 'Invalid organization ID format' })
+  @IsUUID('all', { message: 'Invalid organization ID format' })
   organizationId?: string;
 }

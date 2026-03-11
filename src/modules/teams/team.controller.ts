@@ -169,6 +169,7 @@ export class TeamController {
   async getTeamMembersDetails(@Param('siteId') siteId: string): Promise<
     Array<{
       id: string;
+      teamId: string;
       specialite: string;
       name: string;
       email: string;

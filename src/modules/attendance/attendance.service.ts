@@ -8,6 +8,7 @@ import { AttendanceStatus } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
+import { UpsertAttendanceDto } from './dto/upsert-attendance.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -149,5 +150,33 @@ export class AttendanceService {
     };
 
     return summary;
+  }
+
+  async upsert(dto: UpsertAttendanceDto) {
+    const day = new Date(dto.date);
+    if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
+
+    return this.prisma.attendance.upsert({
+      where: {
+        teamId_userId_date: {
+          teamId: dto.teamId,
+          userId: dto.userId,
+          date: day,
+        },
+      },
+      update: {
+        status: dto.status,
+      },
+      create: {
+        teamId: dto.teamId,
+        userId: dto.userId,
+        date: day,
+        status: dto.status,
+      },
+      include: {
+        team: { select: { id: true, name: true } },
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
   }
 }

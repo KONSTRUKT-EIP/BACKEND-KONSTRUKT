@@ -11,6 +11,7 @@ import { AttendanceStatus } from '@prisma/client';
 
 interface TeamMemberDetail {
   id: string;
+  teamId: string;
   specialite: string;
   name: string;
   email: string;
@@ -322,6 +323,7 @@ export class TeamService {
 
           membersMap.set(member.userId, {
             id: user.id,
+            teamId: team.id,
             specialite,
             name: `${user.firstName} ${user.lastName}`,
             email: user.email,

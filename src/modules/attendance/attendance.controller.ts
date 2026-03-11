@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -23,6 +24,7 @@ import {
   AttendanceStatus,
 } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
+import { UpsertAttendanceDto } from './dto/upsert-attendance.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -132,5 +134,18 @@ export class AttendanceController {
   @ApiResponse({ status: 404, description: 'Introuvable' })
   remove(@Param('id') id: string) {
     return this.service.remove(id);
+  }
+
+  @Patch('upsert')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+    UserRole.COLLABORATEUR,
+  )
+  @ApiOperation({ summary: 'Créer ou mettre à jour un pointage' })
+  @ApiResponse({ status: 200, description: 'Pointage créé ou mis à jour' })
+  upsert(@Body() dto: UpsertAttendanceDto) {
+    return this.service.upsert(dto);
   }
 }

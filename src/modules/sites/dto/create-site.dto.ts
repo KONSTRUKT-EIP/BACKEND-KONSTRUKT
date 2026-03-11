@@ -6,7 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
+  Matches,
   Min,
 } from 'class-validator';
 
@@ -23,7 +23,10 @@ export class CreateSiteDto {
     example: '9f8e7d6c-5b4a-3210-fedc-ba9876543210',
     description: "ID de l'organisation",
   })
-  @IsUUID('4')
+  @IsString()
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
+    message: 'organizationId must be a valid UUID',
+  })
   organizationId: string;
 
   @ApiProperty({ example: 'Chantier Paris 12', description: 'Nom du chantier' })
