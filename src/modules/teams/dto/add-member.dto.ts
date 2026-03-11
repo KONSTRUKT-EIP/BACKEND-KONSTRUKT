@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Matches } from 'class-validator';
 
 export enum TeamMemberRole {
   WORKER = 'WORKER',
@@ -8,10 +8,13 @@ export enum TeamMemberRole {
 
 export class AddMemberDto {
   @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000003',
+    example: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
     description: "ID de l'utilisateur à ajouter",
   })
-  @IsUUID('4')
+  @IsString()
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
+    message: 'userId must be a valid UUID format',
+  })
   userId: string;
 
   @ApiPropertyOptional({

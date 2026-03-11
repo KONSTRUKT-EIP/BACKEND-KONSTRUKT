@@ -1,7 +1,7 @@
 import { IsUUID, IsObject } from 'class-validator';
 
 export class CreateGenericTableRowDto {
-  @IsUUID()
+  @IsUUID('all')
   tableId: string;
 
   @IsObject()

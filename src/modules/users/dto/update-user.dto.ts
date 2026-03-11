@@ -44,6 +44,6 @@ export class UpdateUserDto {
     nullable: true,
   })
   @IsOptional()
-  @IsUUID()
+  @IsUUID('all')
   organizationId?: string;
 }

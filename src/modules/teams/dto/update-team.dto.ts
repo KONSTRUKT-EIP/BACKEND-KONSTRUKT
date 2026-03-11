@@ -7,8 +7,8 @@ export class UpdateTeamDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ example: '00000000-0000-0000-0000-000000000002' })
+  @ApiPropertyOptional({ example: '7b3e4f89-1c5d-4a2e-9f7b-3c8a6e2d4f5a' })
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID('all')
   leaderId?: string;
 }

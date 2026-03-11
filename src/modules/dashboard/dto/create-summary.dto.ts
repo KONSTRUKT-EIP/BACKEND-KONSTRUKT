@@ -58,7 +58,7 @@ export class CreateSummaryCategoryDto {
 export class CreateSummaryDto {
   @ApiProperty({ required: false, description: 'Filter by site UUID' })
   @IsOptional()
-  @IsUUID()
+  @IsUUID('all')
   siteId?: string;
 
   @ApiProperty({

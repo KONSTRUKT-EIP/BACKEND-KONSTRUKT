@@ -40,6 +40,6 @@ export class CreateUserDto {
     nullable: true,
   })
   @IsOptional()
-  @IsUUID()
+  @IsUUID('all')
   organizationId?: string;
 }
