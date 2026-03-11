@@ -10,6 +10,9 @@ export class TeamStatsDto {
   @ApiProperty({ description: 'Nombre de tâches en cours' })
   enCours: number;
 
+  @ApiProperty({ description: 'Nombre de retards' })
+  retards: number;
+
   @ApiProperty({ description: 'Nombre de tâches en attente' })
   enAttente: number;
 

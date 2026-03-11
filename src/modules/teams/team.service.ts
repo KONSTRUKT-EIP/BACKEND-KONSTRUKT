@@ -173,77 +173,65 @@ export class TeamService {
   async getTeamStats(siteId: string) {
     const teams = await this.prisma.team.findMany({
       where: { siteId },
-      include: {
-        members: {
-          include: {
-            user: true,
-          },
-        },
-      },
     });
-
-    if (teams.length === 0) {
-      return {
-        total: 0,
-        complete: 0,
-        enCours: 0,
-        enAttente: 0,
-        annule: 0,
-        pctPresents: 0,
-        pctAbsents: 0,
-        pctComplete: 0,
-        pctEnCours: 0,
-      };
-    }
-
-    const uniqueUserIds = new Set(
-      teams.flatMap((team) => team.members.map((m) => m.userId)),
-    );
-    const total = uniqueUserIds.size;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const attendances = await this.prisma.attendance.findMany({
+    const startOfWeek = new Date(today);
+    const dayOfWeek = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    startOfWeek.setDate(diff);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 4);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const allAttendances = await this.prisma.attendance.findMany({
       where: {
         teamId: { in: teams.map((t) => t.id) },
-        date: today,
+        date: {
+          gte: startOfWeek,
+          lte: endOfWeek,
+        },
       },
+      orderBy: { date: 'desc' },
     });
-
-    const complete = attendances.filter(
-      (a) => a.status === AttendanceStatus.PRESENT && a.checkOut !== null,
+    let selectedDate = today;
+    let dayAttendances = allAttendances.filter(
+      (a) => a.date.getTime() === today.getTime(),
+    );
+    if (dayAttendances.length === 0 && allAttendances.length > 0) {
+      selectedDate = allAttendances[0].date;
+      dayAttendances = allAttendances.filter(
+        (a) => a.date.getTime() === selectedDate.getTime(),
+      );
+    }
+    const total = dayAttendances.length;
+    const presents = dayAttendances.filter(
+      (a) => a.status === AttendanceStatus.PRESENT,
     ).length;
-
-    const enCours = attendances.filter(
-      (a) => a.status === AttendanceStatus.PRESENT && a.checkOut === null,
-    ).length;
-
-    const absents = attendances.filter(
-      (a) => a.status === AttendanceStatus.ABSENT,
-    ).length;
-
-    const conges = attendances.filter(
-      (a) => a.status === AttendanceStatus.CONGE,
-    ).length;
-
-    const retards = attendances.filter(
+    const retards = dayAttendances.filter(
       (a) => a.status === AttendanceStatus.RETARD,
     ).length;
-
-    const enAttente = total - attendances.length;
-
-    const presents = complete + enCours + retards;
-    const totalAbsents = absents + conges;
-
+    const absents = dayAttendances.filter(
+      (a) => a.status === AttendanceStatus.ABSENT,
+    ).length;
+    const conges = dayAttendances.filter(
+      (a) => a.status === AttendanceStatus.CONGE,
+    ).length;
+    const surSite = dayAttendances.filter(
+      (a) => a.status === AttendanceStatus.PRESENT && a.checkOut === null,
+    ).length;
+    const totalNonPresents = absents + conges;
     return {
-      total: total || 1,
-      complete,
-      enCours,
-      enAttente,
-      annule: totalAbsents,
+      total: total,
+      complete: presents,
+      enCours: surSite,
+      retards,
+      enAttente: 0,
+      annule: absents,
       pctPresents: total > 0 ? Math.round((presents / total) * 100) : 0,
-      pctAbsents: total > 0 ? Math.round((totalAbsents / total) * 100) : 0,
-      pctComplete: total > 0 ? Math.round((complete / total) * 100) : 0,
-      pctEnCours: total > 0 ? Math.round((enCours / total) * 100) : 0,
+      pctAbsents: total > 0 ? Math.round((totalNonPresents / total) * 100) : 0,
+      pctComplete: total > 0 ? Math.round((presents / total) * 100) : 0,
+      pctEnCours: total > 0 ? Math.round((retards / total) * 100) : 0,
     };
   }
 

@@ -144,6 +144,7 @@ export class TeamController {
     total: number;
     complete: number;
     enCours: number;
+    retards: number;
     enAttente: number;
     annule: number;
     pctPresents: number;
