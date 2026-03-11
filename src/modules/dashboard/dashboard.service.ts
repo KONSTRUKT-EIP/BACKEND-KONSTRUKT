@@ -18,15 +18,19 @@ import {
 import { RecentOrdersQueryDto } from './dto/recent-orders.query.dto';
 import { RecentOrdersResponseDto, OrderDto } from './dto/recent-orders.dto';
 import { DASHBOARD_CATEGORIES } from './dashboard.constants';
-import { CreateSummaryInput } from './dto/create-summary.dto';
 
 @Injectable()
 export class DashboardService {
+  private summaryState: DashboardSummaryResponseDto | null = null;
+
   constructor(private readonly prisma: PrismaService) {}
 
   async getSummary(
     query: DashboardSummaryQueryDto,
   ): Promise<DashboardSummaryResponseDto> {
+    if (this.summaryState) {
+      return this.summaryState;
+    }
     try {
       const resources = await this.prisma.resource.findMany();
       const usageQuery: Prisma.ResourceUsageFindManyArgs = {};
@@ -86,44 +90,15 @@ export class DashboardService {
     }
   }
 
-  async createSummary(
-    input: CreateSummaryInput,
-  ): Promise<DashboardSummaryResponseDto> {
-    // Resolve target site
-    let siteId = input.siteId;
-    if (!siteId) {
-      const site = await this.prisma.site.findFirst();
-      if (!site) {
-        // No site at all — fall back to plain read
-        return this.getSummary(input);
-      }
-      siteId = site.id;
-    }
-
-    // Seed one default Resource per category if none exist for this site
-    for (const cat of DASHBOARD_CATEGORIES) {
-      const existing = await this.prisma.resource.findFirst({
-        where: {
-          siteId,
-          name: { contains: cat.name, mode: 'insensitive' },
-        },
-      });
-      if (!existing) {
-        await this.prisma.resource.create({
-          data: {
-            siteId,
-            name: cat.name,
-            type: 'MATERIAU',
-            unit: 'kg',
-            quantity: 0,
-            unitPrice: 0,
-            supplier: 'À définir',
-          },
-        });
-      }
-    }
-
-    return this.getSummary(input);
+  createSummary(
+    input: DashboardSummaryResponseDto,
+  ): DashboardSummaryResponseDto {
+    this.summaryState = {
+      globalProgress: input.globalProgress,
+      globalSpent: input.globalSpent,
+      categories: input.categories.map((c) => ({ ...c })),
+    };
+    return this.summaryState;
   }
 
   async getRecentOrders(
@@ -157,6 +132,24 @@ export class DashboardService {
       },
       skip: (page - 1) * pageSize,
       take: pageSize,
+    });
+
+    const orders: OrderDto[] = deliveries.map((delivery) => ({
+      id: delivery.id,
+      productName: delivery.resource.name,
+      productIcon: '',
+      price: Number(delivery.resource.unitPrice),
+      totalOrder: Number(delivery.quantity),
+      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+    }));
+
+    return { orders };
+  }
+
+  async getAllOrders(): Promise<RecentOrdersResponseDto> {
+    const deliveries = await this.prisma.delivery.findMany({
+      include: { resource: true },
+      orderBy: { createdAt: 'desc' },
     });
 
     const orders: OrderDto[] = deliveries.map((delivery) => ({
