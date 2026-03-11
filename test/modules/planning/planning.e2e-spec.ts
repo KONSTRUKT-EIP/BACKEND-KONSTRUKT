@@ -75,6 +75,7 @@ describe('Planning (e2e)', () => {
     };
     user: {
       findUnique: jest.Mock<any, any>;
+      findMany: jest.Mock<any, any>;
     };
     taskAlert: {
       findMany: jest.Mock<any, any>;
@@ -100,6 +101,7 @@ describe('Planning (e2e)', () => {
       },
       user: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
       },
       taskAlert: {
         findMany: jest.fn(),
@@ -196,7 +198,7 @@ describe('Planning (e2e)', () => {
   describe('POST /planning/tasks', () => {
     const createDto = {
       siteZoneId: 'zone-uuid-1',
-      assignedToId: 'user-uuid-1',
+      assignedToIds: ['user-uuid-1'],
       name: 'Nouvelle tâche',
       description: 'Description',
       type: TaskType.GROS_OEUVRE,
@@ -207,7 +209,7 @@ describe('Planning (e2e)', () => {
 
     it('should create a new task', () => {
       prismaService.siteZone.findUnique.mockResolvedValue(mockSiteZone);
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      prismaService.user.findMany.mockResolvedValue([mockUser]);
       prismaService.task.create.mockResolvedValue(mockTask);
 
       return request(app.getHttpServer())
@@ -231,7 +233,7 @@ describe('Planning (e2e)', () => {
 
     it('should return 404 when user does not exist', () => {
       prismaService.siteZone.findUnique.mockResolvedValue(mockSiteZone);
-      prismaService.user.findUnique.mockResolvedValue(null);
+      prismaService.user.findMany.mockResolvedValue([]);
 
       return request(app.getHttpServer())
         .post('/planning/tasks')

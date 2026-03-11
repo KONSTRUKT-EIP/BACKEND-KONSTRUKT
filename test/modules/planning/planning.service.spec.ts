@@ -68,6 +68,7 @@ describe('PlanningService', () => {
     };
     user: {
       findUnique: jest.Mock<any, any>;
+      findMany: jest.Mock<any, any>;
     };
     taskAlert: {
       findMany: jest.Mock<any, any>;
@@ -91,6 +92,7 @@ describe('PlanningService', () => {
       },
       user: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
       },
       taskAlert: {
         findMany: jest.fn(),
@@ -129,13 +131,16 @@ describe('PlanningService', () => {
 
       const result = await service.findAll('2026-03-10', '2026-03-16');
 
+      const expectedEndDate = new Date('2026-03-16');
+      expectedEndDate.setHours(23, 59, 59, 999);
+
       expect(prisma.task.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           where: expect.objectContaining({
             plannedEnd: {
               gte: new Date('2026-03-10'),
-              lte: new Date('2026-03-16'),
+              lte: expectedEndDate,
             },
           }),
         }),
@@ -208,7 +213,7 @@ describe('PlanningService', () => {
   describe('create()', () => {
     const createDto = {
       siteZoneId: 'zone-uuid-1',
-      assignedToId: 'user-uuid-1',
+      assignedToIds: ['user-uuid-1'],
       name: 'Nouvelle tâche',
       description: 'Description',
       type: TaskType.GROS_OEUVRE,
@@ -219,7 +224,7 @@ describe('PlanningService', () => {
 
     it('should create a new task', async () => {
       prisma.siteZone.findUnique.mockResolvedValue(mockSiteZone);
-      prisma.user.findUnique.mockResolvedValue(mockUser);
+      prisma.user.findMany.mockResolvedValue([mockUser]);
       prisma.task.create.mockResolvedValue(mockTask);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -241,7 +246,7 @@ describe('PlanningService', () => {
 
     it('should throw NotFoundException when user does not exist', async () => {
       prisma.siteZone.findUnique.mockResolvedValue(mockSiteZone);
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findMany.mockResolvedValue([]);
 
       await expect(service.create(createDto)).rejects.toThrow(
         NotFoundException,
