@@ -19,14 +19,14 @@ export enum AttendanceStatus {
 
 export class CreateAttendanceDto {
   @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000001',
+    example: 'f1e2d3c4-b5a6-4789-0123-456789abcdef',
     description: "ID de l'équipe",
   })
   @IsUUID('4')
   teamId: string;
 
   @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000002',
+    example: '2a3b4c5d-6e7f-4890-1234-567890abcdef',
     description: "ID de l'utilisateur",
   })
   @IsUUID('4')

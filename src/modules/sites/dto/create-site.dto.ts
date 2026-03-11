@@ -20,7 +20,7 @@ export enum SiteStatus {
 
 export class CreateSiteDto {
   @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000001',
+    example: '9f8e7d6c-5b4a-3210-fedc-ba9876543210',
     description: "ID de l'organisation",
   })
   @IsUUID('4')

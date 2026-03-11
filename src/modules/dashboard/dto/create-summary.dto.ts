@@ -25,7 +25,7 @@ export class CreateSummaryDto {
     description: 'Site UUID — if omitted, the first available site is used',
   })
   @IsOptional()
-  @IsUUID()
+  @IsUUID('all')
   siteId?: string;
 
   @ApiProperty({

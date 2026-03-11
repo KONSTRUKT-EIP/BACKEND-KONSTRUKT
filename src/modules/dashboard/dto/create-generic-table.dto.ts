@@ -7,6 +7,6 @@ export class CreateGenericTableDto {
   @IsObject()
   columns: object;
 
-  @IsUUID()
+  @IsUUID('all')
   siteId: string;
 }

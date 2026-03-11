@@ -8,7 +8,7 @@ export type PlanningTaskStatus =
 
 export class PlanningTaskResponseDto {
   @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000001',
+    example: '8c7b6a59-4d3e-4f21-0987-654321fedcba',
     description: 'ID de la tâche',
   })
   id: string;

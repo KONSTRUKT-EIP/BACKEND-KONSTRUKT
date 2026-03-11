@@ -7,6 +7,19 @@ import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto, TeamMemberRole } from './dto/add-member.dto';
+import { AttendanceStatus } from '@prisma/client';
+
+interface TeamMemberDetail {
+  id: string;
+  specialite: string;
+  name: string;
+  email: string;
+  dateDebut: string;
+  status: string;
+  initials: string;
+  color: string;
+  starred: boolean;
+}
 
 @Injectable()
 export class TeamService {
@@ -85,8 +98,6 @@ export class TeamService {
     return { message: 'Équipe supprimée' };
   }
 
-  // ─── Members ────────────────────────────────────────────────────────────────
-
   async getMembers(teamId: string) {
     await this.findOne(teamId);
     return this.prisma.teamMember.findMany({
@@ -156,5 +167,278 @@ export class TeamService {
     });
 
     return { message: "Membre retiré de l'équipe" };
+  }
+
+  async getTeamStats(siteId: string) {
+    const teams = await this.prisma.team.findMany({
+      where: { siteId },
+      include: {
+        members: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (teams.length === 0) {
+      return {
+        total: 0,
+        complete: 0,
+        enCours: 0,
+        enAttente: 0,
+        annule: 0,
+        pctPresents: 0,
+        pctAbsents: 0,
+        pctComplete: 0,
+        pctEnCours: 0,
+      };
+    }
+
+    const uniqueUserIds = new Set(
+      teams.flatMap((team) => team.members.map((m) => m.userId)),
+    );
+    const total = uniqueUserIds.size;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        teamId: { in: teams.map((t) => t.id) },
+        date: today,
+      },
+    });
+
+    const complete = attendances.filter(
+      (a) => a.status === AttendanceStatus.PRESENT && a.checkOut !== null,
+    ).length;
+
+    const enCours = attendances.filter(
+      (a) => a.status === AttendanceStatus.PRESENT && a.checkOut === null,
+    ).length;
+
+    const absents = attendances.filter(
+      (a) => a.status === AttendanceStatus.ABSENT,
+    ).length;
+
+    const conges = attendances.filter(
+      (a) => a.status === AttendanceStatus.CONGE,
+    ).length;
+
+    const retards = attendances.filter(
+      (a) => a.status === AttendanceStatus.RETARD,
+    ).length;
+
+    const enAttente = total - attendances.length;
+
+    const presents = complete + enCours + retards;
+    const totalAbsents = absents + conges;
+
+    return {
+      total: total || 1,
+      complete,
+      enCours,
+      enAttente,
+      annule: totalAbsents,
+      pctPresents: total > 0 ? Math.round((presents / total) * 100) : 0,
+      pctAbsents: total > 0 ? Math.round((totalAbsents / total) * 100) : 0,
+      pctComplete: total > 0 ? Math.round((complete / total) * 100) : 0,
+      pctEnCours: total > 0 ? Math.round((enCours / total) * 100) : 0,
+    };
+  }
+
+  async getTeamMembersDetails(siteId: string): Promise<TeamMemberDetail[]> {
+    const teams = await this.prisma.team.findMany({
+      where: { siteId },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (teams.length === 0) {
+      return [];
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        teamId: { in: teams.map((t) => t.id) },
+        date: today,
+      },
+    });
+
+    const attendanceMap = new Map(attendances.map((a) => [a.userId, a.status]));
+
+    const colors = [
+      '#f97316',
+      '#6366f1',
+      '#10b981',
+      '#f43f5e',
+      '#8b5cf6',
+      '#0ea5e9',
+      '#ec4899',
+      '#14b8a6',
+    ];
+
+    const statusMap: Record<string, string> = {
+      PRESENT: 'Présent',
+      ABSENT: 'Absent',
+      RETARD: 'En retard',
+      CONGE: 'En congé',
+    };
+
+    const membersMap = new Map<string, TeamMemberDetail>();
+
+    teams.forEach((team, teamIndex) => {
+      team.members.forEach((member, memberIndex) => {
+        if (!membersMap.has(member.userId)) {
+          const user = member.user;
+          const initials =
+            `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+          const colorIndex =
+            (teamIndex * teams.length + memberIndex) % colors.length;
+          const attendanceStatus = attendanceMap.get(user.id);
+          const status = attendanceStatus
+            ? statusMap[attendanceStatus] || 'En attente'
+            : 'En attente';
+
+          const specialite =
+            member.role === 'CHEF_EQUIPE'
+              ? "Chef d'équipe"
+              : this.getRoleDisplayName(user.role);
+
+          membersMap.set(member.userId, {
+            id: user.id,
+            specialite,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            dateDebut: member.joinedAt.toISOString().split('T')[0],
+            status,
+            initials,
+            color: colors[colorIndex],
+            starred: false,
+          });
+        }
+      });
+    });
+
+    return Array.from(membersMap.values());
+  }
+
+  async getAttendanceWeek(siteId: string, startDate?: string) {
+    const teams = await this.prisma.team.findMany({
+      where: { siteId },
+    });
+
+    if (teams.length === 0) {
+      return { days: [], dates: [], attendances: {} };
+    }
+
+    const start = startDate ? new Date(startDate) : new Date();
+    start.setHours(0, 0, 0, 0);
+
+    if (!startDate) {
+      const day = start.getDay();
+      const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+      start.setDate(diff);
+    }
+
+    const days: string[] = [];
+    const dates: Date[] = [];
+    const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+    for (let i = 0; i < 5; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      dates.push(date);
+      const dayName = dayNames[date.getDay()];
+      const dayNum = date.getDate();
+      days.push(`${dayName} ${dayNum}`);
+    }
+
+    const endDate = new Date(dates[4]);
+    endDate.setHours(23, 59, 59, 999);
+
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        teamId: { in: teams.map((t) => t.id) },
+        date: {
+          gte: dates[0],
+          lte: endDate,
+        },
+      },
+      orderBy: { date: 'asc' },
+    });
+
+    const attendanceMap: Record<string, string[]> = {};
+
+    const members = await this.prisma.teamMember.findMany({
+      where: {
+        teamId: { in: teams.map((t) => t.id) },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    const uniqueUserIds = [...new Set(members.map((m) => m.userId))];
+
+    const statusMap: Record<string, string> = {
+      PRESENT: 'present',
+      ABSENT: 'absent',
+      RETARD: 'retard',
+      CONGE: 'conge',
+    };
+
+    uniqueUserIds.forEach((userId) => {
+      const userAttendances: string[] = [];
+
+      dates.forEach((date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        const attendance = attendances.find(
+          (a) =>
+            a.userId === userId &&
+            a.date.toISOString().split('T')[0] === dateStr,
+        );
+
+        userAttendances.push(
+          attendance
+            ? statusMap[attendance.status] || 'en-attente'
+            : 'en-attente',
+        );
+      });
+
+      attendanceMap[userId] = userAttendances;
+    });
+
+    return {
+      days,
+      dates: dates.map((d) => d.toISOString().split('T')[0]),
+      attendances: attendanceMap,
+    };
+  }
+
+  private getRoleDisplayName(role: string): string {
+    const roleMap: Record<string, string> = {
+      ADMIN: 'Administrateur',
+      CHEF_PROJET: 'Chef de projet',
+      CONDUCTEUR_TRAVAUX: 'Conducteur de travaux',
+      COLLABORATEUR: 'Collaborateur',
+      CLIENT: 'Client',
+    };
+    return roleMap[role] || 'Collaborateur';
   }
 }

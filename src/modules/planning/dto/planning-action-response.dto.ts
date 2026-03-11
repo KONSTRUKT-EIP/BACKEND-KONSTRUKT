@@ -4,7 +4,7 @@ export type ActionBadge = 'En retard' | 'À décaler' | 'À risque';
 
 export class PlanningActionResponseDto {
   @ApiProperty({
-    example: '00000000-0000-0000-0000-000000000001',
+    example: '3e4d5c6b-7a89-4012-3456-789abcdef012',
     description: "ID de l'action",
   })
   id: string;

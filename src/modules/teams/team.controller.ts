@@ -127,4 +127,86 @@ export class TeamController {
   removeMember(@Param('id') id: string, @Param('userId') userId: string) {
     return this.service.removeMember(id, userId);
   }
+
+  @Get('site/:siteId/stats')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+    UserRole.COLLABORATEUR,
+  )
+  @ApiOperation({
+    summary: "Obtenir les statistiques d'équipe pour un chantier",
+  })
+  @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
+  @ApiResponse({ status: 200, description: "Statistiques d'équipe" })
+  async getTeamStats(@Param('siteId') siteId: string): Promise<{
+    total: number;
+    complete: number;
+    enCours: number;
+    enAttente: number;
+    annule: number;
+    pctPresents: number;
+    pctAbsents: number;
+    pctComplete: number;
+    pctEnCours: number;
+  }> {
+    return await this.service.getTeamStats(siteId);
+  }
+
+  @Get('site/:siteId/members-details')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+    UserRole.COLLABORATEUR,
+  )
+  @ApiOperation({
+    summary: 'Obtenir les détails des membres pour un chantier',
+  })
+  @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
+  @ApiResponse({ status: 200, description: 'Liste détaillée des membres' })
+  async getTeamMembersDetails(@Param('siteId') siteId: string): Promise<
+    Array<{
+      id: string;
+      specialite: string;
+      name: string;
+      email: string;
+      dateDebut: string;
+      status: string;
+      initials: string;
+      color: string;
+      starred: boolean;
+    }>
+  > {
+    return await this.service.getTeamMembersDetails(siteId);
+  }
+
+  @Get('site/:siteId/attendance-week')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+    UserRole.COLLABORATEUR,
+  )
+  @ApiOperation({
+    summary: 'Obtenir les présences de la semaine pour un chantier',
+  })
+  @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Date de début (YYYY-MM-DD)',
+  })
+  @ApiResponse({ status: 200, description: 'Présences de la semaine' })
+  async getAttendanceWeek(
+    @Param('siteId') siteId: string,
+    @Query('startDate') startDate?: string,
+  ): Promise<{
+    days: string[];
+    dates: string[];
+    attendances: Record<string, string[]>;
+  }> {
+    return await this.service.getAttendanceWeek(siteId, startDate);
+  }
 }
