@@ -5,7 +5,7 @@ set -e
 # Usage: ./run.sh [backend|clean|cs]
 
 if [ "$1" = "backend" ]; then
-  echo "[Konstrukt BACKEND] Démarrage du backend et de la base Postgres via Docker Compose..."
+  echo "[Konstrukt BACKEND] Démarrage du backend via Docker Compose..."
   if [ "$2" = "--no-build" ]; then
     if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
       docker compose up -d
@@ -22,7 +22,7 @@ if [ "$1" = "backend" ]; then
     echo "[Konstrukt BACKEND] Les services sont lancés (avec rebuild)"
   fi
   echo "[Konstrukt BACKEND] Accès API : http://localhost:3000"
-  echo "[Konstrukt BACKEND] Accès DB : postgresql://konstrukt:konstrukt@localhost:5432/konstrukt"
+  echo "[Konstrukt BACKEND] Base de données : Supabase via la variable DATABASE_URL"
   echo "[Konstrukt BACKEND] Pour arrêter les services : ./run.sh stop"
   echo "[Konstrukt BACKEND] Pour voir les logs : docker compose logs -f"
 elif [ "$1" = "build" ]; then

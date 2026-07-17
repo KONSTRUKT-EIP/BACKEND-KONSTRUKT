@@ -12,10 +12,9 @@ FROM node:22-alpine
 WORKDIR /app
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/.env ./.env
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 ENV NODE_ENV=production
 EXPOSE 3000
 USER node
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "node dist/main.js"]

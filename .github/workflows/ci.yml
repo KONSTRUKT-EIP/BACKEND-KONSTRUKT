@@ -42,23 +42,9 @@ jobs:
   test:
     name: Run Tests 🏆​
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: konstrukt
-          POSTGRES_PASSWORD: konstrukt
-          POSTGRES_DB: konstrukt
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U konstrukt"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
     environment: BACKEND
     env:
-      DATABASE_URL: postgresql://konstrukt:konstrukt@localhost:5432/konstrukt
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     needs: build
     steps:
       - name: Checkout repository
@@ -69,8 +55,8 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm ci
-      - name: Run database migrations
-        run: npx prisma migrate deploy
+      - name: Sync database schema
+        run: npx prisma db push
       - name: Run Unit Tests (TU)
         run: npm run test
       - name: Run Integration Tests (TI)
