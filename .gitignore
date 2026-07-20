@@ -4,6 +4,7 @@
 /build
 /tmp
 /coverage
+tsconfig.build.tsbuildinfo
 
 # Logs
 logs
@@ -24,3 +25,8 @@ lerna-debug.log*
 .temp
 .tmp
 .vscode
+
+# Prisma seed build artifacts
+prisma/seed.js
+prisma/seed.js.map
+prisma/seed.d.ts
