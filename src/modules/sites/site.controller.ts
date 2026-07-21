@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('Sites')
 @ApiBearerAuth()
@@ -41,8 +43,8 @@ export class SiteController {
     description: 'Filtrer par organisation',
   })
   @ApiResponse({ status: 200, description: 'Liste des chantiers' })
-  findAll(@Query('organizationId') organizationId?: string) {
-    return this.service.findAll(organizationId);
+  findAll(@Request() request: requestWithUser) {
+    return this.service.findAll(request.user.organizationId);
   }
 
   @Get(':id')
@@ -51,16 +53,16 @@ export class SiteController {
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier trouvé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.findOne(id, request.user.organizationId);
   }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Créer un chantier' })
   @ApiResponse({ status: 201, description: 'Chantier créé' })
-  create(@Body() dto: CreateSiteDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateSiteDto, @Request() request: requestWithUser) {
+    return this.service.create(dto, request.user.organizationId);
   }
 
   @Put(':id')
@@ -69,8 +71,12 @@ export class SiteController {
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier mis à jour' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  update(@Param('id') id: string, @Body() dto: UpdateSiteDto) {
-    return this.service.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateSiteDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.update(id, dto, request.user.organizationId);
   }
 
   @Delete(':id')
@@ -79,7 +85,7 @@ export class SiteController {
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier supprimé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.remove(id, request.user.organizationId);
   }
 }

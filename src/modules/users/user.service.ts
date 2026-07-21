@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -46,7 +46,10 @@ export class UserService {
     password: false,
   } as const;
 
-  async create(data: CreateUserDto) {
+  async create(data: CreateUserDto, organizationId?: string | null) {
+    if (!organizationId) {
+      throw new ForbiddenException('Organization context is required');
+    }
     const password = await bcrypt.hash(data.password, 10);
     return this.prisma.user.create({
       data: {
@@ -55,26 +58,36 @@ export class UserService {
         role: data.role,
         firstName: data.firstName,
         lastName: data.lastName,
-        ...(data.organizationId && {
-          organization: { connect: { id: data.organizationId } },
+        ...(organizationId && {
+          organization: { connect: { id: organizationId } },
         }),
       },
       select: this.userSelect,
     });
   }
 
-  async findAll(page = 1, limit = 20) {
+  async findAll(page = 1, limit = 20, organizationId?: string | null) {
+    if (!organizationId) {
+      return { data: [], total: 0, page, limit };
+    }
     const skip = (page - 1) * limit;
+    const where = { organizationId };
     const [data, total] = await this.prisma.$transaction([
-      this.prisma.user.findMany({ skip, take: limit, select: this.userSelect }),
-      this.prisma.user.count(),
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        select: this.userSelect,
+      }),
+      this.prisma.user.count({ where }),
     ]);
     return { data, total, page, limit };
   }
 
-  async findOne(id: string) {
-    return this.prisma.user.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId?: string | null) {
+    if (!organizationId) return null;
+    return this.prisma.user.findFirst({
+      where: { id, organizationId },
       select: this.userSelect,
     });
   }
@@ -83,20 +96,30 @@ export class UserService {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  async update(id: string, dto: UpdateUserDto) {
-    const { password, ...rest } = dto;
+  async update(id: string, dto: UpdateUserDto, organizationId?: string | null) {
+    if (!organizationId) return null;
+    const { password, organizationId: _organizationId, ...rest } = dto;
+    const existingUser = await this.prisma.user.findFirst({
+      where: { id, organizationId },
+    });
+    if (!existingUser) return null;
     const data: Record<string, unknown> = { ...rest };
     if (password) {
       data.password = await bcrypt.hash(password, 10);
     }
     return this.prisma.user.update({
-      where: { id },
+      where: organizationId ? { id, organizationId } : { id },
       data,
       select: this.userSelect,
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, organizationId?: string | null) {
+    if (!organizationId) return { message: `User ${id} deleted` };
+    const existingUser = await this.prisma.user.findFirst({
+      where: { id, organizationId },
+    });
+    if (!existingUser) return { message: `User ${id} deleted` };
     await this.prisma.user.delete({ where: { id } });
     return { message: `User ${id} deleted` };
   }

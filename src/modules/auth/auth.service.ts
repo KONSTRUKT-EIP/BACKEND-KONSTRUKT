@@ -41,6 +41,7 @@ export class AuthService {
 
     return this.authenticateUser({
       userId: existingUser.id,
+      organizationId: existingUser.organizationId,
       role: existingUser.role,
     });
   }
@@ -59,10 +60,13 @@ export class AuthService {
       firstName: dto.firstName,
       lastName: dto.lastName,
       role: UserRole.COLLABORATEUR,
-      organizationId: dto.organizationId,
     });
 
-    return this.authenticateUser({ userId: newUser.id, role: newUser.role });
+    return this.authenticateUser({
+      userId: newUser.id,
+      organizationId: newUser.organizationId,
+      role: newUser.role,
+    });
   }
 
   async refreshTokens(token: string) {
@@ -89,7 +93,11 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token invalid or expired');
     }
 
-    return this.authenticateUser({ userId: user.id, role: user.role });
+    return this.authenticateUser({
+      userId: user.id,
+      organizationId: user.organizationId,
+      role: user.role,
+    });
   }
 
   async logout(userId: string) {
@@ -125,12 +133,14 @@ export class AuthService {
 
   private async authenticateUser({
     userId,
+    organizationId,
     role,
   }: {
     userId: string;
+    organizationId?: string | null;
     role: UserRole;
   }) {
-    const payload: userPayload = { userId, role };
+    const payload: userPayload = { userId, organizationId, role };
     const access_token = await this.jwtService.signAsync(payload);
 
     const refreshToken = randomBytes(64).toString('hex');

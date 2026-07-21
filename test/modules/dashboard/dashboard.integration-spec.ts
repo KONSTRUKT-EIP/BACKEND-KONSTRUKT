@@ -6,6 +6,7 @@ import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/das
 describe('DashboardService Integration', () => {
   let service: DashboardService;
   let prisma: PrismaService;
+  const organizationId = 'org-a';
 
   beforeAll(async () => {
     const mockPrismaService = {
@@ -16,24 +17,28 @@ describe('DashboardService Integration', () => {
             name: 'Voiles',
             unitPrice: 100,
             quantity: 10,
+            site: { organizationId },
           },
           {
             id: '2',
             name: 'Planchers',
             unitPrice: 200,
             quantity: 5,
+            site: { organizationId },
           },
           {
             id: '3',
             name: 'Poutres',
             unitPrice: 150,
             quantity: 8,
+            site: { organizationId },
           },
           {
             id: '4',
             name: 'Superstructure',
             unitPrice: 300,
             quantity: 3,
+            site: { organizationId },
           },
         ]),
       },
@@ -71,7 +76,7 @@ describe('DashboardService Integration', () => {
 
   it('should return summary with mocked data', async () => {
     const query: DashboardSummaryQueryDto = {};
-    const result = await service.getSummary(query);
+    const result = await service.getSummary(query, organizationId);
     expect(result.globalProgress).toBeDefined();
     expect(result.globalSpent).toBeDefined();
     expect(result.categories.length).toBe(4);
@@ -94,13 +99,14 @@ describe('DashboardService Integration', () => {
       startDate: '2026-03-01',
       endDate: '2026-03-31',
     };
-    const result = await service.getSummary(query);
+    const result = await service.getSummary(query, organizationId);
 
     expect(result.globalProgress).toBeDefined();
     expect(result.globalSpent).toBeDefined();
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(prisma.resourceUsage.findMany).toHaveBeenCalledWith({
       where: {
+        resource: { site: { organizationId } },
         date: {
           gte: new Date('2026-03-01'),
           lte: new Date('2026-03-31'),

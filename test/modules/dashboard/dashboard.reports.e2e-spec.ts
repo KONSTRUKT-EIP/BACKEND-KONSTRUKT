@@ -74,7 +74,15 @@ describe('Dashboard Reports Endpoint (e2e)', () => {
         $disconnect: jest.fn(),
       })
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: jest.fn(() => true) })
+      .useValue({
+        canActivate: jest.fn((context: any) => {
+          context.switchToHttp().getRequest().user = {
+            userId: 'e2e-user',
+            organizationId: 'org-a',
+          };
+          return true;
+        }),
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

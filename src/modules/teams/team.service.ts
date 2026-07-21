@@ -26,9 +26,20 @@ interface TeamMemberDetail {
 export class TeamService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(siteId?: string) {
+  private async assertSiteAccess(siteId: string, organizationId?: string | null) {
+    if (!organizationId) throw new NotFoundException(`Chantier ${siteId} introuvable`);
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, organizationId },
+    });
+    if (!site) throw new NotFoundException(`Chantier ${siteId} introuvable`);
+  }
+
+  async findAll(siteId?: string, organizationId?: string | null) {
+    if (!organizationId) return [];
     return this.prisma.team.findMany({
-      where: siteId ? { siteId } : undefined,
+      where: siteId
+        ? { siteId, site: { organizationId } }
+        : { site: { organizationId } },
       orderBy: { createdAt: 'desc' },
       include: {
         site: { select: { id: true, name: true } },
@@ -38,9 +49,9 @@ export class TeamService {
     });
   }
 
-  async findOne(id: string) {
-    const team = await this.prisma.team.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId?: string | null) {
+    const team = await this.prisma.team.findFirst({
+      where: { id, site: { organizationId: organizationId ?? '__no_org__' } },
       include: {
         site: { select: { id: true, name: true } },
         leader: { select: { id: true, firstName: true, lastName: true } },
@@ -64,7 +75,8 @@ export class TeamService {
     return team;
   }
 
-  async create(dto: CreateTeamDto) {
+  async create(dto: CreateTeamDto, organizationId?: string | null) {
+    await this.assertSiteAccess(dto.siteId, organizationId);
     return this.prisma.team.create({
       data: {
         siteId: dto.siteId,
@@ -78,8 +90,8 @@ export class TeamService {
     });
   }
 
-  async update(id: string, dto: UpdateTeamDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateTeamDto, organizationId?: string | null) {
+    await this.findOne(id, organizationId);
     return this.prisma.team.update({
       where: { id },
       data: {
@@ -93,14 +105,14 @@ export class TeamService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, organizationId?: string | null) {
+    await this.findOne(id, organizationId);
     await this.prisma.team.delete({ where: { id } });
     return { message: 'Équipe supprimée' };
   }
 
-  async getMembers(teamId: string) {
-    await this.findOne(teamId);
+  async getMembers(teamId: string, organizationId?: string | null) {
+    await this.findOne(teamId, organizationId);
     return this.prisma.teamMember.findMany({
       where: { teamId },
       include: {
@@ -118,8 +130,12 @@ export class TeamService {
     });
   }
 
-  async addMember(teamId: string, dto: AddMemberDto) {
-    await this.findOne(teamId);
+  async addMember(teamId: string, dto: AddMemberDto, organizationId?: string | null) {
+    await this.findOne(teamId, organizationId);
+    const user = await this.prisma.user.findFirst({
+      where: { id: dto.userId, organizationId: organizationId ?? '__no_org__' },
+    });
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     const existing = await this.prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId, userId: dto.userId } },
@@ -151,8 +167,12 @@ export class TeamService {
     });
   }
 
-  async removeMember(teamId: string, userId: string) {
-    await this.findOne(teamId);
+  async removeMember(teamId: string, userId: string, organizationId?: string | null) {
+    await this.findOne(teamId, organizationId);
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, organizationId: organizationId ?? '__no_org__' },
+    });
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     const member = await this.prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId, userId } },
@@ -170,7 +190,8 @@ export class TeamService {
     return { message: "Membre retiré de l'équipe" };
   }
 
-  async getTeamStats(siteId: string) {
+  async getTeamStats(siteId: string, organizationId?: string | null) {
+    await this.assertSiteAccess(siteId, organizationId);
     const teams = await this.prisma.team.findMany({
       where: { siteId },
     });
@@ -235,7 +256,8 @@ export class TeamService {
     };
   }
 
-  async getTeamMembersDetails(siteId: string): Promise<TeamMemberDetail[]> {
+  async getTeamMembersDetails(siteId: string, organizationId?: string | null): Promise<TeamMemberDetail[]> {
+    await this.assertSiteAccess(siteId, organizationId);
     const teams = await this.prisma.team.findMany({
       where: { siteId },
       include: {
@@ -328,7 +350,8 @@ export class TeamService {
     return Array.from(membersMap.values());
   }
 
-  async getAttendanceWeek(siteId: string, startDate?: string) {
+  async getAttendanceWeek(siteId: string, startDate?: string, organizationId?: string | null) {
+    await this.assertSiteAccess(siteId, organizationId);
     const teams = await this.prisma.team.findMany({
       where: { siteId },
     });

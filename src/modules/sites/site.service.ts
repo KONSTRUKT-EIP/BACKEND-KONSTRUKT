@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateSiteDto, SiteStatus } from './dto/create-site.dto';
 import { UpdateSiteDto } from './dto/update-site.dto';
@@ -7,9 +7,10 @@ import { UpdateSiteDto } from './dto/update-site.dto';
 export class SiteService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(organizationId?: string) {
+  async findAll(organizationId?: string | null) {
+    if (!organizationId) return [];
     return this.prisma.site.findMany({
-      where: organizationId ? { organizationId } : undefined,
+      where: { organizationId },
       orderBy: { createdAt: 'desc' },
       include: {
         organization: { select: { id: true, name: true } },
@@ -18,9 +19,12 @@ export class SiteService {
     });
   }
 
-  async findOne(id: string) {
-    const site = await this.prisma.site.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId?: string | null) {
+    if (!organizationId) {
+      throw new NotFoundException(`Site ${id} introuvable`);
+    }
+    const site = await this.prisma.site.findFirst({
+      where: { id, organizationId },
       include: {
         organization: { select: { id: true, name: true } },
         resources: { orderBy: { name: 'asc' } },
@@ -31,10 +35,13 @@ export class SiteService {
     return site;
   }
 
-  async create(dto: CreateSiteDto) {
+  async create(dto: CreateSiteDto, organizationId?: string | null) {
+    if (!organizationId) {
+      throw new ForbiddenException('Organization context is required');
+    }
     return this.prisma.site.create({
       data: {
-        organizationId: dto.organizationId,
+        organizationId,
         name: dto.name,
         address: dto.address,
         city: dto.city,
@@ -48,21 +55,24 @@ export class SiteService {
     });
   }
 
-  async update(id: string, dto: UpdateSiteDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateSiteDto, organizationId?: string | null) {
+    await this.findOne(id, organizationId);
+    const siteData = dto;
     return this.prisma.site.update({
       where: { id },
       data: {
-        ...dto,
-        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-        status: dto.status as SiteStatus,
+        ...siteData,
+        startDate: siteData.startDate
+          ? new Date(siteData.startDate)
+          : undefined,
+        endDate: siteData.endDate ? new Date(siteData.endDate) : undefined,
+        status: siteData.status as SiteStatus,
       },
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, organizationId?: string | null) {
+    await this.findOne(id, organizationId);
     await this.prisma.site.delete({ where: { id } });
     return { message: 'Site supprimé' };
   }

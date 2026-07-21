@@ -5,6 +5,8 @@ import {
   Param,
   HttpException,
   HttpStatus,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +19,8 @@ import { WeatherService } from './weather.service';
 import { WeatherQueryDto, WeatherForecastDto } from './dto';
 import { SiteService } from '../sites/site.service';
 import { Inject } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('Weather')
 @Controller('weather')
@@ -26,6 +30,7 @@ export class WeatherController {
     @Inject(SiteService) private readonly siteService: SiteService,
   ) {}
   @Get('by-site/:siteId')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: "Obtenir la météo d'un chantier par son ID",
     description: 'Retourne la météo pour le chantier (ville du site)',
@@ -47,8 +52,9 @@ export class WeatherController {
   })
   async getWeatherBySite(
     @Param('siteId') siteId: string,
+    @Request() request: requestWithUser,
   ): Promise<WeatherForecastDto> {
-    const site = await this.siteService.findOne(siteId);
+    const site = await this.siteService.findOne(siteId, request.user.organizationId);
     if (!site.city) {
       throw new HttpException(
         'Le site ne possède pas de ville',

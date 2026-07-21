@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -29,6 +30,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
 import { TaskStatus } from '@prisma/client';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('Planning')
 @ApiBearerAuth()
@@ -78,12 +80,13 @@ export class PlanningController {
     type: [PlanningTaskResponseDto],
   })
   findAllTasks(
+    @Request() request: requestWithUser,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('siteZoneId') siteZoneId?: string,
     @Query('status') status?: TaskStatus,
   ): Promise<PlanningTaskResponseDto[]> {
-    return this.service.findAll(startDate, endDate, siteZoneId, status);
+    return this.service.findAll(startDate, endDate, siteZoneId, status, request.user.organizationId);
   }
 
   @Get('tasks/:id')
@@ -104,8 +107,8 @@ export class PlanningController {
     description: 'Tâche trouvée',
   })
   @ApiResponse({ status: 404, description: 'Tâche introuvable' })
-  findOneTask(@Param('id') id: string): Promise<any> {
-    return this.service.findOne(id);
+  findOneTask(@Param('id') id: string, @Request() request: requestWithUser): Promise<any> {
+    return this.service.findOne(id, request.user.organizationId);
   }
 
   @Post('tasks')
@@ -122,8 +125,8 @@ export class PlanningController {
     status: 404,
     description: 'Zone de chantier ou utilisateur introuvable',
   })
-  createTask(@Body() dto: CreatePlanningTaskDto): Promise<any> {
-    return this.service.create(dto);
+  createTask(@Body() dto: CreatePlanningTaskDto, @Request() request: requestWithUser): Promise<any> {
+    return this.service.create(dto, request.user.organizationId);
   }
 
   @Put('tasks/:id')
@@ -141,8 +144,9 @@ export class PlanningController {
   updateTask(
     @Param('id') id: string,
     @Body() dto: UpdatePlanningTaskDto,
+    @Request() request: requestWithUser,
   ): Promise<any> {
-    return this.service.update(id, dto);
+    return this.service.update(id, dto, request.user.organizationId);
   }
 
   @Delete('tasks/:id')
@@ -156,8 +160,8 @@ export class PlanningController {
     description: 'Tâche supprimée avec succès',
   })
   @ApiResponse({ status: 404, description: 'Tâche introuvable' })
-  removeTask(@Param('id') id: string) {
-    return this.service.remove(id);
+  removeTask(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.remove(id, request.user.organizationId);
   }
 
   @Get('actions')
@@ -177,8 +181,8 @@ export class PlanningController {
     description: 'Liste des actions requises',
     type: [PlanningActionResponseDto],
   })
-  findAllActions(): Promise<PlanningActionResponseDto[]> {
-    return this.service.findActions();
+  findAllActions(@Request() request: requestWithUser): Promise<PlanningActionResponseDto[]> {
+    return this.service.findActions(request.user.organizationId);
   }
 
   @Get('tasks/:id/actions')
@@ -200,8 +204,9 @@ export class PlanningController {
   @ApiResponse({ status: 404, description: 'Tâche introuvable' })
   findTaskActions(
     @Param('id') id: string,
+    @Request() request: requestWithUser,
   ): Promise<PlanningActionResponseDto[]> {
-    return this.service.findTaskActions(id);
+    return this.service.findTaskActions(id, request.user.organizationId);
   }
 
   @Delete('actions/:id')
@@ -216,8 +221,8 @@ export class PlanningController {
     description: 'Action marquée comme lue',
   })
   @ApiResponse({ status: 404, description: 'Action introuvable' })
-  removeAction(@Param('id') id: string) {
-    return this.service.removeAction(id);
+  removeAction(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.removeAction(id, request.user.organizationId);
   }
 
   @Get('week')
@@ -256,7 +261,8 @@ export class PlanningController {
   getWeekPlanning(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
+    @Request() request: requestWithUser,
   ): Promise<WeekPlanningResponseDto> {
-    return this.service.getWeekPlanning(startDate, endDate);
+    return this.service.getWeekPlanning(startDate, endDate, request.user.organizationId);
   }
 }

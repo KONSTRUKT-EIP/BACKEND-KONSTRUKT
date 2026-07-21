@@ -7,6 +7,7 @@ import { RolesGuard } from '../../../src/modules/auth/roles.guard';
 describe('DashboardController (reports)', () => {
   let controller: DashboardController;
   let service: DashboardService;
+  const mockRequest = { user: { organizationId: 'org-a' } } as any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -59,7 +60,7 @@ describe('DashboardController (reports)', () => {
       endDate: '2024-12-31',
       categories: 'voiles,planchers',
     };
-    const result = await controller.getReports(query);
+    const result = await controller.getReports(query, mockRequest);
     expect(result.kpiCards.length).toBe(2);
     expect(result.totalBudget).toBe(25000);
     expect(result.totalSpent).toBe(18000);
@@ -68,7 +69,7 @@ describe('DashboardController (reports)', () => {
 
   it('should validate query params', async () => {
     await expect(
-      controller.getReports({ startDate: 'invalid-date' }),
+      controller.getReports({ startDate: 'invalid-date' }, mockRequest),
     ).rejects.toThrow();
   });
 });

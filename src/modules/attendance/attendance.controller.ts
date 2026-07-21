@@ -8,6 +8,7 @@ import {
   Body,
   Param,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -29,6 +30,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('Attendance')
 @ApiBearerAuth()
@@ -54,12 +56,19 @@ export class AttendanceController {
   @ApiQuery({ name: 'status', required: false, enum: AttendanceStatus })
   @ApiResponse({ status: 200, description: 'Liste des pointages' })
   findAll(
+    @Request() request: requestWithUser,
     @Query('teamId') teamId?: string,
     @Query('userId') userId?: string,
     @Query('date') date?: string,
     @Query('status') status?: AttendanceStatus,
   ) {
-    return this.service.findAll({ teamId, userId, date, status });
+    return this.service.findAll({
+      teamId,
+      userId,
+      date,
+      status,
+      organizationId: request.user.organizationId,
+    });
   }
 
   @Get('summary')
@@ -73,8 +82,9 @@ export class AttendanceController {
   getDailySummary(
     @Query('teamId') teamId: string,
     @Query('date') date: string,
+    @Request() request: requestWithUser,
   ) {
-    return this.service.getDailySummary(teamId, date);
+    return this.service.getDailySummary(teamId, date, request.user.organizationId);
   }
 
   @Get(':id')
@@ -88,8 +98,8 @@ export class AttendanceController {
   @ApiParam({ name: 'id', description: 'UUID du pointage' })
   @ApiResponse({ status: 200, description: 'Pointage trouvé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.findOne(id, request.user.organizationId);
   }
 
   @Post()
@@ -107,8 +117,8 @@ export class AttendanceController {
     status: 409,
     description: 'Pointage déjà existant pour cette date',
   })
-  create(@Body() dto: CreateAttendanceDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateAttendanceDto, @Request() request: requestWithUser) {
+    return this.service.create(dto, request.user.organizationId);
   }
 
   @Put(':id')
@@ -122,8 +132,8 @@ export class AttendanceController {
   @ApiParam({ name: 'id', description: 'UUID du pointage' })
   @ApiResponse({ status: 200, description: 'Pointage mis à jour' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  update(@Param('id') id: string, @Body() dto: UpdateAttendanceDto) {
-    return this.service.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateAttendanceDto, @Request() request: requestWithUser) {
+    return this.service.update(id, dto, request.user.organizationId);
   }
 
   @Delete(':id')
@@ -132,8 +142,8 @@ export class AttendanceController {
   @ApiParam({ name: 'id', description: 'UUID du pointage' })
   @ApiResponse({ status: 200, description: 'Pointage supprimé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.remove(id, request.user.organizationId);
   }
 
   @Patch('upsert')
@@ -145,7 +155,7 @@ export class AttendanceController {
   )
   @ApiOperation({ summary: 'Créer ou mettre à jour un pointage' })
   @ApiResponse({ status: 200, description: 'Pointage créé ou mis à jour' })
-  upsert(@Body() dto: UpsertAttendanceDto) {
-    return this.service.upsert(dto);
+  upsert(@Body() dto: UpsertAttendanceDto, @Request() request: requestWithUser) {
+    return this.service.upsert(dto, request.user.organizationId);
   }
 }

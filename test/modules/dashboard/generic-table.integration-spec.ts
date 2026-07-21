@@ -9,12 +9,17 @@ describe('GenericTableService Integration', () => {
   let prisma: PrismaService;
 
   const mockSiteId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = 'org-a';
 
   beforeAll(async () => {
     const mockPrismaService = {
+      site: {
+        findFirst: jest.fn().mockResolvedValue({ id: mockSiteId, organizationId }),
+      },
       genericTable: {
         create: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         findMany: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
@@ -22,6 +27,7 @@ describe('GenericTableService Integration', () => {
       genericTableRow: {
         create: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         findMany: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
@@ -75,8 +81,9 @@ describe('GenericTableService Integration', () => {
       };
 
       (prisma.genericTable.create as jest.Mock).mockResolvedValue(mockTable);
+      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue(mockTable);
 
-      const createdTable = await service.createTable(tableDto);
+      const createdTable = await service.createTable(tableDto, organizationId);
       expect(createdTable).toEqual(mockTable);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.genericTable.create).toHaveBeenCalledWith({
@@ -97,7 +104,7 @@ describe('GenericTableService Integration', () => {
 
       (prisma.genericTableRow.create as jest.Mock).mockResolvedValue(mockRow1);
 
-      const row1 = await service.addRow(row1Dto);
+      const row1 = await service.addRow(row1Dto, organizationId);
       expect(row1).toEqual(mockRow1);
 
       const row2Dto: CreateGenericTableRowDto = {
@@ -114,7 +121,7 @@ describe('GenericTableService Integration', () => {
 
       (prisma.genericTableRow.create as jest.Mock).mockResolvedValue(mockRow2);
 
-      const row2 = await service.addRow(row2Dto);
+      const row2 = await service.addRow(row2Dto, organizationId);
       expect(row2).toEqual(mockRow2);
 
       (prisma.genericTableRow.findMany as jest.Mock).mockResolvedValue([
@@ -122,19 +129,19 @@ describe('GenericTableService Integration', () => {
         mockRow2,
       ]);
 
-      (prisma.genericTable.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue(
         mockTable,
       );
 
-      const allRows = await service.listRows(tableId);
+      const allRows = await service.listRows(tableId, organizationId);
       expect(allRows).toHaveLength(2);
       expect(allRows).toEqual(expect.arrayContaining([mockRow1, mockRow2]));
 
-      const tableWithRows = await service.getTable(tableId);
+      const tableWithRows = await service.getTable(tableId, organizationId);
       expect(tableWithRows.rows).toHaveLength(2);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prisma.genericTable.findUnique).toHaveBeenCalledWith({
-        where: { id: tableId },
+      expect(prisma.genericTable.findFirst).toHaveBeenCalledWith({
+        where: { id: tableId, site: { organizationId } },
         include: { rows: true },
       });
     });
@@ -169,13 +176,13 @@ describe('GenericTableService Integration', () => {
         tablesForSite,
       );
 
-      const result = await service.listTables(siteId);
+      const result = await service.listTables(siteId, organizationId);
 
       expect(result).toHaveLength(2);
       expect(result.every((table) => table.siteId === siteId)).toBe(true);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.genericTable.findMany).toHaveBeenCalledWith({
-        where: { siteId },
+        where: { siteId, site: { organizationId } },
         include: { rows: true },
       });
     });
@@ -204,12 +211,12 @@ describe('GenericTableService Integration', () => {
 
       (prisma.genericTable.findMany as jest.Mock).mockResolvedValue(allTables);
 
-      const result = await service.listTables();
+      const result = await service.listTables(undefined, organizationId);
 
       expect(result).toHaveLength(2);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.genericTable.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: { site: { organizationId } },
         include: { rows: true },
       });
     });
@@ -233,7 +240,8 @@ describe('GenericTableService Integration', () => {
 
       (prisma.genericTable.update as jest.Mock).mockResolvedValue(updatedTable);
 
-      const result = await service.updateTable(tableId, updateDto);
+      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue({ id: tableId, siteId: mockSiteId });
+      const result = await service.updateTable(tableId, updateDto, organizationId);
 
       expect(result.name).toBe('Updated Table Name');
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -261,7 +269,11 @@ describe('GenericTableService Integration', () => {
         updatedRow,
       );
 
-      const result = await service.updateRow(rowId, updateDto);
+      (prisma.genericTableRow.findFirst as jest.Mock).mockResolvedValue({
+        id: rowId,
+        tableId: '550e8400-e29b-41d4-a716-446655440000',
+      });
+      const result = await service.updateRow(rowId, updateDto, organizationId);
 
       expect(result.data).toEqual(updateDto.data);
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -288,7 +300,8 @@ describe('GenericTableService Integration', () => {
         deletedRow,
       );
 
-      const result = await service.deleteRow(rowId);
+      (prisma.genericTableRow.findFirst as jest.Mock).mockResolvedValue({ id: rowId, tableId: '550e8400-e29b-41d4-a716-446655440000' });
+      const result = await service.deleteRow(rowId, organizationId);
 
       expect(result.id).toBe(rowId);
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -311,7 +324,8 @@ describe('GenericTableService Integration', () => {
 
       (prisma.genericTable.delete as jest.Mock).mockResolvedValue(deletedTable);
 
-      const result = await service.deleteTable(tableId);
+      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue({ id: tableId, siteId: mockSiteId });
+      const result = await service.deleteTable(tableId, organizationId);
 
       expect(result.id).toBe(tableId);
       // eslint-disable-next-line @typescript-eslint/unbound-method

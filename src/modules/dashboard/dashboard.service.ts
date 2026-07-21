@@ -27,13 +27,15 @@ export class DashboardService {
 
   async getSummary(
     query: DashboardSummaryQueryDto,
+    organizationId?: string | null,
   ): Promise<DashboardSummaryResponseDto> {
     if (this.summaryState) {
       return this.summaryState;
     }
     try {
-      const resources = await this.prisma.resource.findMany();
-      const usageQuery: Prisma.ResourceUsageFindManyArgs = {};
+      if (!organizationId) return { globalProgress: 0, globalSpent: 0, categories: [] };
+      const resources = await this.prisma.resource.findMany({ where: { site: { organizationId } } });
+      const usageQuery: Prisma.ResourceUsageFindManyArgs = { where: { resource: { site: { organizationId } } } };
       if (query.startDate || query.endDate) {
         const dateFilter: { gte?: Date; lte?: Date } = {};
         if (query.startDate) {
@@ -42,7 +44,7 @@ export class DashboardService {
         if (query.endDate) {
           dateFilter.lte = new Date(query.endDate);
         }
-        usageQuery.where = { date: dateFilter };
+        usageQuery.where = { ...usageQuery.where, date: dateFilter };
       }
       const usages = await this.prisma.resourceUsage.findMany(usageQuery);
 
@@ -92,6 +94,7 @@ export class DashboardService {
 
   createSummary(
     input: DashboardSummaryResponseDto,
+    _organizationId?: string | null,
   ): DashboardSummaryResponseDto {
     this.summaryState = {
       globalProgress: input.globalProgress,
@@ -103,11 +106,14 @@ export class DashboardService {
 
   async getRecentOrders(
     query: RecentOrdersQueryDto,
+    organizationId?: string | null,
   ): Promise<RecentOrdersResponseDto> {
     const page = query.page || 1;
     const pageSize = query.pageSize || 10;
 
     const where: Prisma.DeliveryFindManyArgs['where'] = {};
+    if (!organizationId) return { orders: [] };
+    where.site = { organizationId };
 
     if (query.startDate || query.endDate) {
       const dateFilter: { gte?: Date; lte?: Date } = {};
@@ -146,8 +152,10 @@ export class DashboardService {
     return { orders };
   }
 
-  async getAllOrders(): Promise<RecentOrdersResponseDto> {
+  async getAllOrders(organizationId?: string | null): Promise<RecentOrdersResponseDto> {
+    if (!organizationId) return { orders: [] };
     const deliveries = await this.prisma.delivery.findMany({
+      where: { site: { organizationId } },
       include: { resource: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -170,13 +178,14 @@ export class DashboardService {
     price: number;
     totalOrder: number;
     total: number;
-  }): Promise<RecentOrdersResponseDto> {
+  }, organizationId?: string | null): Promise<RecentOrdersResponseDto> {
     // Find a matching resource by name, fall back to first available
+    if (!organizationId) return { orders: [] };
     let resource = await this.prisma.resource.findFirst({
-      where: { name: { contains: data.productName, mode: 'insensitive' } },
+      where: { name: { contains: data.productName, mode: 'insensitive' }, site: { organizationId } },
     });
     if (!resource) {
-      resource = await this.prisma.resource.findFirst();
+      resource = await this.prisma.resource.findFirst({ where: { site: { organizationId } } });
     }
 
     if (!resource) {
@@ -222,7 +231,7 @@ export class DashboardService {
     };
   }
 
-  async getResources(): Promise<
+  async getResources(organizationId?: string | null): Promise<
     {
       id: string;
       name: string;
@@ -233,7 +242,9 @@ export class DashboardService {
       siteId: string;
     }[]
   > {
+    if (!organizationId) return [];
     const resources = await this.prisma.resource.findMany({
+      where: { site: { organizationId } },
       orderBy: { name: 'asc' },
     });
     return resources.map((r) => ({
@@ -249,12 +260,14 @@ export class DashboardService {
 
   async getReports(
     query: ArmatureReportsQueryDto,
+    organizationId?: string | null,
   ): Promise<ArmatureReportsResponseDto> {
-    return this.getArmatureAnalytics(query);
+    return this.getArmatureAnalytics(query, organizationId);
   }
 
   async getArmatureAnalytics(
     query: ArmatureReportsQueryDto,
+    organizationId?: string | null,
   ): Promise<ArmatureReportsResponseDto> {
     try {
       const parsedCategories: string[] =
@@ -277,10 +290,11 @@ export class DashboardService {
         dateFilter.lte = new Date(query.endDate);
       }
 
-      const resources = await this.prisma.resource.findMany();
+      if (!organizationId) return { kpiCards: [], chartData: [], filters: [], donutChart: { data: [] }, totalBudget: 0, totalSpent: 0, overallPercentage: 0 };
+      const resources = await this.prisma.resource.findMany({ where: { site: { organizationId } } });
 
       const usages = await this.prisma.resourceUsage.findMany({
-        where: dateFilter.gte || dateFilter.lte ? { date: dateFilter } : {},
+        where: { resource: { site: { organizationId } }, ...(dateFilter.gte || dateFilter.lte ? { date: dateFilter } : {}) },
         orderBy: { date: 'asc' },
       });
 

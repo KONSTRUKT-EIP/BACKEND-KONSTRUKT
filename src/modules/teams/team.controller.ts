@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -25,6 +26,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('Teams')
 @ApiBearerAuth()
@@ -44,8 +46,8 @@ export class TeamController {
     description: 'Filtrer par chantier',
   })
   @ApiResponse({ status: 200, description: 'Liste des équipes' })
-  findAll(@Query('siteId') siteId?: string) {
-    return this.service.findAll(siteId);
+  findAll(@Query('siteId') siteId: string | undefined, @Request() request: requestWithUser) {
+    return this.service.findAll(siteId, request.user.organizationId);
   }
 
   @Get(':id')
@@ -59,16 +61,16 @@ export class TeamController {
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Équipe trouvée' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.findOne(id, request.user.organizationId);
   }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Créer une équipe' })
   @ApiResponse({ status: 201, description: 'Équipe créée' })
-  create(@Body() dto: CreateTeamDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateTeamDto, @Request() request: requestWithUser) {
+    return this.service.create(dto, request.user.organizationId);
   }
 
   @Put(':id')
@@ -77,8 +79,8 @@ export class TeamController {
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Équipe mise à jour' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  update(@Param('id') id: string, @Body() dto: UpdateTeamDto) {
-    return this.service.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateTeamDto, @Request() request: requestWithUser) {
+    return this.service.update(id, dto, request.user.organizationId);
   }
 
   @Delete(':id')
@@ -87,8 +89,8 @@ export class TeamController {
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Équipe supprimée' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.remove(id, request.user.organizationId);
   }
 
   // ─── Membres ────────────────────────────────────────────────────────────────
@@ -103,8 +105,8 @@ export class TeamController {
   @ApiOperation({ summary: "Lister les membres d'une équipe" })
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Liste des membres' })
-  getMembers(@Param('id') id: string) {
-    return this.service.getMembers(id);
+  getMembers(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.getMembers(id, request.user.organizationId);
   }
 
   @Post(':id/members')
@@ -113,8 +115,8 @@ export class TeamController {
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 201, description: 'Membre ajouté' })
   @ApiResponse({ status: 409, description: 'Déjà membre' })
-  addMember(@Param('id') id: string, @Body() dto: AddMemberDto) {
-    return this.service.addMember(id, dto);
+  addMember(@Param('id') id: string, @Body() dto: AddMemberDto, @Request() request: requestWithUser) {
+    return this.service.addMember(id, dto, request.user.organizationId);
   }
 
   @Delete(':id/members/:userId')
@@ -124,8 +126,8 @@ export class TeamController {
   @ApiParam({ name: 'userId', description: "UUID de l'utilisateur" })
   @ApiResponse({ status: 200, description: 'Membre retiré' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  removeMember(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.service.removeMember(id, userId);
+  removeMember(@Param('id') id: string, @Param('userId') userId: string, @Request() request: requestWithUser) {
+    return this.service.removeMember(id, userId, request.user.organizationId);
   }
 
   @Get('site/:siteId/stats')
@@ -140,7 +142,7 @@ export class TeamController {
   })
   @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: "Statistiques d'équipe" })
-  async getTeamStats(@Param('siteId') siteId: string): Promise<{
+  async getTeamStats(@Param('siteId') siteId: string, @Request() request: requestWithUser): Promise<{
     total: number;
     complete: number;
     enCours: number;
@@ -152,7 +154,7 @@ export class TeamController {
     pctComplete: number;
     pctEnCours: number;
   }> {
-    return await this.service.getTeamStats(siteId);
+    return await this.service.getTeamStats(siteId, request.user.organizationId);
   }
 
   @Get('site/:siteId/members-details')
@@ -167,7 +169,7 @@ export class TeamController {
   })
   @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Liste détaillée des membres' })
-  async getTeamMembersDetails(@Param('siteId') siteId: string): Promise<
+  async getTeamMembersDetails(@Param('siteId') siteId: string, @Request() request: requestWithUser): Promise<
     Array<{
       id: string;
       teamId: string;
@@ -181,7 +183,7 @@ export class TeamController {
       starred: boolean;
     }>
   > {
-    return await this.service.getTeamMembersDetails(siteId);
+    return await this.service.getTeamMembersDetails(siteId, request.user.organizationId);
   }
 
   @Get('site/:siteId/attendance-week')
@@ -203,12 +205,13 @@ export class TeamController {
   @ApiResponse({ status: 200, description: 'Présences de la semaine' })
   async getAttendanceWeek(
     @Param('siteId') siteId: string,
-    @Query('startDate') startDate?: string,
+    @Query('startDate') startDate: string | undefined,
+    @Request() request: requestWithUser,
   ): Promise<{
     days: string[];
     dates: string[];
     attendances: Record<string, string[]>;
   }> {
-    return await this.service.getAttendanceWeek(siteId, startDate);
+    return await this.service.getAttendanceWeek(siteId, startDate, request.user.organizationId);
   }
 }

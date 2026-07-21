@@ -6,6 +6,7 @@ import { HttpException } from '@nestjs/common';
 
 describe('WeatherController', () => {
   let controller: WeatherController;
+  const mockRequest = { user: { organizationId: 'org-a' } } as any;
 
   const mockWeatherService = {
     getWeatherForecast: jest.fn(),
@@ -203,10 +204,10 @@ describe('WeatherController', () => {
         mockWeatherForecast,
       );
 
-      const result = await controller.getWeatherBySite('site-123');
+      const result = await controller.getWeatherBySite('site-123', mockRequest);
 
       expect(result).toEqual(mockWeatherForecast);
-      expect(mockSiteService.findOne).toHaveBeenCalledWith('site-123');
+      expect(mockSiteService.findOne).toHaveBeenCalledWith('site-123', 'org-a');
       expect(mockWeatherService.getWeatherByCity).toHaveBeenCalledWith('Paris');
     });
 
@@ -228,10 +229,10 @@ describe('WeatherController', () => {
 
       mockSiteService.findOne.mockResolvedValue(mockSiteWithoutCity);
 
-      await expect(controller.getWeatherBySite('site-123')).rejects.toThrow(
+      await expect(controller.getWeatherBySite('site-123', mockRequest)).rejects.toThrow(
         HttpException,
       );
-      await expect(controller.getWeatherBySite('site-123')).rejects.toThrow(
+      await expect(controller.getWeatherBySite('site-123', mockRequest)).rejects.toThrow(
         'Le site ne possède pas de ville',
       );
     });
@@ -241,10 +242,10 @@ describe('WeatherController', () => {
         new HttpException('Site site-999 introuvable', 404),
       );
 
-      await expect(controller.getWeatherBySite('site-999')).rejects.toThrow(
+      await expect(controller.getWeatherBySite('site-999', mockRequest)).rejects.toThrow(
         HttpException,
       );
-      expect(mockSiteService.findOne).toHaveBeenCalledWith('site-999');
+      expect(mockSiteService.findOne).toHaveBeenCalledWith('site-999', 'org-a');
     });
   });
 
