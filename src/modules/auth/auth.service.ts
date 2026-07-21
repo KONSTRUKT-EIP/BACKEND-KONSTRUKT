@@ -58,6 +58,7 @@ export class AuthService {
       password: dto.password,
       firstName: dto.firstName,
       lastName: dto.lastName,
+      role: UserRole.COLLABORATEUR,
       organizationId: dto.organizationId,
     });
 

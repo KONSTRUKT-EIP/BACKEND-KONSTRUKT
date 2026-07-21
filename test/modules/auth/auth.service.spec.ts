@@ -130,6 +130,14 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('refresh_token');
       expect(userService.createUser).toHaveBeenCalledTimes(1);
+      expect(userService.createUser).toHaveBeenCalledWith({
+        email: 'new@example.com',
+        password: 'Password1!',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        role: UserRole.COLLABORATEUR,
+        organizationId: undefined,
+      });
     });
 
     it('should throw ConflictException when email already in use', async () => {
