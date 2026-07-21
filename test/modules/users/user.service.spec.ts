@@ -244,6 +244,7 @@ describe('UserService', () => {
       const callData = mockPrismaService.user.create.mock.calls[0][0].data;
       expect(callData.password).toMatch(/^\$2b\$/);
       expect(callData.password).not.toBe(input.password);
+      expect(callData.role).toBe(UserRole.COLLABORATEUR);
     });
 
     it('should connect organization when organizationId is provided', async () => {
