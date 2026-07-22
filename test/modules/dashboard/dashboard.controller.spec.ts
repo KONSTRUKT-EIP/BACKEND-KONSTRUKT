@@ -117,10 +117,10 @@ describe('DashboardController', () => {
         categories: [{ id: 1, name: 'Voiles', progress: 60, spent: 3000 }],
       };
 
-      const result = controller.createSummary(dto as any, mockRequest);
+      const result = controller.createSummary(dto as any);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.createSummary).toHaveBeenCalledWith(dto, 'org-a');
+      expect(service.createSummary).toHaveBeenCalledWith(dto);
       expect(result).toEqual(mockSummaryResponse);
     });
 
