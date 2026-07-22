@@ -98,12 +98,13 @@ export class UserService {
 
   async update(id: string, dto: UpdateUserDto, organizationId?: string | null) {
     if (!organizationId) return null;
-    const { password, organizationId: _organizationId, ...rest } = dto;
+    const { password, ...rest } = dto;
     const existingUser = await this.prisma.user.findFirst({
       where: { id, organizationId },
     });
     if (!existingUser) return null;
     const data: Record<string, unknown> = { ...rest };
+    delete data.organizationId;
     if (password) {
       data.password = await bcrypt.hash(password, 10);
     }

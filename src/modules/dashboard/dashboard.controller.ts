@@ -106,7 +106,6 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   createSummary(
     @Body() dto: CreateSummaryDto,
-    @Request() request: requestWithUser,
   ): DashboardSummaryResponseDto {
     const result = CreateSummarySchema.safeParse(dto);
     if (!result.success) {
@@ -114,10 +113,7 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.createSummary(
-      result.data,
-      request.user.organizationId,
-    );
+    return this.dashboardService.createSummary(result.data);
   }
 
   @Get('resources')

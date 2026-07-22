@@ -99,7 +99,6 @@ export class DashboardService {
 
   createSummary(
     input: DashboardSummaryResponseDto,
-    _organizationId?: string | null,
   ): DashboardSummaryResponseDto {
     this.summaryState = {
       globalProgress: input.globalProgress,
