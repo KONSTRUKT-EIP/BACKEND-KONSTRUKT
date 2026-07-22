@@ -86,7 +86,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.getSummary(result.data, request.user.organizationId);
+    return this.dashboardService.getSummary(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Post('summary')
@@ -101,14 +104,20 @@ export class DashboardController {
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  createSummary(@Body() dto: CreateSummaryDto, @Request() request: requestWithUser): DashboardSummaryResponseDto {
+  createSummary(
+    @Body() dto: CreateSummaryDto,
+    @Request() request: requestWithUser,
+  ): DashboardSummaryResponseDto {
     const result = CreateSummarySchema.safeParse(dto);
     if (!result.success) {
       throw new BadRequestException(
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.createSummary(result.data, request.user.organizationId);
+    return this.dashboardService.createSummary(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Get('resources')
@@ -177,7 +186,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return await this.dashboardService.getReports(result.data, request.user.organizationId);
+    return await this.dashboardService.getReports(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Get('analytics')
@@ -217,7 +229,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return await this.dashboardService.getArmatureAnalytics(result.data, request.user.organizationId);
+    return await this.dashboardService.getArmatureAnalytics(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Get('orders')
@@ -225,7 +240,9 @@ export class DashboardController {
   @ApiResponse({ status: 200, type: RecentOrdersResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async getAllOrders(@Request() request: requestWithUser): Promise<RecentOrdersResponseDto> {
+  async getAllOrders(
+    @Request() request: requestWithUser,
+  ): Promise<RecentOrdersResponseDto> {
     return this.dashboardService.getAllOrders(request.user.organizationId);
   }
 
@@ -273,7 +290,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.getRecentOrders(result.data, request.user.organizationId);
+    return this.dashboardService.getRecentOrders(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Post('orders')
@@ -293,6 +313,9 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.createOrder(result.data, request.user.organizationId);
+    return this.dashboardService.createOrder(
+      result.data,
+      request.user.organizationId,
+    );
   }
 }

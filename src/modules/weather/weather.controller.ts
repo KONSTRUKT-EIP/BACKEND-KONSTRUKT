@@ -54,7 +54,10 @@ export class WeatherController {
     @Param('siteId') siteId: string,
     @Request() request: requestWithUser,
   ): Promise<WeatherForecastDto> {
-    const site = await this.siteService.findOne(siteId, request.user.organizationId);
+    const site = await this.siteService.findOne(
+      siteId,
+      request.user.organizationId,
+    );
     if (!site.city) {
       throw new HttpException(
         'Le site ne possède pas de ville',

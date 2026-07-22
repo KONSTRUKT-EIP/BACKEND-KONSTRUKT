@@ -196,7 +196,10 @@ export class PlanningService {
 
   async findOne(id: string, organizationId?: string | null): Promise<any> {
     const task = await this.prisma.task.findFirst({
-      where: { id, siteZone: { site: { organizationId: organizationId ?? '' } } },
+      where: {
+        id,
+        siteZone: { site: { organizationId: organizationId ?? '' } },
+      },
       include: {
         siteZone: {
           select: { id: true, name: true },
@@ -246,9 +249,14 @@ export class PlanningService {
     return task;
   }
 
-  async create(dto: CreatePlanningTaskDto, organizationId?: string | null): Promise<any> {
+  async create(
+    dto: CreatePlanningTaskDto,
+    organizationId?: string | null,
+  ): Promise<any> {
     if (!organizationId || !dto.siteZoneId) {
-      throw new NotFoundException(`Zone de chantier ${dto.siteZoneId ?? ''} introuvable`);
+      throw new NotFoundException(
+        `Zone de chantier ${dto.siteZoneId ?? ''} introuvable`,
+      );
     }
     if (dto.siteZoneId) {
       const siteZone = await this.prisma.siteZone.findFirst({
@@ -315,9 +323,16 @@ export class PlanningService {
     return task;
   }
 
-  async update(id: string, dto: UpdatePlanningTaskDto, organizationId?: string | null): Promise<any> {
+  async update(
+    id: string,
+    dto: UpdatePlanningTaskDto,
+    organizationId?: string | null,
+  ): Promise<any> {
     const existingTask = await this.prisma.task.findFirst({
-      where: { id, siteZone: { site: { organizationId: organizationId ?? '' } } },
+      where: {
+        id,
+        siteZone: { site: { organizationId: organizationId ?? '' } },
+      },
     });
     if (!existingTask) {
       throw new NotFoundException(`Tâche ${id} introuvable`);
@@ -326,7 +341,10 @@ export class PlanningService {
 
     if (typeof dto.siteZoneId !== 'undefined') {
       const siteZone = await this.prisma.siteZone.findFirst({
-        where: { id: dto.siteZoneId, site: { organizationId: organizationId ?? '' } },
+        where: {
+          id: dto.siteZoneId,
+          site: { organizationId: organizationId ?? '' },
+        },
       });
       if (!siteZone) {
         throw new NotFoundException(
@@ -338,7 +356,10 @@ export class PlanningService {
 
     if (typeof dto.assignedToIds !== 'undefined') {
       const users = await this.prisma.user.findMany({
-        where: { id: { in: dto.assignedToIds }, organizationId: organizationId ?? '' },
+        where: {
+          id: { in: dto.assignedToIds },
+          organizationId: organizationId ?? '',
+        },
       });
 
       if (users.length !== dto.assignedToIds.length) {
@@ -410,9 +431,15 @@ export class PlanningService {
     return task;
   }
 
-  async remove(id: string, organizationId?: string | null): Promise<{ message: string }> {
+  async remove(
+    id: string,
+    organizationId?: string | null,
+  ): Promise<{ message: string }> {
     const task = await this.prisma.task.findFirst({
-      where: { id, siteZone: { site: { organizationId: organizationId ?? '' } } },
+      where: {
+        id,
+        siteZone: { site: { organizationId: organizationId ?? '' } },
+      },
     });
     if (!task) {
       throw new NotFoundException(`Tâche ${id} introuvable`);
@@ -423,7 +450,9 @@ export class PlanningService {
     return { message: `Tâche ${id} supprimée avec succès` };
   }
 
-  async findActions(organizationId?: string | null): Promise<PlanningActionResponseDto[]> {
+  async findActions(
+    organizationId?: string | null,
+  ): Promise<PlanningActionResponseDto[]> {
     if (!organizationId) return [];
     const alerts = await this.prisma.taskAlert.findMany({
       where: {
@@ -454,7 +483,13 @@ export class PlanningService {
     endDate: string,
     organizationId?: string | null,
   ): Promise<WeekPlanningResponseDto> {
-    const tasks = await this.findAll(startDate, endDate, undefined, undefined, organizationId);
+    const tasks = await this.findAll(
+      startDate,
+      endDate,
+      undefined,
+      undefined,
+      organizationId,
+    );
     const actions = await this.findActions(organizationId);
     const stats: WeekPlanningStatsDto = {
       tasksThisWeek: tasks.length,
@@ -469,9 +504,15 @@ export class PlanningService {
     };
   }
 
-  async findTaskActions(taskId: string, organizationId?: string | null): Promise<PlanningActionResponseDto[]> {
+  async findTaskActions(
+    taskId: string,
+    organizationId?: string | null,
+  ): Promise<PlanningActionResponseDto[]> {
     const task = await this.prisma.task.findFirst({
-      where: { id: taskId, siteZone: { site: { organizationId: organizationId ?? '' } } },
+      where: {
+        id: taskId,
+        siteZone: { site: { organizationId: organizationId ?? '' } },
+      },
     });
 
     if (!task) {
@@ -525,9 +566,15 @@ export class PlanningService {
     return alert;
   }
 
-  async removeAction(actionId: string, organizationId?: string | null): Promise<{ message: string }> {
+  async removeAction(
+    actionId: string,
+    organizationId?: string | null,
+  ): Promise<{ message: string }> {
     const alert = await this.prisma.taskAlert.findFirst({
-      where: { id: actionId, task: { siteZone: { site: { organizationId: organizationId ?? '' } } } },
+      where: {
+        id: actionId,
+        task: { siteZone: { site: { organizationId: organizationId ?? '' } } },
+      },
     });
 
     if (!alert) {

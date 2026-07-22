@@ -46,7 +46,10 @@ export class TeamController {
     description: 'Filtrer par chantier',
   })
   @ApiResponse({ status: 200, description: 'Liste des équipes' })
-  findAll(@Query('siteId') siteId: string | undefined, @Request() request: requestWithUser) {
+  findAll(
+    @Query('siteId') siteId: string | undefined,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.findAll(siteId, request.user.organizationId);
   }
 
@@ -79,7 +82,11 @@ export class TeamController {
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Équipe mise à jour' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  update(@Param('id') id: string, @Body() dto: UpdateTeamDto, @Request() request: requestWithUser) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTeamDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.update(id, dto, request.user.organizationId);
   }
 
@@ -115,7 +122,11 @@ export class TeamController {
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 201, description: 'Membre ajouté' })
   @ApiResponse({ status: 409, description: 'Déjà membre' })
-  addMember(@Param('id') id: string, @Body() dto: AddMemberDto, @Request() request: requestWithUser) {
+  addMember(
+    @Param('id') id: string,
+    @Body() dto: AddMemberDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.addMember(id, dto, request.user.organizationId);
   }
 
@@ -126,7 +137,11 @@ export class TeamController {
   @ApiParam({ name: 'userId', description: "UUID de l'utilisateur" })
   @ApiResponse({ status: 200, description: 'Membre retiré' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  removeMember(@Param('id') id: string, @Param('userId') userId: string, @Request() request: requestWithUser) {
+  removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.removeMember(id, userId, request.user.organizationId);
   }
 
@@ -142,7 +157,10 @@ export class TeamController {
   })
   @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: "Statistiques d'équipe" })
-  async getTeamStats(@Param('siteId') siteId: string, @Request() request: requestWithUser): Promise<{
+  async getTeamStats(
+    @Param('siteId') siteId: string,
+    @Request() request: requestWithUser,
+  ): Promise<{
     total: number;
     complete: number;
     enCours: number;
@@ -169,7 +187,10 @@ export class TeamController {
   })
   @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Liste détaillée des membres' })
-  async getTeamMembersDetails(@Param('siteId') siteId: string, @Request() request: requestWithUser): Promise<
+  async getTeamMembersDetails(
+    @Param('siteId') siteId: string,
+    @Request() request: requestWithUser,
+  ): Promise<
     Array<{
       id: string;
       teamId: string;
@@ -183,7 +204,10 @@ export class TeamController {
       starred: boolean;
     }>
   > {
-    return await this.service.getTeamMembersDetails(siteId, request.user.organizationId);
+    return await this.service.getTeamMembersDetails(
+      siteId,
+      request.user.organizationId,
+    );
   }
 
   @Get('site/:siteId/attendance-week')
@@ -212,6 +236,10 @@ export class TeamController {
     dates: string[];
     attendances: Record<string, string[]>;
   }> {
-    return await this.service.getAttendanceWeek(siteId, startDate, request.user.organizationId);
+    return await this.service.getAttendanceWeek(
+      siteId,
+      startDate,
+      request.user.organizationId,
+    );
   }
 }

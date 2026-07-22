@@ -10,15 +10,22 @@ import { Prisma } from '@prisma/client';
 export class GenericTableService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async assertSiteAccess(siteId: string, organizationId?: string | null) {
-    if (!organizationId) throw new NotFoundException(`Site ${siteId} not found`);
+  private async assertSiteAccess(
+    siteId: string,
+    organizationId?: string | null,
+  ) {
+    if (!organizationId)
+      throw new NotFoundException(`Site ${siteId} not found`);
     const site = await this.prisma.site.findFirst({
       where: { id: siteId, organizationId },
     });
     if (!site) throw new NotFoundException(`Site ${siteId} not found`);
   }
 
-  async createTable(dto: CreateGenericTableDto, organizationId?: string | null) {
+  async createTable(
+    dto: CreateGenericTableDto,
+    organizationId?: string | null,
+  ) {
     await this.assertSiteAccess(dto.siteId, organizationId);
     return await this.prisma.genericTable.create({ data: dto });
   }
@@ -36,7 +43,11 @@ export class GenericTableService {
     return table;
   }
 
-  async updateTable(id: string, dto: UpdateGenericTableDto, organizationId?: string | null) {
+  async updateTable(
+    id: string,
+    dto: UpdateGenericTableDto,
+    organizationId?: string | null,
+  ) {
     await this.getTable(id, organizationId);
     try {
       return await this.prisma.genericTable.update({
@@ -95,7 +106,11 @@ export class GenericTableService {
     }
   }
 
-  async updateRow(id: string, dto: UpdateGenericTableRowDto, organizationId?: string | null) {
+  async updateRow(
+    id: string,
+    dto: UpdateGenericTableRowDto,
+    organizationId?: string | null,
+  ) {
     await this.getRow(id, organizationId);
     try {
       return await this.prisma.genericTableRow.update({
@@ -130,7 +145,10 @@ export class GenericTableService {
 
   async getRow(id: string, organizationId?: string | null) {
     const row = await this.prisma.genericTableRow.findFirst({
-      where: { id, table: { site: { organizationId: organizationId ?? '__no_org__' } } },
+      where: {
+        id,
+        table: { site: { organizationId: organizationId ?? '__no_org__' } },
+      },
     });
 
     if (!row) {

@@ -14,8 +14,12 @@ import { UpsertAttendanceDto } from './dto/upsert-attendance.dto';
 export class AttendanceService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async assertTeamAccess(teamId: string, organizationId?: string | null) {
-    if (!organizationId) throw new NotFoundException(`Équipe ${teamId} introuvable`);
+  private async assertTeamAccess(
+    teamId: string,
+    organizationId?: string | null,
+  ) {
+    if (!organizationId)
+      throw new NotFoundException(`Équipe ${teamId} introuvable`);
     const team = await this.prisma.team.findFirst({
       where: { id: teamId, site: { organizationId } },
     });
@@ -53,7 +57,10 @@ export class AttendanceService {
 
   async findOne(id: string, organizationId?: string | null) {
     const record = await this.prisma.attendance.findFirst({
-      where: { id, team: { site: { organizationId: organizationId ?? '__no_org__' } } },
+      where: {
+        id,
+        team: { site: { organizationId: organizationId ?? '__no_org__' } },
+      },
       include: {
         team: { select: { id: true, name: true } },
         user: { select: { id: true, firstName: true, lastName: true } },
@@ -68,7 +75,8 @@ export class AttendanceService {
     const user = await this.prisma.user.findFirst({
       where: { id: dto.userId, organizationId: organizationId ?? '__no_org__' },
     });
-    if (!user) throw new NotFoundException(`Utilisateur ${dto.userId} introuvable`);
+    if (!user)
+      throw new NotFoundException(`Utilisateur ${dto.userId} introuvable`);
     const day = new Date(dto.date);
     if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
 
@@ -106,7 +114,11 @@ export class AttendanceService {
     });
   }
 
-  async update(id: string, dto: UpdateAttendanceDto, organizationId?: string | null) {
+  async update(
+    id: string,
+    dto: UpdateAttendanceDto,
+    organizationId?: string | null,
+  ) {
     await this.findOne(id, organizationId);
     return this.prisma.attendance.update({
       where: { id },
@@ -140,7 +152,11 @@ export class AttendanceService {
     return { message: 'Pointage supprimé' };
   }
 
-  async getDailySummary(teamId: string, date: string, organizationId?: string | null) {
+  async getDailySummary(
+    teamId: string,
+    date: string,
+    organizationId?: string | null,
+  ) {
     await this.assertTeamAccess(teamId, organizationId);
     const day = new Date(date);
     if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
@@ -174,7 +190,8 @@ export class AttendanceService {
     const user = await this.prisma.user.findFirst({
       where: { id: dto.userId, organizationId: organizationId ?? '__no_org__' },
     });
-    if (!user) throw new NotFoundException(`Utilisateur ${dto.userId} introuvable`);
+    if (!user)
+      throw new NotFoundException(`Utilisateur ${dto.userId} introuvable`);
     const day = new Date(dto.date);
     if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
 

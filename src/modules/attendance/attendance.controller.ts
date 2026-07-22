@@ -84,7 +84,11 @@ export class AttendanceController {
     @Query('date') date: string,
     @Request() request: requestWithUser,
   ) {
-    return this.service.getDailySummary(teamId, date, request.user.organizationId);
+    return this.service.getDailySummary(
+      teamId,
+      date,
+      request.user.organizationId,
+    );
   }
 
   @Get(':id')
@@ -117,7 +121,10 @@ export class AttendanceController {
     status: 409,
     description: 'Pointage déjà existant pour cette date',
   })
-  create(@Body() dto: CreateAttendanceDto, @Request() request: requestWithUser) {
+  create(
+    @Body() dto: CreateAttendanceDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.create(dto, request.user.organizationId);
   }
 
@@ -132,7 +139,11 @@ export class AttendanceController {
   @ApiParam({ name: 'id', description: 'UUID du pointage' })
   @ApiResponse({ status: 200, description: 'Pointage mis à jour' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  update(@Param('id') id: string, @Body() dto: UpdateAttendanceDto, @Request() request: requestWithUser) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAttendanceDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.update(id, dto, request.user.organizationId);
   }
 
@@ -155,7 +166,10 @@ export class AttendanceController {
   )
   @ApiOperation({ summary: 'Créer ou mettre à jour un pointage' })
   @ApiResponse({ status: 200, description: 'Pointage créé ou mis à jour' })
-  upsert(@Body() dto: UpsertAttendanceDto, @Request() request: requestWithUser) {
+  upsert(
+    @Body() dto: UpsertAttendanceDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.upsert(dto, request.user.organizationId);
   }
 }

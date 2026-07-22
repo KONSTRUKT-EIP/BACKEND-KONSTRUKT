@@ -41,7 +41,10 @@ export class GenericTableController {
   @ApiOperation({ summary: 'Create a new generic table' })
   @ApiResponse({ status: 201, description: 'Table created successfully.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
-  createTable(@Body() dto: CreateGenericTableDto, @Request() request: requestWithUser) {
+  createTable(
+    @Body() dto: CreateGenericTableDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.createTable(dto, request.user.organizationId);
   }
 
@@ -64,7 +67,11 @@ export class GenericTableController {
   @ApiResponse({ status: 200, description: 'Table updated successfully.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 404, description: 'Table not found.' })
-  updateTable(@Param('id') id: string, @Body() dto: UpdateGenericTableDto, @Request() request: requestWithUser) {
+  updateTable(
+    @Param('id') id: string,
+    @Body() dto: UpdateGenericTableDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.updateTable(id, dto, request.user.organizationId);
   }
 
@@ -89,7 +96,10 @@ export class GenericTableController {
     description: 'Filter by site UUID',
   })
   @ApiResponse({ status: 200, description: 'List of tables.' })
-  listTables(@Query('siteId') siteId: string | undefined, @Request() request: requestWithUser) {
+  listTables(
+    @Query('siteId') siteId: string | undefined,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.listTables(siteId, request.user.organizationId);
   }
 
@@ -106,7 +116,10 @@ export class GenericTableController {
     @Body() dto: AddGenericTableRowDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.addRow({ tableId, data: dto.data }, request.user.organizationId);
+    return this.service.addRow(
+      { tableId, data: dto.data },
+      request.user.organizationId,
+    );
   }
 
   @Get(':tableId/rows')
@@ -116,7 +129,10 @@ export class GenericTableController {
   @ApiParam({ name: 'tableId', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'List of rows.' })
   @ApiResponse({ status: 404, description: 'Table not found.' })
-  listRows(@Param('tableId') tableId: string, @Request() request: requestWithUser) {
+  listRows(
+    @Param('tableId') tableId: string,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.listRows(tableId, request.user.organizationId);
   }
 
@@ -139,7 +155,11 @@ export class GenericTableController {
   @ApiResponse({ status: 200, description: 'Row updated successfully.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 404, description: 'Row not found.' })
-  updateRow(@Param('id') id: string, @Body() dto: UpdateGenericTableRowDto, @Request() request: requestWithUser) {
+  updateRow(
+    @Param('id') id: string,
+    @Body() dto: UpdateGenericTableRowDto,
+    @Request() request: requestWithUser,
+  ) {
     return this.service.updateRow(id, dto, request.user.organizationId);
   }
 

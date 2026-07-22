@@ -86,7 +86,13 @@ export class PlanningController {
     @Query('siteZoneId') siteZoneId?: string,
     @Query('status') status?: TaskStatus,
   ): Promise<PlanningTaskResponseDto[]> {
-    return this.service.findAll(startDate, endDate, siteZoneId, status, request.user.organizationId);
+    return this.service.findAll(
+      startDate,
+      endDate,
+      siteZoneId,
+      status,
+      request.user.organizationId,
+    );
   }
 
   @Get('tasks/:id')
@@ -107,7 +113,10 @@ export class PlanningController {
     description: 'Tâche trouvée',
   })
   @ApiResponse({ status: 404, description: 'Tâche introuvable' })
-  findOneTask(@Param('id') id: string, @Request() request: requestWithUser): Promise<any> {
+  findOneTask(
+    @Param('id') id: string,
+    @Request() request: requestWithUser,
+  ): Promise<any> {
     return this.service.findOne(id, request.user.organizationId);
   }
 
@@ -125,7 +134,10 @@ export class PlanningController {
     status: 404,
     description: 'Zone de chantier ou utilisateur introuvable',
   })
-  createTask(@Body() dto: CreatePlanningTaskDto, @Request() request: requestWithUser): Promise<any> {
+  createTask(
+    @Body() dto: CreatePlanningTaskDto,
+    @Request() request: requestWithUser,
+  ): Promise<any> {
     return this.service.create(dto, request.user.organizationId);
   }
 
@@ -181,7 +193,9 @@ export class PlanningController {
     description: 'Liste des actions requises',
     type: [PlanningActionResponseDto],
   })
-  findAllActions(@Request() request: requestWithUser): Promise<PlanningActionResponseDto[]> {
+  findAllActions(
+    @Request() request: requestWithUser,
+  ): Promise<PlanningActionResponseDto[]> {
     return this.service.findActions(request.user.organizationId);
   }
 
@@ -263,6 +277,10 @@ export class PlanningController {
     @Query('endDate') endDate: string,
     @Request() request: requestWithUser,
   ): Promise<WeekPlanningResponseDto> {
-    return this.service.getWeekPlanning(startDate, endDate, request.user.organizationId);
+    return this.service.getWeekPlanning(
+      startDate,
+      endDate,
+      request.user.organizationId,
+    );
   }
 }
