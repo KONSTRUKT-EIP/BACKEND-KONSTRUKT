@@ -104,9 +104,7 @@ export class DashboardController {
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  createSummary(
-    @Body() dto: CreateSummaryDto,
-  ): DashboardSummaryResponseDto {
+  createSummary(@Body() dto: CreateSummaryDto): DashboardSummaryResponseDto {
     const result = CreateSummarySchema.safeParse(dto);
     if (!result.success) {
       throw new BadRequestException(
