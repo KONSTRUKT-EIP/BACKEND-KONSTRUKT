@@ -231,7 +231,7 @@ export class TeamService {
       pctPresents: total > 0 ? Math.round((presents / total) * 100) : 0,
       pctAbsents: total > 0 ? Math.round((totalNonPresents / total) * 100) : 0,
       pctComplete: total > 0 ? Math.round((presents / total) * 100) : 0,
-      pctEnCours: total > 0 ? Math.round((retards / total) * 100) : 0,
+      pctEnCours: total > 0 ? Math.round((surSite / total) * 100) : 0,
     };
   }
 
