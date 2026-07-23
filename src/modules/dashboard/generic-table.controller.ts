@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('Dashboard - Generic Tables')
 @ApiBearerAuth()
@@ -39,8 +41,11 @@ export class GenericTableController {
   @ApiOperation({ summary: 'Create a new generic table' })
   @ApiResponse({ status: 201, description: 'Table created successfully.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
-  createTable(@Body() dto: CreateGenericTableDto) {
-    return this.service.createTable(dto);
+  createTable(
+    @Body() dto: CreateGenericTableDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.createTable(dto, request.user.organizationId);
   }
 
   @Get(':id')
@@ -50,8 +55,8 @@ export class GenericTableController {
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table found.' })
   @ApiResponse({ status: 404, description: 'Table not found.' })
-  getTable(@Param('id') id: string) {
-    return this.service.getTable(id);
+  getTable(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.getTable(id, request.user.organizationId);
   }
 
   @Put(':id')
@@ -62,8 +67,12 @@ export class GenericTableController {
   @ApiResponse({ status: 200, description: 'Table updated successfully.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 404, description: 'Table not found.' })
-  updateTable(@Param('id') id: string, @Body() dto: UpdateGenericTableDto) {
-    return this.service.updateTable(id, dto);
+  updateTable(
+    @Param('id') id: string,
+    @Body() dto: UpdateGenericTableDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.updateTable(id, dto, request.user.organizationId);
   }
 
   @Delete(':id')
@@ -73,8 +82,8 @@ export class GenericTableController {
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Table not found.' })
-  deleteTable(@Param('id') id: string) {
-    return this.service.deleteTable(id);
+  deleteTable(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.deleteTable(id, request.user.organizationId);
   }
 
   @Get()
@@ -87,8 +96,11 @@ export class GenericTableController {
     description: 'Filter by site UUID',
   })
   @ApiResponse({ status: 200, description: 'List of tables.' })
-  listTables(@Query('siteId') siteId?: string) {
-    return this.service.listTables(siteId);
+  listTables(
+    @Query('siteId') siteId: string | undefined,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.listTables(siteId, request.user.organizationId);
   }
 
   @Post(':tableId/rows')
@@ -102,8 +114,12 @@ export class GenericTableController {
   addRow(
     @Param('tableId') tableId: string,
     @Body() dto: AddGenericTableRowDto,
+    @Request() request: requestWithUser,
   ) {
-    return this.service.addRow({ tableId, data: dto.data });
+    return this.service.addRow(
+      { tableId, data: dto.data },
+      request.user.organizationId,
+    );
   }
 
   @Get(':tableId/rows')
@@ -113,8 +129,11 @@ export class GenericTableController {
   @ApiParam({ name: 'tableId', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'List of rows.' })
   @ApiResponse({ status: 404, description: 'Table not found.' })
-  listRows(@Param('tableId') tableId: string) {
-    return this.service.listRows(tableId);
+  listRows(
+    @Param('tableId') tableId: string,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.listRows(tableId, request.user.organizationId);
   }
 
   @Get('rows/:id')
@@ -124,8 +143,8 @@ export class GenericTableController {
   @ApiParam({ name: 'id', description: 'Row UUID' })
   @ApiResponse({ status: 200, description: 'Row found.' })
   @ApiResponse({ status: 404, description: 'Row not found.' })
-  getRow(@Param('id') id: string) {
-    return this.service.getRow(id);
+  getRow(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.getRow(id, request.user.organizationId);
   }
 
   @Put('rows/:id')
@@ -136,8 +155,12 @@ export class GenericTableController {
   @ApiResponse({ status: 200, description: 'Row updated successfully.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 404, description: 'Row not found.' })
-  updateRow(@Param('id') id: string, @Body() dto: UpdateGenericTableRowDto) {
-    return this.service.updateRow(id, dto);
+  updateRow(
+    @Param('id') id: string,
+    @Body() dto: UpdateGenericTableRowDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.updateRow(id, dto, request.user.organizationId);
   }
 
   @Delete('rows/:id')
@@ -147,7 +170,7 @@ export class GenericTableController {
   @ApiParam({ name: 'id', description: 'Row UUID' })
   @ApiResponse({ status: 200, description: 'Row deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Row not found.' })
-  deleteRow(@Param('id') id: string) {
-    return this.service.deleteRow(id);
+  deleteRow(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.deleteRow(id, request.user.organizationId);
   }
 }

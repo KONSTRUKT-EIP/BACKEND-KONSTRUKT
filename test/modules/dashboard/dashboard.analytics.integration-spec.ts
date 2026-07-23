@@ -6,6 +6,7 @@ import { ArmatureReportsQueryDto } from '../../../src/modules/dashboard/dto/arma
 describe('DashboardService Integration - getArmatureAnalytics', () => {
   let service: DashboardService;
   let prisma: PrismaService;
+  const organizationId = 'org-a';
 
   beforeAll(async () => {
     const mockPrismaService = {
@@ -46,7 +47,7 @@ describe('DashboardService Integration - getArmatureAnalytics', () => {
 
   it('should return analytics data with mocked data', async () => {
     const query: ArmatureReportsQueryDto = {};
-    const result = await service.getArmatureAnalytics(query);
+    const result = await service.getArmatureAnalytics(query, organizationId);
     expect(result.kpiCards).toBeDefined();
     expect(result.chartData).toBeDefined();
     expect(result.filters).toBeDefined();

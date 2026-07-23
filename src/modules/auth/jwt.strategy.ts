@@ -5,6 +5,7 @@ import { UserRole } from '../../shared/types/roles.enum';
 
 export type userPayload = {
   userId: string;
+  organizationId?: string | null;
   role?: UserRole;
 };
 export type requestWithUser = { user: userPayload };
@@ -20,6 +21,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: userPayload): userPayload {
-    return { userId: payload.userId, role: payload.role };
+    return {
+      userId: payload.userId,
+      organizationId: payload.organizationId,
+      role: payload.role,
+    };
   }
 }

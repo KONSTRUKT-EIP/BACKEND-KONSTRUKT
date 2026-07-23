@@ -53,26 +53,32 @@ const mockAlert = {
   task: mockTask,
 };
 
+const organizationId = 'org-a';
+
 describe('PlanningService', () => {
   let service: PlanningService;
   let prisma: {
     task: {
       findMany: jest.Mock<any, any>;
       findUnique: jest.Mock<any, any>;
+      findFirst: jest.Mock<any, any>;
       create: jest.Mock<any, any>;
       update: jest.Mock<any, any>;
       delete: jest.Mock<any, any>;
     };
     siteZone: {
       findUnique: jest.Mock<any, any>;
+      findFirst: jest.Mock<any, any>;
     };
     user: {
       findUnique: jest.Mock<any, any>;
+      findFirst: jest.Mock<any, any>;
       findMany: jest.Mock<any, any>;
     };
     taskAlert: {
       findMany: jest.Mock<any, any>;
       findUnique: jest.Mock<any, any>;
+      findFirst: jest.Mock<any, any>;
       create: jest.Mock<any, any>;
       update: jest.Mock<any, any>;
     };
@@ -83,20 +89,24 @@ describe('PlanningService', () => {
       task: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
       },
       siteZone: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
       },
       user: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         findMany: jest.fn(),
       },
       taskAlert: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       },
@@ -116,7 +126,7 @@ describe('PlanningService', () => {
     it('should return all planning tasks', async () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
 
-      const result: any[] = await service.findAll();
+      const result: any[] = await service.findAll(undefined, undefined, undefined, undefined, organizationId);
 
       expect(result).toBeDefined();
       expect(result).toHaveLength(1);
@@ -129,7 +139,7 @@ describe('PlanningService', () => {
     it('should filter tasks by date range', async () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
 
-      const result = await service.findAll('2026-03-10', '2026-03-16');
+      const result = await service.findAll('2026-03-10', '2026-03-16', undefined, undefined, organizationId);
 
       const expectedEndDate = new Date('2026-03-16');
       expectedEndDate.setHours(23, 59, 59, 999);
@@ -151,7 +161,7 @@ describe('PlanningService', () => {
     it('should filter tasks by siteZoneId', async () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
 
-      await service.findAll(undefined, undefined, 'zone-uuid-1');
+      await service.findAll(undefined, undefined, 'zone-uuid-1', undefined, organizationId);
 
       expect(prisma.task.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -171,6 +181,7 @@ describe('PlanningService', () => {
         undefined,
         undefined,
         TaskStatus.EN_COURS,
+        organizationId,
       );
 
       expect(prisma.task.findMany).toHaveBeenCalledWith(
@@ -186,25 +197,28 @@ describe('PlanningService', () => {
 
   describe('findOne()', () => {
     it('should return a task by id', async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
+      prisma.task.findFirst.mockResolvedValue(mockTask);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await service.findOne('task-uuid-1');
+      const result = await service.findOne('task-uuid-1', organizationId);
 
       expect(result).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(result.id).toBe('task-uuid-1');
-      expect(prisma.task.findUnique).toHaveBeenCalledWith(
+      expect(prisma.task.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'task-uuid-1' },
+          where: {
+            id: 'task-uuid-1',
+            siteZone: { site: { organizationId } },
+          },
         }),
       );
     });
 
     it('should throw NotFoundException when task does not exist', async () => {
-      prisma.task.findUnique.mockResolvedValue(null);
+      prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne('invalid-uuid')).rejects.toThrow(
+      await expect(service.findOne('invalid-uuid', organizationId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -223,12 +237,12 @@ describe('PlanningService', () => {
     };
 
     it('should create a new task', async () => {
-      prisma.siteZone.findUnique.mockResolvedValue(mockSiteZone);
+      prisma.siteZone.findFirst.mockResolvedValue(mockSiteZone);
       prisma.user.findMany.mockResolvedValue([mockUser]);
       prisma.task.create.mockResolvedValue(mockTask);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await service.create(createDto);
+      const result = await service.create(createDto, organizationId);
 
       expect(result).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -237,18 +251,18 @@ describe('PlanningService', () => {
     });
 
     it('should throw NotFoundException when siteZone does not exist', async () => {
-      prisma.siteZone.findUnique.mockResolvedValue(null);
+      prisma.siteZone.findFirst.mockResolvedValue(null);
 
-      await expect(service.create(createDto)).rejects.toThrow(
+      await expect(service.create(createDto, organizationId)).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      prisma.siteZone.findUnique.mockResolvedValue(mockSiteZone);
+      prisma.siteZone.findFirst.mockResolvedValue(mockSiteZone);
       prisma.user.findMany.mockResolvedValue([]);
 
-      await expect(service.create(createDto)).rejects.toThrow(
+      await expect(service.create(createDto, organizationId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -261,11 +275,11 @@ describe('PlanningService', () => {
     };
 
     it('should update a task', async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
+      prisma.task.findFirst.mockResolvedValue(mockTask);
       prisma.task.update.mockResolvedValue({ ...mockTask, ...updateDto });
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await service.update('task-uuid-1', updateDto);
+      const result = await service.update('task-uuid-1', updateDto, organizationId);
 
       expect(result).toBeDefined();
       expect(prisma.task.update).toHaveBeenCalledWith(
@@ -278,9 +292,9 @@ describe('PlanningService', () => {
     });
 
     it('should throw NotFoundException when task does not exist', async () => {
-      prisma.task.findUnique.mockResolvedValue(null);
+      prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.update('invalid-uuid', updateDto)).rejects.toThrow(
+      await expect(service.update('invalid-uuid', updateDto, organizationId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -288,10 +302,10 @@ describe('PlanningService', () => {
 
   describe('remove()', () => {
     it('should delete a task', async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
+      prisma.task.findFirst.mockResolvedValue(mockTask);
       prisma.task.delete.mockResolvedValue(mockTask);
 
-      const result = await service.remove('task-uuid-1');
+      const result = await service.remove('task-uuid-1', organizationId);
 
       expect(result).toBeDefined();
       expect(result.message).toContain('supprimée avec succès');
@@ -301,9 +315,9 @@ describe('PlanningService', () => {
     });
 
     it('should throw NotFoundException when task does not exist', async () => {
-      prisma.task.findUnique.mockResolvedValue(null);
+      prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove('invalid-uuid')).rejects.toThrow(
+      await expect(service.remove('invalid-uuid', organizationId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -313,7 +327,7 @@ describe('PlanningService', () => {
     it('should return all actions', async () => {
       prisma.taskAlert.findMany.mockResolvedValue([mockAlert]);
 
-      const result = await service.findActions();
+      const result = await service.findActions(organizationId);
 
       expect(result).toBeDefined();
       expect(result).toHaveLength(1);
@@ -326,7 +340,7 @@ describe('PlanningService', () => {
     it('should only return unread high priority alerts', async () => {
       prisma.taskAlert.findMany.mockResolvedValue([mockAlert]);
 
-      await service.findActions();
+      await service.findActions(organizationId);
 
       expect(prisma.taskAlert.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -347,7 +361,7 @@ describe('PlanningService', () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
       prisma.taskAlert.findMany.mockResolvedValue([mockAlert]);
 
-      const result = await service.getWeekPlanning('2026-03-10', '2026-03-16');
+      const result = await service.getWeekPlanning('2026-03-10', '2026-03-16', organizationId);
 
       expect(result).toBeDefined();
       expect(result).toHaveProperty('tasks');
@@ -361,10 +375,10 @@ describe('PlanningService', () => {
 
   describe('findTaskActions()', () => {
     it('should return actions for a specific task', async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
+      prisma.task.findFirst.mockResolvedValue(mockTask);
       prisma.taskAlert.findMany.mockResolvedValue([mockAlert]);
 
-      const result = await service.findTaskActions('task-uuid-1');
+      const result = await service.findTaskActions('task-uuid-1', organizationId);
 
       expect(result).toBeDefined();
       expect(result).toHaveLength(1);
@@ -379,9 +393,9 @@ describe('PlanningService', () => {
     });
 
     it('should throw NotFoundException when task does not exist', async () => {
-      prisma.task.findUnique.mockResolvedValue(null);
+      prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.findTaskActions('invalid-uuid')).rejects.toThrow(
+      await expect(service.findTaskActions('invalid-uuid', organizationId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -389,13 +403,13 @@ describe('PlanningService', () => {
 
   describe('removeAction()', () => {
     it('should mark an alert as read', async () => {
-      prisma.taskAlert.findUnique.mockResolvedValue(mockAlert);
+      prisma.taskAlert.findFirst.mockResolvedValue(mockAlert);
       prisma.taskAlert.update.mockResolvedValue({
         ...mockAlert,
         isRead: true,
       });
 
-      const result = await service.removeAction('alert-uuid-1');
+      const result = await service.removeAction('alert-uuid-1', organizationId);
 
       expect(result).toBeDefined();
       expect(result.message).toContain('marquée comme lue');
@@ -406,9 +420,9 @@ describe('PlanningService', () => {
     });
 
     it('should throw NotFoundException when alert does not exist', async () => {
-      prisma.taskAlert.findUnique.mockResolvedValue(null);
+      prisma.taskAlert.findFirst.mockResolvedValue(null);
 
-      await expect(service.removeAction('invalid-uuid')).rejects.toThrow(
+      await expect(service.removeAction('invalid-uuid', organizationId)).rejects.toThrow(
         NotFoundException,
       );
     });

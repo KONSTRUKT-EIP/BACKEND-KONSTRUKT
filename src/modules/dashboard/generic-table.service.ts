@@ -10,13 +10,29 @@ import { Prisma } from '@prisma/client';
 export class GenericTableService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createTable(dto: CreateGenericTableDto) {
+  private async assertSiteAccess(
+    siteId: string,
+    organizationId?: string | null,
+  ) {
+    if (!organizationId)
+      throw new NotFoundException(`Site ${siteId} not found`);
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, organizationId },
+    });
+    if (!site) throw new NotFoundException(`Site ${siteId} not found`);
+  }
+
+  async createTable(
+    dto: CreateGenericTableDto,
+    organizationId?: string | null,
+  ) {
+    await this.assertSiteAccess(dto.siteId, organizationId);
     return await this.prisma.genericTable.create({ data: dto });
   }
 
-  async getTable(id: string) {
-    const table = await this.prisma.genericTable.findUnique({
-      where: { id },
+  async getTable(id: string, organizationId?: string | null) {
+    const table = await this.prisma.genericTable.findFirst({
+      where: { id, site: { organizationId: organizationId ?? '__no_org__' } },
       include: { rows: true },
     });
 
@@ -27,7 +43,12 @@ export class GenericTableService {
     return table;
   }
 
-  async updateTable(id: string, dto: UpdateGenericTableDto) {
+  async updateTable(
+    id: string,
+    dto: UpdateGenericTableDto,
+    organizationId?: string | null,
+  ) {
+    await this.getTable(id, organizationId);
     try {
       return await this.prisma.genericTable.update({
         where: { id },
@@ -44,7 +65,8 @@ export class GenericTableService {
     }
   }
 
-  async deleteTable(id: string) {
+  async deleteTable(id: string, organizationId?: string | null) {
+    await this.getTable(id, organizationId);
     try {
       return await this.prisma.genericTable.delete({ where: { id } });
     } catch (error) {
@@ -58,14 +80,19 @@ export class GenericTableService {
     }
   }
 
-  async listTables(siteId?: string) {
+  async listTables(siteId?: string, organizationId?: string | null) {
+    if (!organizationId) return [];
+    if (siteId) await this.assertSiteAccess(siteId, organizationId);
     return await this.prisma.genericTable.findMany({
-      where: siteId ? { siteId } : {},
+      where: siteId
+        ? { siteId, site: { organizationId } }
+        : { site: { organizationId } },
       include: { rows: true },
     });
   }
 
-  async addRow(dto: CreateGenericTableRowDto) {
+  async addRow(dto: CreateGenericTableRowDto, organizationId?: string | null) {
+    await this.getTable(dto.tableId, organizationId);
     try {
       return await this.prisma.genericTableRow.create({ data: dto });
     } catch (error) {
@@ -79,7 +106,12 @@ export class GenericTableService {
     }
   }
 
-  async updateRow(id: string, dto: UpdateGenericTableRowDto) {
+  async updateRow(
+    id: string,
+    dto: UpdateGenericTableRowDto,
+    organizationId?: string | null,
+  ) {
+    await this.getRow(id, organizationId);
     try {
       return await this.prisma.genericTableRow.update({
         where: { id },
@@ -96,7 +128,8 @@ export class GenericTableService {
     }
   }
 
-  async deleteRow(id: string) {
+  async deleteRow(id: string, organizationId?: string | null) {
+    await this.getRow(id, organizationId);
     try {
       return await this.prisma.genericTableRow.delete({ where: { id } });
     } catch (error) {
@@ -110,8 +143,13 @@ export class GenericTableService {
     }
   }
 
-  async getRow(id: string) {
-    const row = await this.prisma.genericTableRow.findUnique({ where: { id } });
+  async getRow(id: string, organizationId?: string | null) {
+    const row = await this.prisma.genericTableRow.findFirst({
+      where: {
+        id,
+        table: { site: { organizationId: organizationId ?? '__no_org__' } },
+      },
+    });
 
     if (!row) {
       throw new NotFoundException(`Row with ID ${id} not found`);
@@ -120,10 +158,8 @@ export class GenericTableService {
     return row;
   }
 
-  async listRows(tableId: string) {
-    const table = await this.prisma.genericTable.findUnique({
-      where: { id: tableId },
-    });
+  async listRows(tableId: string, organizationId?: string | null) {
+    const table = await this.getTable(tableId, organizationId);
 
     if (!table) {
       throw new NotFoundException(`Table with ID ${tableId} not found`);

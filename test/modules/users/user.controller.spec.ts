@@ -6,6 +6,7 @@ import { UserRole } from '@prisma/client';
 
 describe('UserController', () => {
   let controller: UserController;
+  const request = { user: { userId: 'user-1', organizationId: 'org-1' } };
 
   const mockUserService = {
     create: jest.fn(),
@@ -65,7 +66,7 @@ describe('UserController', () => {
 
       mockUserService.create.mockResolvedValue(expectedUser);
 
-      const result = await controller.create(createUserInput);
+      const result = await controller.create(createUserInput, request);
 
       expect(result).toEqual(expectedUser);
       expect(mockUserService.create).toHaveBeenCalledWith({
@@ -75,7 +76,7 @@ describe('UserController', () => {
         firstName: createUserInput.firstName,
         lastName: createUserInput.lastName,
         organizationId: createUserInput.organizationId,
-      });
+      }, 'org-1');
     });
 
     const { plainToInstance } = require('class-transformer');
@@ -144,10 +145,10 @@ describe('UserController', () => {
 
       mockUserService.findAll.mockResolvedValue(expectedUsers);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(request);
 
       expect(result).toEqual(expectedUsers);
-      expect(mockUserService.findAll).toHaveBeenCalled();
+      expect(mockUserService.findAll).toHaveBeenCalledWith(1, 20, 'org-1');
     });
   });
 
@@ -167,10 +168,10 @@ describe('UserController', () => {
 
       mockUserService.findOne.mockResolvedValue(expectedUser);
 
-      const result = await controller.findOne(userId);
+      const result = await controller.findOne(userId, request);
 
       expect(result).toEqual(expectedUser);
-      expect(mockUserService.findOne).toHaveBeenCalledWith(userId);
+      expect(mockUserService.findOne).toHaveBeenCalledWith(userId, 'org-1');
     });
   });
 
@@ -199,7 +200,7 @@ describe('UserController', () => {
 
       mockUserService.update.mockResolvedValue(expectedUser);
 
-      const result = await controller.update(userId, updateInput);
+      const result = await controller.update(userId, updateInput, request);
 
       expect(result).toEqual(expectedUser);
       expect(mockUserService.update).toHaveBeenCalledWith(userId, {
@@ -209,7 +210,7 @@ describe('UserController', () => {
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
         password: 'updatedHash',
-      });
+      }, 'org-1');
     });
   });
 
@@ -229,10 +230,10 @@ describe('UserController', () => {
 
       mockUserService.remove.mockResolvedValue(expectedUser);
 
-      const result = await controller.remove(userId);
+      const result = await controller.remove(userId, request);
 
       expect(result).toEqual(expectedUser);
-      expect(mockUserService.remove).toHaveBeenCalledWith(userId);
+      expect(mockUserService.remove).toHaveBeenCalledWith(userId, 'org-1');
     });
   });
 });

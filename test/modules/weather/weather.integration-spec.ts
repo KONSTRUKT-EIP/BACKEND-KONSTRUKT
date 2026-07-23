@@ -5,6 +5,7 @@ import request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { WeatherModule } from '../../../src/modules/weather/weather.module';
+import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 import {
@@ -142,6 +143,12 @@ describe('Weather Integration Tests', () => {
     })
       .overrideProvider(HttpService)
       .useValue(mockHttpService)
+      .overrideProvider(PrismaService)
+      .useValue({
+        $connect: jest.fn(),
+        $disconnect: jest.fn(),
+        site: { findFirst: jest.fn() },
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();

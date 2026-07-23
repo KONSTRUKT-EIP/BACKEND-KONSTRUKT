@@ -3,6 +3,7 @@ import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { ArmatureReportsQueryDto } from '../../../src/modules/dashboard/dto/armature-reports.dto';
 
 describe('DashboardService (reports)', () => {
+  const organizationId = 'org-a';
   let service: DashboardService;
   let prisma: PrismaService;
 
@@ -28,7 +29,7 @@ describe('DashboardService (reports)', () => {
       endDate: '2024-12-31',
       categories: 'Voiles,Planchers',
     };
-    const result = await service.getReports(query);
+    const result = await service.getReports(query, organizationId);
     expect(result.kpiCards).toEqual([
       { label: 'Voiles', percentage: 50, spent: 5000 },
       { label: 'Planchers', percentage: 20, spent: 2000 },
@@ -42,7 +43,7 @@ describe('DashboardService (reports)', () => {
     (prisma.resource.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.resourceUsage.findMany as jest.Mock).mockResolvedValue([]);
     const query: ArmatureReportsQueryDto = {};
-    const result = await service.getReports(query);
+    const result = await service.getReports(query, organizationId);
     expect(result.kpiCards).toEqual([
       { label: 'Voiles', percentage: 0, spent: 0 },
       { label: 'Planchers', percentage: 0, spent: 0 },

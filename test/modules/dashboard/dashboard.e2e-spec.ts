@@ -29,7 +29,12 @@ describe('DashboardController (e2e)', () => {
         $disconnect: jest.fn(),
       })
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: jest.fn(() => true) })
+      .useValue({
+        canActivate: jest.fn((context: any) => {
+          context.switchToHttp().getRequest().user = { organizationId: 'org-a' };
+          return true;
+        }),
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
