@@ -21,17 +21,12 @@ import { DASHBOARD_CATEGORIES } from './dashboard.constants';
 
 @Injectable()
 export class DashboardService {
-  private summaryState: DashboardSummaryResponseDto | null = null;
-
   constructor(private readonly prisma: PrismaService) {}
 
   async getSummary(
     query: DashboardSummaryQueryDto,
     organizationId?: string | null,
   ): Promise<DashboardSummaryResponseDto> {
-    if (this.summaryState) {
-      return this.summaryState;
-    }
     try {
       if (!organizationId)
         return { globalProgress: 0, globalSpent: 0, categories: [] };
@@ -95,17 +90,6 @@ export class DashboardService {
       console.error('Error in getSummary:', error);
       throw error;
     }
-  }
-
-  createSummary(
-    input: DashboardSummaryResponseDto,
-  ): DashboardSummaryResponseDto {
-    this.summaryState = {
-      globalProgress: input.globalProgress,
-      globalSpent: input.globalSpent,
-      categories: input.categories.map((c) => ({ ...c })),
-    };
-    return this.summaryState;
   }
 
   async getRecentOrders(

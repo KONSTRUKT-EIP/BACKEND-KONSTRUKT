@@ -147,65 +147,24 @@ describe('DashboardService', () => {
     });
   });
 
-  // ─── getSummary — summaryState caching ──────────────────────────────────
-  describe('getSummary() with stored summaryState', () => {
-    it('should return stored summaryState without querying the DB', async () => {
-      const stored = {
-        globalProgress: 75,
-        globalSpent: 5000,
-        categories: [{ id: 1, name: 'Voiles', progress: 75, spent: 5000 }],
-      };
-      // Seed the state directly
-      service['summaryState'] = stored;
+  it('should query the database for every summary request', async () => {
+    const resources = [
+      { id: 1, name: 'Voiles A', quantity: 10, unitPrice: 5 },
+    ];
+    mockResourceFindMany
+      .mockResolvedValueOnce(resources)
+      .mockResolvedValueOnce([]);
+    mockResourceUsageFindMany
+      .mockResolvedValueOnce([{ resourceId: 1, quantity: 2 }])
+      .mockResolvedValueOnce([]);
 
-      const result = await service.getSummary({}, organizationId);
+    const firstResult = await service.getSummary({}, organizationId);
+    const secondResult = await service.getSummary({}, organizationId);
 
-      expect(result).toEqual(stored);
-      expect(mockResourceFindMany).not.toHaveBeenCalled();
-      expect(mockResourceUsageFindMany).not.toHaveBeenCalled();
-    });
-  });
-
-  // ─── createSummary ───────────────────────────────────────────────────────
-  describe('createSummary()', () => {
-    it('should store the summary and return it', () => {
-      const input = {
-        globalProgress: 60,
-        globalSpent: 3000,
-        categories: [
-          { id: 1, name: 'Voiles', progress: 60, spent: 3000 },
-        ],
-      };
-
-      const result = service.createSummary(input);
-
-      expect(result).toEqual(input);
-      expect(service['summaryState']).toEqual(input);
-    });
-
-    it('should deep-clone categories so mutations do not affect the stored state', () => {
-      const cats = [{ id: 1, name: 'Voiles', progress: 50, spent: 1000 }];
-      service.createSummary({ globalProgress: 50, globalSpent: 1000, categories: cats });
-
-      // Mutate the original array after storing
-      cats[0].progress = 99;
-
-      expect(service['summaryState']!.categories[0].progress).toBe(50);
-    });
-
-    it('should make getSummary return the stored state on next call', async () => {
-      const input = {
-        globalProgress: 42,
-        globalSpent: 420,
-        categories: [{ id: 1, name: 'Voiles', progress: 42, spent: 420 }],
-      };
-      service.createSummary(input);
-
-      const result = await service.getSummary({}, organizationId);
-
-      expect(result).toEqual(input);
-      expect(mockResourceFindMany).not.toHaveBeenCalled();
-    });
+    expect(firstResult.globalSpent).toBe(10);
+    expect(secondResult.globalSpent).toBe(0);
+    expect(mockResourceFindMany).toHaveBeenCalledTimes(2);
+    expect(mockResourceUsageFindMany).toHaveBeenCalledTimes(2);
   });
 
   // ─── getAllOrders ────────────────────────────────────────────────────────
