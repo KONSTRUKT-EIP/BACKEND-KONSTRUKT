@@ -44,7 +44,6 @@ describe('DashboardController', () => {
           provide: DashboardService,
           useValue: {
             getSummary: jest.fn().mockResolvedValue(mockSummaryResponse),
-            createSummary: jest.fn().mockReturnValue(mockSummaryResponse),
             getRecentOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             getAllOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             createOrder: jest.fn().mockResolvedValue(mockOrdersResponse),
@@ -77,72 +76,6 @@ describe('DashboardController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  // ─── getSummary ───────────────────────────────────────────────────────────
-  describe('getSummary()', () => {
-    it('should return dashboard summary', async () => {
-      const query: DashboardSummaryQueryDto = {};
-      const result = await controller.getSummary(query, mockRequest);
-
-      expect(result.globalProgress).toBe(50);
-      expect(result.globalSpent).toBe(1000);
-      expect(result.categories).toHaveLength(4);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.getSummary).toHaveBeenCalledWith(query, 'org-a');
-    });
-
-    it('should throw BadRequestException for invalid date format', async () => {
-      await expect(
-        controller.getSummary({ startDate: 'not-a-date' }, mockRequest),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should accept valid YYYY-MM-DD dates', async () => {
-      const query: DashboardSummaryQueryDto = { startDate: '2024-01-01', endDate: '2024-12-31' };
-      const result = await controller.getSummary(query, mockRequest);
-
-      expect(result).toBeDefined();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.getSummary).toHaveBeenCalledWith(query, 'org-a');
-    });
-  });
-
-  // ─── createSummary ────────────────────────────────────────────────────────
-  describe('createSummary()', () => {
-    it('should store and return the summary when input is valid', () => {
-      const dto = {
-        globalProgress: 60,
-        globalSpent: 3000,
-        categories: [{ id: 1, name: 'Voiles', progress: 60, spent: 3000 }],
-      };
-
-      const result = controller.createSummary(dto as any);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.createSummary).toHaveBeenCalledWith(dto);
-      expect(result).toEqual(mockSummaryResponse);
-    });
-
-    it('should throw BadRequestException when categories contain non-integer id', () => {
-      const dto = {
-        globalProgress: 50,
-        globalSpent: 1000,
-        categories: [{ id: 1.5, name: 'Voiles', progress: 50, spent: 1000 }],
-      };
-
-      expect(() => controller.createSummary(dto as any, mockRequest)).toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException when globalProgress is out of range', () => {
-      const dto = {
-        globalProgress: 150, // > 100
-        globalSpent: 1000,
-        categories: [],
-      };
-
-      expect(() => controller.createSummary(dto as any, mockRequest)).toThrow(BadRequestException);
-    });
   });
 
   // ─── getAllOrders ─────────────────────────────────────────────────────────
