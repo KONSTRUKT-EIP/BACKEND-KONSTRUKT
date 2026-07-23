@@ -107,7 +107,7 @@ describe('Weather Integration Tests', () => {
 
   const mockHttpService = {
     get: jest.fn((url: string, config?: any) => {
-      if (url.includes('geocoding-api.open-meteo.com')) {
+      if (url === 'https://geocoding-api.open-meteo.com/v1/search') {
         const cityName = config?.params?.name;
         if (cityName === 'Paris') {
           return of({ data: mockGeocodingParis });
@@ -119,7 +119,7 @@ describe('Weather Integration Tests', () => {
           return of({ data: mockGeocodingNotFound });
         }
       }
-      if (url.includes('api.open-meteo.com/v1/forecast')) {
+      if (url === 'https://api.open-meteo.com/v1/forecast') {
         const lat = config?.params?.latitude;
         if (lat === 43.2965 || Math.abs(lat - 43.2965) < 0.1) {
           return of({
