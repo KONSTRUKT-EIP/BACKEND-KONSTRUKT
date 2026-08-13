@@ -3,23 +3,54 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { PrismaService } from './../src/lib/prisma/prisma.service';
+import { JwtAuthGuard } from './../src/modules/auth/jwt-auth.guard';
+import { RolesGuard } from './../src/modules/auth/roles.guard';
 
-describe('AppController (e2e)', () => {
+const mockPrismaService = {
+  user: {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  $transaction: jest.fn(),
+  $connect: jest.fn(),
+  $disconnect: jest.fn(),
+};
+
+describe('App (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue(mockPrismaService)
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterEach(async () => {
+    await app.close();
+    jest.clearAllMocks();
+  });
+
+  it('should initialize the application', () => {
+    expect(app).toBeDefined();
+  });
+
+  it('/users (GET) should return 200', () => {
+    mockPrismaService.$transaction.mockResolvedValue([[], 0]);
+    return request(app.getHttpServer()).get('/users').expect(200);
   });
 });
