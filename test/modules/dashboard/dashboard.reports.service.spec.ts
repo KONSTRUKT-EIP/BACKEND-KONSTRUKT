@@ -11,7 +11,7 @@ describe('DashboardService (reports)', () => {
       resource: { findMany: jest.fn() },
       resourceUsage: { findMany: jest.fn() },
     } as unknown as PrismaService;
-    service = new DashboardService(prisma);
+    service = new DashboardService(prisma, {} as any);
   });
 
   it('should return correct KPI cards and totals', async () => {

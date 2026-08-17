@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardService } from '../../../src/modules/dashboard/dashboard.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/dashboard-summary.dto';
+import { DeliveriesService } from '../../../src/modules/deliveries/deliveries.service';
 
 describe('DashboardService', () => {
   describe('getArmatureAnalytics', () => {
@@ -27,17 +28,17 @@ describe('DashboardService', () => {
   });
   let service: DashboardService;
   let mockResourceFindMany: jest.Mock;
-  let mockResourceFindFirst: jest.Mock;
   let mockResourceUsageFindMany: jest.Mock;
-  let mockDeliveryFindMany: jest.Mock;
-  let mockDeliveryCreate: jest.Mock;
+  let mockDeliveriesGetRecentOrders: jest.Mock;
+  let mockDeliveriesGetAllOrders: jest.Mock;
+  let mockDeliveriesCreateOrder: jest.Mock;
 
   beforeEach(async () => {
     mockResourceFindMany = jest.fn();
-    mockResourceFindFirst = jest.fn();
     mockResourceUsageFindMany = jest.fn();
-    mockDeliveryFindMany = jest.fn();
-    mockDeliveryCreate = jest.fn();
+    mockDeliveriesGetRecentOrders = jest.fn();
+    mockDeliveriesGetAllOrders = jest.fn();
+    mockDeliveriesCreateOrder = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -47,13 +48,16 @@ describe('DashboardService', () => {
           useValue: {
             resource: {
               findMany: mockResourceFindMany,
-              findFirst: mockResourceFindFirst,
             },
             resourceUsage: { findMany: mockResourceUsageFindMany },
-            delivery: {
-              findMany: mockDeliveryFindMany,
-              create: mockDeliveryCreate,
-            },
+          },
+        },
+        {
+          provide: DeliveriesService,
+          useValue: {
+            getRecentOrders: mockDeliveriesGetRecentOrders,
+            getAllOrders: mockDeliveriesGetAllOrders,
+            createOrder: mockDeliveriesCreateOrder,
           },
         },
       ],
@@ -63,20 +67,24 @@ describe('DashboardService', () => {
   });
 
   describe('getRecentOrders', () => {
-    it('should return mock orders with correct structure', async () => {
+    it('should delegate to DeliveriesService and return orders', async () => {
       const query = { page: 1, pageSize: 10 };
-      mockDeliveryFindMany.mockResolvedValue([
-        {
-          id: 'order_1',
-          createdAt: new Date(),
-          quantity: 3,
-          resource: {
-            name: 'Armature 12mm',
-            unitPrice: 120,
+      mockDeliveriesGetRecentOrders.mockResolvedValue({
+        orders: [
+          {
+            id: 'order_1',
+            productName: 'Armature 12mm',
+            productIcon: '',
+            price: 120,
+            totalOrder: 3,
+            total: 360,
           },
-        },
-      ]);
+        ],
+      });
+
       const result = await service.getRecentOrders(query);
+
+      expect(mockDeliveriesGetRecentOrders).toHaveBeenCalledWith(query);
       expect(result.orders).toBeInstanceOf(Array);
       expect(result.orders[0]).toHaveProperty('id');
       expect(result.orders[0]).toHaveProperty('productName');
@@ -208,40 +216,36 @@ describe('DashboardService', () => {
 
   // ─── getAllOrders ────────────────────────────────────────────────────────
   describe('getAllOrders()', () => {
-    it('should return all deliveries mapped to OrderDto shape', async () => {
-      mockDeliveryFindMany.mockResolvedValue([
-        {
-          id: 'del-1',
-          createdAt: new Date(),
-          quantity: 5,
-          resource: { name: 'Armature 12mm', unitPrice: 100 },
-        },
-        {
-          id: 'del-2',
-          createdAt: new Date(),
-          quantity: 2,
-          resource: { name: 'Poutre HEA200', unitPrice: 250 },
-        },
-      ]);
+    it('should delegate to DeliveriesService and return mapped orders', async () => {
+      mockDeliveriesGetAllOrders.mockResolvedValue({
+        orders: [
+          {
+            id: 'del-1',
+            productName: 'Armature 12mm',
+            productIcon: '',
+            price: 100,
+            totalOrder: 5,
+            total: 500,
+          },
+          {
+            id: 'del-2',
+            productName: 'Poutre HEA200',
+            productIcon: '',
+            price: 250,
+            totalOrder: 2,
+            total: 500,
+          },
+        ],
+      });
 
       const result = await service.getAllOrders();
 
       expect(result.orders).toHaveLength(2);
-      expect(result.orders[0]).toEqual({
-        id: 'del-1',
-        productName: 'Armature 12mm',
-        productIcon: '',
-        price: 100,
-        totalOrder: 5,
-        total: 500,
-      });
-      expect(mockDeliveryFindMany).toHaveBeenCalledWith(
-        expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
-      );
+      expect(mockDeliveriesGetAllOrders).toHaveBeenCalledTimes(1);
     });
 
     it('should return an empty orders array when there are no deliveries', async () => {
-      mockDeliveryFindMany.mockResolvedValue([]);
+      mockDeliveriesGetAllOrders.mockResolvedValue({ orders: [] });
 
       const result = await service.getAllOrders();
 
@@ -251,61 +255,32 @@ describe('DashboardService', () => {
 
   // ─── createOrder ─────────────────────────────────────────────────────────
   describe('createOrder()', () => {
-    const orderData = {
-      productName: 'Armature 12mm',
-      productIcon: '',
-      price: 100,
-      totalOrder: 5,
-      total: 500,
-    };
+    it('should delegate order creation to DeliveriesService', async () => {
+      const orderData = {
+        productName: 'Armature 12mm',
+        productIcon: '',
+        price: 100,
+        totalOrder: 5,
+        total: 500,
+      };
 
-    const mockResource = {
-      id: 'res-1',
-      name: 'Armature 12mm',
-      unitPrice: 100,
-      siteId: 'site-1',
-      supplier: 'Acier SA',
-    };
-
-    const mockDelivery = {
-      id: 'del-new',
-      quantity: 5,
-      resource: { name: 'Armature 12mm', unitPrice: 100 },
-    };
-
-    it('should create a delivery when a matching resource is found by name', async () => {
-      mockResourceFindFirst
-        .mockResolvedValueOnce(mockResource); // name match
-      mockDeliveryCreate.mockResolvedValue(mockDelivery);
+      mockDeliveriesCreateOrder.mockResolvedValue({
+        orders: [
+          {
+            id: 'del-new',
+            productName: 'Armature 12mm',
+            productIcon: '',
+            price: 100,
+            totalOrder: 5,
+            total: 500,
+          },
+        ],
+      });
 
       const result = await service.createOrder(orderData);
 
-      expect(mockDeliveryCreate).toHaveBeenCalledTimes(1);
+      expect(mockDeliveriesCreateOrder).toHaveBeenCalledWith(orderData);
       expect(result.orders[0].id).toBe('del-new');
-      expect(result.orders[0].productName).toBe('Armature 12mm');
-    });
-
-    it('should fall back to first resource when name does not match', async () => {
-      mockResourceFindFirst
-        .mockResolvedValueOnce(null)     // no name match
-        .mockResolvedValueOnce(mockResource); // fallback
-      mockDeliveryCreate.mockResolvedValue(mockDelivery);
-
-      const result = await service.createOrder({ ...orderData, productName: 'Unknown' });
-
-      expect(result.orders[0].id).toBe('del-new');
-    });
-
-    it('should return a transient order (no DB create) when no resource exists', async () => {
-      mockResourceFindFirst
-        .mockResolvedValueOnce(null) // no name match
-        .mockResolvedValueOnce(null); // no fallback
-
-      const result = await service.createOrder(orderData);
-
-      expect(mockDeliveryCreate).not.toHaveBeenCalled();
-      expect(result.orders[0].productName).toBe('Armature 12mm');
-      expect(typeof result.orders[0].id).toBe('string');
     });
   });
 
