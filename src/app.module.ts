@@ -12,6 +12,9 @@ import { OrganizationModule } from './modules/organizations/organization.module'
 import { TeamModule } from './modules/teams/team.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { PlanningModule } from './modules/planning/planning.module';
+import { DeliveriesModule } from './modules/deliveries/deliveries.module';
+import { ResourcesModule } from './modules/resources/resources.module';
+import { ResourceUsagesModule } from './modules/resource-usages/resource-usages.module';
 
 @Controller()
 export class AppController {
@@ -39,6 +42,9 @@ export class AppController {
     TeamModule,
     AttendanceModule,
     PlanningModule,
+    DeliveriesModule,
+    ResourcesModule,
+    ResourceUsagesModule,
   ],
   controllers: [AppController],
   providers: [
