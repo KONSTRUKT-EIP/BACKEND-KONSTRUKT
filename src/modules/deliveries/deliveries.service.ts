@@ -177,8 +177,9 @@ export class DeliveriesService {
     return { message: `Delivery ${id} supprimee` };
   }
 
-  async getAllOrders() {
+  async getAllOrders(siteId?: string) {
     const deliveries = await this.prisma.delivery.findMany({
+      where: siteId ? { siteId } : undefined,
       include: { resource: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -221,33 +222,25 @@ export class DeliveriesService {
   }
 
   async createOrder(data: {
+    siteId: string;
     productName: string;
     productIcon?: string;
     price: number;
     totalOrder: number;
     total: number;
-  }) {
-    const resource = await this.prisma.resource.findFirst({
-      where: { name: { contains: data.productName, mode: 'insensitive' } },
-    });
-
-    if (!resource) {
-      throw new NotFoundException(
-        `Aucune ressource correspondante pour ${data.productName}`,
-      );
-    }
-
-    const delivery = await this.prisma.delivery.create({
-      data: {
-        resourceId: resource.id,
-        siteId: resource.siteId,
-        quantity: data.totalOrder,
-        expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        supplier: resource.supplier,
-        status: DeliveryStatus.PLANIFIEE,
-      },
-      include: { resource: true },
-    });
+   }) {
+  const delivery = await this.prisma.delivery.create({
+    data: {
+      siteId: data.siteId,
+      productName: data.productName,
+      price: data.price,
+      quantity: data.totalOrder,
+      expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      supplier: 'Non defini',
+      status: DeliveryStatus.PLANIFIEE,
+    },
+    include: { resource: true },
+  });
 
     return {
       orders: [
@@ -331,14 +324,21 @@ export class DeliveriesService {
   }
 
   private mapDelivery(delivery: DeliveryWithResource) {
-    const unitPrice = Number(delivery.resource.unitPrice);
     const quantity = Number(delivery.quantity);
+    const unitPrice = delivery.price
+      ? Number(delivery.price)
+      : delivery.resource
+        ? Number(delivery.resource.unitPrice)
+        : 0;
 
     return {
       id: delivery.id,
       siteId: delivery.siteId,
       resourceId: delivery.resourceId,
-      resourceName: delivery.resource.name,
+      resourceName:
+        delivery.productName ??
+        delivery.resource?.name ??
+        'Produit sans nom',
       expectedDate: delivery.expectedDate,
       receivedDate: delivery.receivedDate,
       quantity,
@@ -351,13 +351,22 @@ export class DeliveriesService {
   }
 
   private mapOrder(delivery: DeliveryWithResource): OrderProjection {
+    const price = delivery.price
+      ? Number(delivery.price)
+      : delivery.resource
+        ? Number(delivery.resource.unitPrice)
+        : 0;
+
     return {
       id: delivery.id,
-      productName: delivery.resource.name,
+      productName:
+        delivery.productName ??
+        delivery.resource?.name ??
+        'Produit sans nom',
       productIcon: '',
-      price: Number(delivery.resource.unitPrice),
+      price,
       totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+      total: Number(delivery.quantity) * price,
     };
   }
 }

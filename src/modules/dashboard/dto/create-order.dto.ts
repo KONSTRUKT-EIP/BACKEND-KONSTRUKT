@@ -4,11 +4,13 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
 } from 'class-validator';
 import { z } from 'zod';
 
 export const CreateOrderSchema = z.object({
+  siteId: z.string().uuid(),
   productName: z.string().min(1),
   productIcon: z.string().optional(),
   price: z.number().min(0),
@@ -17,6 +19,10 @@ export const CreateOrderSchema = z.object({
 });
 
 export class CreateOrderDto {
+  @ApiProperty({ description: 'UUID du chantier', format: 'uuid' })
+  @IsUUID()
+  siteId: string;
+  
   @ApiProperty({ example: 'Armature 12mm', description: 'Product name' })
   @IsString()
   @IsNotEmpty()
