@@ -31,7 +31,11 @@ describe('UserController', () => {
     controller = module.get<UserController>(UserController);
     // Use the same ValidationPipe as in main.ts
     const { ValidationPipe } = require('@nestjs/common');
-    validationPipe = new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true });
+    validationPipe = new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    });
   });
 
   afterEach(() => {
@@ -80,7 +84,9 @@ describe('UserController', () => {
     });
 
     const { plainToInstance } = require('class-transformer');
-    const { CreateUserDto } = require('../../../src/modules/users/dto/create-user.dto');
+    const {
+      CreateUserDto,
+    } = require('../../../src/modules/users/dto/create-user.dto');
 
     it('should throw BadRequestException with invalid email', async () => {
       const invalidInput = {
@@ -93,7 +99,10 @@ describe('UserController', () => {
       };
       const dto = plainToInstance(CreateUserDto, invalidInput);
       await expect(
-        validationPipe.transform(dto, { type: 'body', metatype: CreateUserDto })
+        validationPipe.transform(dto, {
+          type: 'body',
+          metatype: CreateUserDto,
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -108,7 +117,10 @@ describe('UserController', () => {
       };
       const dto = plainToInstance(CreateUserDto, invalidInput);
       await expect(
-        validationPipe.transform(dto, { type: 'body', metatype: CreateUserDto })
+        validationPipe.transform(dto, {
+          type: 'body',
+          metatype: CreateUserDto,
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -123,7 +135,10 @@ describe('UserController', () => {
       };
       const dto = plainToInstance(CreateUserDto, invalidInput);
       await expect(
-        validationPipe.transform(dto, { type: 'body', metatype: CreateUserDto })
+        validationPipe.transform(dto, {
+          type: 'body',
+          metatype: CreateUserDto,
+        }),
       ).rejects.toThrow(BadRequestException);
     });
   });
