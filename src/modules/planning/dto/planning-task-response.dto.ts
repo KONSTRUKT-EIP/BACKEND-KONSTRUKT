@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export type PlanningTaskStatus = 'done' | 'weather-risk' | 'late' | 'in-progress';
+export type PlanningTaskStatus =
+  | 'done'
+  | 'weather-risk'
+  | 'late'
+  | 'in-progress';
 
 export class PlanningTaskResponseDto {
   @ApiProperty({
