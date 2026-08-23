@@ -22,7 +22,7 @@ export class CreateOrderDto {
   @ApiProperty({ description: 'UUID du chantier', format: 'uuid' })
   @IsUUID()
   siteId: string;
-  
+
   @ApiProperty({ example: 'Armature 12mm', description: 'Product name' })
   @IsString()
   @IsNotEmpty()

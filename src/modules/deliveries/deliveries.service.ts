@@ -228,19 +228,19 @@ export class DeliveriesService {
     price: number;
     totalOrder: number;
     total: number;
-   }) {
-  const delivery = await this.prisma.delivery.create({
-    data: {
-      siteId: data.siteId,
-      productName: data.productName,
-      price: data.price,
-      quantity: data.totalOrder,
-      expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      supplier: 'Non defini',
-      status: DeliveryStatus.PLANIFIEE,
-    },
-    include: { resource: true },
-  });
+  }) {
+    const delivery = await this.prisma.delivery.create({
+      data: {
+        siteId: data.siteId,
+        productName: data.productName,
+        price: data.price,
+        quantity: data.totalOrder,
+        expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        supplier: 'Non defini',
+        status: DeliveryStatus.PLANIFIEE,
+      },
+      include: { resource: true },
+    });
 
     return {
       orders: [
@@ -336,9 +336,7 @@ export class DeliveriesService {
       siteId: delivery.siteId,
       resourceId: delivery.resourceId,
       resourceName:
-        delivery.productName ??
-        delivery.resource?.name ??
-        'Produit sans nom',
+        delivery.productName ?? delivery.resource?.name ?? 'Produit sans nom',
       expectedDate: delivery.expectedDate,
       receivedDate: delivery.receivedDate,
       quantity,
@@ -360,9 +358,7 @@ export class DeliveriesService {
     return {
       id: delivery.id,
       productName:
-        delivery.productName ??
-        delivery.resource?.name ??
-        'Produit sans nom',
+        delivery.productName ?? delivery.resource?.name ?? 'Produit sans nom',
       productIcon: '',
       price,
       totalOrder: Number(delivery.quantity),
