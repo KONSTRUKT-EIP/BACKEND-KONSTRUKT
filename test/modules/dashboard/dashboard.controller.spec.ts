@@ -46,9 +46,19 @@ describe('DashboardController', () => {
             getRecentOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             getAllOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             createOrder: jest.fn().mockResolvedValue(mockOrdersResponse),
-            getResources: jest.fn().mockResolvedValue([
-              { id: 'res-1', name: 'Armature 12mm', type: 'STEEL', unit: 'kg', unitPrice: 120, supplier: 'Acier SA', siteId: 'site-1' },
-            ]),
+            getResources: jest
+              .fn()
+              .mockResolvedValue([
+                {
+                  id: 'res-1',
+                  name: 'Armature 12mm',
+                  type: 'STEEL',
+                  unit: 'kg',
+                  unitPrice: 120,
+                  supplier: 'Acier SA',
+                  siteId: 'site-1',
+                },
+              ]),
             getArmatureAnalytics: jest.fn().mockResolvedValue({
               kpiCards: [],
               chartData: [],
@@ -97,7 +107,10 @@ describe('DashboardController', () => {
     });
 
     it('should accept valid YYYY-MM-DD dates', async () => {
-      const query: DashboardSummaryQueryDto = { startDate: '2024-01-01', endDate: '2024-12-31' };
+      const query: DashboardSummaryQueryDto = {
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      };
       const result = await controller.getSummary(query);
 
       expect(result).toBeDefined();
@@ -129,7 +142,9 @@ describe('DashboardController', () => {
         categories: [{ id: 1.5, name: 'Voiles', progress: 50, spent: 1000 }],
       };
 
-      expect(() => controller.createSummary(dto as any)).toThrow(BadRequestException);
+      expect(() => controller.createSummary(dto as any)).toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException when globalProgress is out of range', () => {
@@ -139,7 +154,9 @@ describe('DashboardController', () => {
         categories: [],
       };
 
-      expect(() => controller.createSummary(dto as any)).toThrow(BadRequestException);
+      expect(() => controller.createSummary(dto as any)).toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -201,9 +218,9 @@ describe('DashboardController', () => {
         total: 0,
       };
 
-      await expect(
-        controller.createOrder(dto as any),
-      ).rejects.toThrow(BadRequestException);
+      await expect(controller.createOrder(dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -221,4 +238,3 @@ describe('DashboardController', () => {
     });
   });
 });
-
