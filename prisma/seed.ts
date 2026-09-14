@@ -297,6 +297,7 @@ function sha256(value: string) {
 
 async function resetDatabase() {
   await prisma.attendance.deleteMany();
+  await prisma.siteMembership.deleteMany();
   await prisma.teamMember.deleteMany();
   await prisma.team.deleteMany();
   await prisma.genericTableRow.deleteMany();
@@ -565,6 +566,21 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
     userId: user.id,
     role: teamMemberRoles[memberIndex],
   }));
+
+  const membershipUsers = [users.get('admin'), ...teamMemberUsers].filter(
+    (user, userIndex, allUsers): user is { id: string; email: string; role: UserRole } =>
+      Boolean(user) && allUsers.findIndex((candidate) => candidate?.id === user.id) === userIndex,
+  );
+
+  for (const user of membershipUsers) {
+    await prisma.siteMembership.create({
+      data: {
+        userId: user.id,
+        siteId: site.id,
+        role: user.role,
+      },
+    });
+  }
 
   for (const member of teamMembers) {
     await prisma.teamMember.create({
