@@ -15,6 +15,7 @@ import { UserService } from '../users/user.service';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { randomBytes, createHash } from 'crypto';
 import { UserRole } from '../../shared/types/roles.enum';
+import { CreateOrganizationOnboardingDto } from './dto/create-organization-onboarding.dto';
 
 @Injectable()
 export class AuthService {
@@ -67,6 +68,57 @@ export class AuthService {
       organizationId: newUser.organizationId,
       role: newUser.role,
     });
+  }
+
+  async createOrganizationOnboarding(dto: CreateOrganizationOnboardingDto) {
+    this.logger.log(`[ONBOARDING] Attempt for email: ${dto.email}`);
+
+    const existingUser = await this.userService.findByEmail(dto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const password = await hash(dto.password, 10);
+    const { organization, user } = await this.prisma.$transaction(
+      async (tx) => {
+        const organization = await tx.organization.create({
+          data: {
+            name: dto.organizationName,
+            plan: dto.plan,
+          },
+        });
+
+        const user = await tx.user.create({
+          data: {
+            email: dto.email,
+            password,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            role: UserRole.ADMIN,
+            organizationId: organization.id,
+          },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            organizationId: true,
+            createdAt: true,
+          },
+        });
+
+        return { organization, user };
+      },
+    );
+
+    const tokens = await this.authenticateUser({
+      userId: user.id,
+      organizationId: user.organizationId,
+      role: user.role,
+    });
+
+    return { ...tokens, organization, user };
   }
 
   async refreshTokens(token: string) {

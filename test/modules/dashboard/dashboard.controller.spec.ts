@@ -131,7 +131,7 @@ describe('DashboardController', () => {
         categories: [{ id: 1.5, name: 'Voiles', progress: 50, spent: 1000 }],
       };
 
-      expect(() => controller.createSummary(dto as any, mockRequest)).toThrow(BadRequestException);
+      expect(() => controller.createSummary(dto as any)).toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when globalProgress is out of range', () => {
@@ -141,7 +141,7 @@ describe('DashboardController', () => {
         categories: [],
       };
 
-      expect(() => controller.createSummary(dto as any, mockRequest)).toThrow(BadRequestException);
+      expect(() => controller.createSummary(dto as any)).toThrow(BadRequestException);
     });
   });
 

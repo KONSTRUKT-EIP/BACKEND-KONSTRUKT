@@ -31,6 +31,7 @@ describe('AuthService', () => {
   let userService: jest.Mocked<Partial<UserService>>;
   let jwtService: jest.Mocked<Partial<JwtService>>;
   let prisma: {
+    organization: { create: jest.Mock };
     refreshToken: {
       create: jest.Mock;
       findUnique: jest.Mock;
@@ -38,6 +39,7 @@ describe('AuthService', () => {
       deleteMany: jest.Mock;
     };
     user: { findUnique: jest.Mock; update: jest.Mock };
+    $transaction: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -50,6 +52,9 @@ describe('AuthService', () => {
       signAsync: jest.fn().mockResolvedValue('signed-jwt-token'),
     };
     prisma = {
+      organization: {
+        create: jest.fn(),
+      },
       refreshToken: {
         create: jest.fn().mockResolvedValue(mockRefreshToken),
         findUnique: jest.fn(),
@@ -60,6 +65,7 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      $transaction: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -109,7 +115,10 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.login({ email: 'test@example.com', password: 'WrongPassword1!' }),
+        service.login({
+          email: 'test@example.com',
+          password: 'WrongPassword1!',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
@@ -154,6 +163,72 @@ describe('AuthService', () => {
     });
   });
 
+  describe('createOrganizationOnboarding()', () => {
+    it('should create an organization and its first administrator in a transaction', async () => {
+      const organization = {
+        id: 'organization-uuid-1',
+        name: 'Konstrukt BTP',
+        plan: 'FREE',
+        isActive: true,
+        createdAt: new Date(),
+      };
+      const user = {
+        ...mockUser,
+        id: 'owner-uuid-1',
+        email: 'owner@example.com',
+        role: UserRole.ADMIN,
+        organizationId: organization.id,
+      };
+      (userService.findByEmail as jest.Mock).mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback({
+          organization: {
+            create: jest.fn().mockResolvedValue(organization),
+          },
+          user: {
+            create: jest.fn().mockResolvedValue(user),
+          },
+        }),
+      );
+
+      const result = await service.createOrganizationOnboarding({
+        organizationName: organization.name,
+        plan: organization.plan,
+        email: user.email,
+        password: 'Password1!',
+        firstName: user.firstName,
+        lastName: user.lastName,
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(result).toMatchObject({ organization, user });
+      expect(result).toHaveProperty('access_token', 'signed-jwt-token');
+      expect(result).toHaveProperty('refresh_token');
+      expect(jwtService.signAsync).toHaveBeenCalledWith({
+        userId: user.id,
+        organizationId: organization.id,
+        role: UserRole.ADMIN,
+      });
+    });
+
+    it('should reject an email that is already in use', async () => {
+      (userService.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+
+      await expect(
+        service.createOrganizationOnboarding({
+          organizationName: 'Konstrukt BTP',
+          plan: 'FREE',
+          email: mockUser.email,
+          password: 'Password1!',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
   // ─── REFRESH TOKENS ───────────────────────────────────────────────────────
   describe('refreshTokens()', () => {
     it('should return new tokens on valid refresh token', async () => {
@@ -173,9 +248,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for unknown token', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.refreshTokens('bad-token'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshTokens('bad-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for expired token', async () => {
@@ -185,9 +260,9 @@ describe('AuthService', () => {
       });
       prisma.refreshToken.delete.mockResolvedValue(mockRefreshToken);
 
-      await expect(
-        service.refreshTokens('expired-token'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshTokens('expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

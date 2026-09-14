@@ -66,12 +66,14 @@ describe('Planning (e2e)', () => {
     task: {
       findMany: jest.Mock<any, any>;
       findUnique: jest.Mock<any, any>;
+      findFirst: jest.Mock<any, any>;
       create: jest.Mock<any, any>;
       update: jest.Mock<any, any>;
       delete: jest.Mock<any, any>;
     };
     siteZone: {
       findUnique: jest.Mock<any, any>;
+      findFirst: jest.Mock<any, any>;
     };
     user: {
       findUnique: jest.Mock<any, any>;
@@ -80,6 +82,7 @@ describe('Planning (e2e)', () => {
     taskAlert: {
       findMany: jest.Mock<any, any>;
       findUnique: jest.Mock<any, any>;
+      findFirst: jest.Mock<any, any>;
       create: jest.Mock<any, any>;
       update: jest.Mock<any, any>;
     };
