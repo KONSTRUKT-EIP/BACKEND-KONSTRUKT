@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -44,29 +43,6 @@ export class AuthService {
       userId: existingUser.id,
       organizationId: existingUser.organizationId,
       role: existingUser.role,
-    });
-  }
-
-  async register(dto: RegisterDto) {
-    this.logger.log(`[REGISTER] Attempt for email: ${dto.email}`);
-    const existingUser = await this.userService.findByEmail(dto.email);
-
-    if (existingUser) {
-      throw new ConflictException('Email already in use');
-    }
-
-    const newUser = await this.userService.createUser({
-      email: dto.email,
-      password: dto.password,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      role: UserRole.COLLABORATEUR,
-    });
-
-    return this.authenticateUser({
-      userId: newUser.id,
-      organizationId: newUser.organizationId,
-      role: newUser.role,
     });
   }
 

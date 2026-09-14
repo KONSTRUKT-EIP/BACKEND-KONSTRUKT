@@ -20,7 +20,6 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import type { requestWithUser } from './jwt.strategy';
 import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
@@ -51,27 +50,6 @@ export class AuthController {
   @ApiResponse({ status: 429, description: 'Too many requests.' })
   async login(@Body() dto: LoginDto) {
     return await this.authService.login(dto);
-  }
-
-  @Post('register')
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @ApiOperation({ summary: 'Register a new user' })
-  @ApiBody({ type: RegisterDto })
-  @ApiResponse({
-    status: 201,
-    description: 'User registered, returns JWT access token and refresh token.',
-    schema: {
-      example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'a3f1b2c3d4e5f6...',
-      },
-    },
-  })
-  @ApiResponse({ status: 409, description: 'Email already in use.' })
-  @ApiResponse({ status: 400, description: 'Validation error.' })
-  @ApiResponse({ status: 429, description: 'Too many requests.' })
-  async register(@Body() dto: RegisterDto) {
-    return await this.authService.register(dto);
   }
 
   @Post('refresh')
