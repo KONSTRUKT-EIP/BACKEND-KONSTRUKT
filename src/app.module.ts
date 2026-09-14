@@ -15,6 +15,7 @@ import { PlanningModule } from './modules/planning/planning.module';
 import { DeliveriesModule } from './modules/deliveries/deliveries.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { ResourceUsagesModule } from './modules/resource-usages/resource-usages.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 
 @Controller()
 export class AppController {
@@ -45,6 +46,7 @@ export class AppController {
     DeliveriesModule,
     ResourcesModule,
     ResourceUsagesModule,
+    InvitationsModule,
   ],
   controllers: [AppController],
   providers: [

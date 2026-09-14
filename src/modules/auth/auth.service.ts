@@ -159,7 +159,7 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
-  private async authenticateUser({
+  async authenticateUser({
     userId,
     organizationId,
     role,

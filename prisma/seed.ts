@@ -182,10 +182,26 @@ const siteSeeds: SeedSite[] = [
 ];
 
 const zoneTemplates = [
-  { name: 'Sous-sol', level: 'SS', description: 'Travaux de gros oeuvre et reseaux techniques' },
-  { name: 'RDC', level: 'RDC', description: 'Zone principale de circulation et reception' },
-  { name: 'Etage 1', level: 'R+1', description: 'Plateau bureaux et logements principaux' },
-  { name: 'Etage 2', level: 'R+2', description: 'Lots secondaires et finitions' },
+  {
+    name: 'Sous-sol',
+    level: 'SS',
+    description: 'Travaux de gros oeuvre et reseaux techniques',
+  },
+  {
+    name: 'RDC',
+    level: 'RDC',
+    description: 'Zone principale de circulation et reception',
+  },
+  {
+    name: 'Etage 1',
+    level: 'R+1',
+    description: 'Plateau bureaux et logements principaux',
+  },
+  {
+    name: 'Etage 2',
+    level: 'R+2',
+    description: 'Lots secondaires et finitions',
+  },
 ];
 
 const resourceTemplates = [
@@ -224,13 +240,48 @@ const resourceTemplates = [
 ];
 
 const documentTemplates = [
-  { type: DocumentType.PLAN, label: 'Plan execution', mimeType: 'application/pdf', fileSize: 2100450 },
-  { type: DocumentType.CCTP, label: 'CCTP detaille', mimeType: 'application/pdf', fileSize: 1877004 },
-  { type: DocumentType.CONTRAT, label: 'Contrat entreprise', mimeType: 'application/pdf', fileSize: 1540022 },
-  { type: DocumentType.FACTURE, label: 'Facture lot principal', mimeType: 'application/pdf', fileSize: 980450 },
-  { type: DocumentType.RAPPORT, label: 'Rapport mensuel', mimeType: 'application/pdf', fileSize: 1356000 },
-  { type: DocumentType.SECURITE, label: 'Registre securite', mimeType: 'application/pdf', fileSize: 770230 },
-  { type: DocumentType.AUTRE, label: 'Note de service', mimeType: 'application/pdf', fileSize: 540120 },
+  {
+    type: DocumentType.PLAN,
+    label: 'Plan execution',
+    mimeType: 'application/pdf',
+    fileSize: 2100450,
+  },
+  {
+    type: DocumentType.CCTP,
+    label: 'CCTP detaille',
+    mimeType: 'application/pdf',
+    fileSize: 1877004,
+  },
+  {
+    type: DocumentType.CONTRAT,
+    label: 'Contrat entreprise',
+    mimeType: 'application/pdf',
+    fileSize: 1540022,
+  },
+  {
+    type: DocumentType.FACTURE,
+    label: 'Facture lot principal',
+    mimeType: 'application/pdf',
+    fileSize: 980450,
+  },
+  {
+    type: DocumentType.RAPPORT,
+    label: 'Rapport mensuel',
+    mimeType: 'application/pdf',
+    fileSize: 1356000,
+  },
+  {
+    type: DocumentType.SECURITE,
+    label: 'Registre securite',
+    mimeType: 'application/pdf',
+    fileSize: 770230,
+  },
+  {
+    type: DocumentType.AUTRE,
+    label: 'Note de service',
+    mimeType: 'application/pdf',
+    fileSize: 540120,
+  },
 ];
 
 const reportTemplates = [
@@ -258,13 +309,41 @@ const taskStatuses = [
   TaskStatus.ANNULEE,
 ];
 
-const alertTypes = [AlertType.RETARD, AlertType.SECURITE, AlertType.QUALITE, AlertType.BUDGET, AlertType.AUTRE];
-const alertSeverities = [AlertSeverity.LOW, AlertSeverity.MEDIUM, AlertSeverity.HIGH, AlertSeverity.CRITICAL];
-const attendanceStatuses = [AttendanceStatus.PRESENT, AttendanceStatus.ABSENT, AttendanceStatus.RETARD, AttendanceStatus.CONGE];
+const alertTypes = [
+  AlertType.RETARD,
+  AlertType.SECURITE,
+  AlertType.QUALITE,
+  AlertType.BUDGET,
+  AlertType.AUTRE,
+];
+const alertSeverities = [
+  AlertSeverity.LOW,
+  AlertSeverity.MEDIUM,
+  AlertSeverity.HIGH,
+  AlertSeverity.CRITICAL,
+];
+const attendanceStatuses = [
+  AttendanceStatus.PRESENT,
+  AttendanceStatus.ABSENT,
+  AttendanceStatus.RETARD,
+  AttendanceStatus.CONGE,
+];
 
 const teamMemberRoles = ['LEADER', 'WORKER', 'TECHNICIAN', 'SPECIALIST'];
-const workerCategories = ['Main d oeuvre', 'Second oeuvre', 'Sous traitance', 'Logistique'];
-const tradeLabels = ['Gros oeuvre', 'Electricite', 'Plomberie', 'Menuiserie', 'Peinture', 'VRD'];
+const workerCategories = [
+  'Main d oeuvre',
+  'Second oeuvre',
+  'Sous traitance',
+  'Logistique',
+];
+const tradeLabels = [
+  'Gros oeuvre',
+  'Electricite',
+  'Plomberie',
+  'Menuiserie',
+  'Peinture',
+  'VRD',
+];
 
 const dec = (value: string) => new Prisma.Decimal(value);
 
@@ -322,7 +401,16 @@ async function resetDatabase() {
 
 async function seedUsers(organizationId: string) {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
-  const createdUsers = new Map<string, { id: string; email: string; firstName: string; lastName: string; role: UserRole }>();
+  const createdUsers = new Map<
+    string,
+    {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: UserRole;
+    }
+  >();
 
   for (const userSeed of userSeeds) {
     const createdUser = await prisma.user.create({
@@ -342,7 +430,9 @@ async function seedUsers(organizationId: string) {
   return createdUsers;
 }
 
-async function seedRefreshTokens(users: Map<string, { id: string; email: string }>) {
+async function seedRefreshTokens(
+  users: Map<string, { id: string; email: string }>,
+) {
   const tokenKeys = ['admin', 'chef-1', 'conducteur-1', 'collab-1', 'client-1'];
 
   for (let index = 0; index < tokenKeys.length; index += 1) {
@@ -361,7 +451,11 @@ async function seedRefreshTokens(users: Map<string, { id: string; email: string 
   }
 }
 
-async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string, { id: string; email: string; role: UserRole }>) {
+async function seedSite(
+  siteSeed: SeedSite,
+  siteIndex: number,
+  users: Map<string, { id: string; email: string; role: UserRole }>,
+) {
   const site = await prisma.site.create({
     data: {
       organizationId: (await prisma.organization.findFirstOrThrow()).id,
@@ -392,7 +486,11 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
   }
 
   const resources: Array<{ id: string; name: string }> = [];
-  for (let resourceIndex = 0; resourceIndex < resourceTemplates.length; resourceIndex += 1) {
+  for (
+    let resourceIndex = 0;
+    resourceIndex < resourceTemplates.length;
+    resourceIndex += 1
+  ) {
     const resourceTemplate = resourceTemplates[resourceIndex];
     const resource = await prisma.resource.create({
       data: {
@@ -409,7 +507,11 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
     resources.push(resource);
   }
 
-  for (let resourceIndex = 0; resourceIndex < resources.length; resourceIndex += 1) {
+  for (
+    let resourceIndex = 0;
+    resourceIndex < resources.length;
+    resourceIndex += 1
+  ) {
     const resource = resources[resourceIndex];
     const deliveryStatus = cycle(
       [
@@ -421,9 +523,13 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
       ],
       siteIndex + resourceIndex,
     );
-    const expectedDate = addDaysUTC(BASE_DATE, siteIndex * 7 + resourceIndex * 2);
+    const expectedDate = addDaysUTC(
+      BASE_DATE,
+      siteIndex * 7 + resourceIndex * 2,
+    );
     const receivedDate =
-      deliveryStatus === DeliveryStatus.LIVREE || deliveryStatus === DeliveryStatus.PARTIELLE
+      deliveryStatus === DeliveryStatus.LIVREE ||
+      deliveryStatus === DeliveryStatus.PARTIELLE
         ? addDaysUTC(expectedDate, 1)
         : null;
 
@@ -440,8 +546,13 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
     });
   }
 
-  for (let documentIndex = 0; documentIndex < documentTemplates.length; documentIndex += 1) {
-    const documentTemplate = documentTemplates[(siteIndex + documentIndex) % documentTemplates.length];
+  for (
+    let documentIndex = 0;
+    documentIndex < documentTemplates.length;
+    documentIndex += 1
+  ) {
+    const documentTemplate =
+      documentTemplates[(siteIndex + documentIndex) % documentTemplates.length];
     const documentDate = addDaysUTC(BASE_DATE, siteIndex * 11 + documentIndex);
 
     await prisma.document.create({
@@ -460,7 +571,8 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
         type: documentTemplate.type,
         name: `${site.name} ${documentTemplate.label}`,
         path: `documents/${slugify(site.name)}/${slugify(documentTemplate.label)}-${documentDate.toISOString().slice(0, 10)}.pdf`,
-        fileSize: documentTemplate.fileSize + siteIndex * 1200 + documentIndex * 320,
+        fileSize:
+          documentTemplate.fileSize + siteIndex * 1200 + documentIndex * 320,
         mimeType: documentTemplate.mimeType,
       },
     });
@@ -468,8 +580,15 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
 
   for (let reportIndex = 0; reportIndex < 2; reportIndex += 1) {
     const reportTemplate = cycle(reportTemplates, siteIndex + reportIndex);
-    const reporter = cycle([users.get('admin'), users.get('chef-1'), users.get('chef-2'), users.get('conducteur-1')], siteIndex + reportIndex)!
-      ;
+    const reporter = cycle(
+      [
+        users.get('admin'),
+        users.get('chef-1'),
+        users.get('chef-2'),
+        users.get('conducteur-1'),
+      ],
+      siteIndex + reportIndex,
+    )!;
 
     await prisma.report.create({
       data: {
@@ -501,7 +620,9 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
       data: {
         tableId: table.id,
         data: {
-          date: addDaysUTC(BASE_DATE, siteIndex * 3 + rowIndex).toISOString().slice(0, 10),
+          date: addDaysUTC(BASE_DATE, siteIndex * 3 + rowIndex)
+            .toISOString()
+            .slice(0, 10),
           planned: 100 + siteIndex * 15 + rowIndex * 10,
           actual: 94 + siteIndex * 13 + rowIndex * 11,
           note: `Point chantier ${rowIndex + 1} pour ${site.city}`,
@@ -510,19 +631,48 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
     });
   }
 
-  const leaderCandidates = [users.get('chef-1'), users.get('conducteur-1'), users.get('chef-2'), users.get('conducteur-2'), users.get('admin')] as Array<
-    { id: string; email: string; role: UserRole } | undefined
-  >;
+  const leaderCandidates = [
+    users.get('chef-1'),
+    users.get('conducteur-1'),
+    users.get('chef-2'),
+    users.get('conducteur-2'),
+    users.get('admin'),
+  ] as Array<{ id: string; email: string; role: UserRole } | undefined>;
   const leader = cycle(leaderCandidates, siteIndex)!;
 
   const teamMemberCandidates = [
     leader,
-    cycle([users.get('collab-1'), users.get('collab-2'), users.get('collab-3'), users.get('conducteur-1')], siteIndex)!,
-    cycle([users.get('collab-2'), users.get('collab-3'), users.get('collab-1'), users.get('conducteur-2')], siteIndex + 1)!,
-    cycle([users.get('collab-3'), users.get('collab-1'), users.get('collab-2'), users.get('chef-1')], siteIndex + 2)!,
+    cycle(
+      [
+        users.get('collab-1'),
+        users.get('collab-2'),
+        users.get('collab-3'),
+        users.get('conducteur-1'),
+      ],
+      siteIndex,
+    )!,
+    cycle(
+      [
+        users.get('collab-2'),
+        users.get('collab-3'),
+        users.get('collab-1'),
+        users.get('conducteur-2'),
+      ],
+      siteIndex + 1,
+    )!,
+    cycle(
+      [
+        users.get('collab-3'),
+        users.get('collab-1'),
+        users.get('collab-2'),
+        users.get('chef-1'),
+      ],
+      siteIndex + 2,
+    )!,
   ];
 
-  const teamMemberUsers: Array<{ id: string; email: string; role: UserRole }> = [];
+  const teamMemberUsers: Array<{ id: string; email: string; role: UserRole }> =
+    [];
   const seenTeamMemberIds = new Set<string>();
 
   for (const candidate of teamMemberCandidates) {
@@ -541,7 +691,9 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
     users.get('collab-1'),
     users.get('collab-2'),
     users.get('collab-3'),
-  ].filter((user): user is { id: string; email: string; role: UserRole } => Boolean(user));
+  ].filter((user): user is { id: string; email: string; role: UserRole } =>
+    Boolean(user),
+  );
 
   for (const candidate of fallbackCandidates) {
     if (teamMemberUsers.length >= 4) {
@@ -562,14 +714,22 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
     },
   });
 
-  const teamMembers: SeedTeamMember[] = teamMemberUsers.map((user, memberIndex) => ({
-    userId: user.id,
-    role: teamMemberRoles[memberIndex],
-  }));
+  const teamMembers: SeedTeamMember[] = teamMemberUsers.map(
+    (user, memberIndex) => ({
+      userId: user.id,
+      role: teamMemberRoles[memberIndex],
+    }),
+  );
 
   const membershipUsers = [users.get('admin'), ...teamMemberUsers].filter(
-    (user, userIndex, allUsers): user is { id: string; email: string; role: UserRole } =>
-      Boolean(user) && allUsers.findIndex((candidate) => candidate?.id === user.id) === userIndex,
+    (
+      user,
+      userIndex,
+      allUsers,
+    ): user is { id: string; email: string; role: UserRole } =>
+      user !== undefined &&
+      allUsers.findIndex((candidate) => candidate?.id === user.id) ===
+        userIndex,
   );
 
   for (const user of membershipUsers) {
@@ -602,7 +762,11 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
       },
     });
 
-    for (let memberIndex = 0; memberIndex < teamMembers.length; memberIndex += 1) {
+    for (
+      let memberIndex = 0;
+      memberIndex < teamMembers.length;
+      memberIndex += 1
+    ) {
       const member = teamMembers[memberIndex];
       const plannedHours = 8 + (memberIndex % 2);
       const actualHours = plannedHours - (memberIndex % 3 === 0 ? 0 : 1);
@@ -611,24 +775,44 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
         data: {
           workforceDayId: workforceDay.id,
           workerId: member.userId,
-          category: workerCategories[(siteIndex + dayIndex + memberIndex) % workerCategories.length],
+          category:
+            workerCategories[
+              (siteIndex + dayIndex + memberIndex) % workerCategories.length
+            ],
           trade: tradeLabels[(siteIndex + memberIndex) % tradeLabels.length],
           plannedHours,
           actualHours,
-          subcontractor: memberIndex % 2 === 0 ? 'Konstrukt Interne' : 'Sous traitance Nord',
+          subcontractor:
+            memberIndex % 2 === 0 ? 'Konstrukt Interne' : 'Sous traitance Nord',
           notes: `Presence terrain ${dayIndex + 1} pour ${site.name}`,
         },
       });
     }
   }
 
-  for (let attendanceDayIndex = 0; attendanceDayIndex < 3; attendanceDayIndex += 1) {
-    const attendanceDate = addDaysUTC(BASE_DATE, siteIndex * 6 + attendanceDayIndex);
+  for (
+    let attendanceDayIndex = 0;
+    attendanceDayIndex < 3;
+    attendanceDayIndex += 1
+  ) {
+    const attendanceDate = addDaysUTC(
+      BASE_DATE,
+      siteIndex * 6 + attendanceDayIndex,
+    );
 
-    for (let memberIndex = 0; memberIndex < teamMembers.length; memberIndex += 1) {
+    for (
+      let memberIndex = 0;
+      memberIndex < teamMembers.length;
+      memberIndex += 1
+    ) {
       const member = teamMembers[memberIndex];
-      const status = cycle(attendanceStatuses, siteIndex + attendanceDayIndex + memberIndex);
-      const isPresent = status === AttendanceStatus.PRESENT || status === AttendanceStatus.RETARD;
+      const status = cycle(
+        attendanceStatuses,
+        siteIndex + attendanceDayIndex + memberIndex,
+      );
+      const isPresent =
+        status === AttendanceStatus.PRESENT ||
+        status === AttendanceStatus.RETARD;
 
       await prisma.attendance.create({
         data: {
@@ -636,9 +820,18 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
           userId: member.userId,
           date: attendanceDate,
           status,
-          checkIn: isPresent ? addHoursUTC(attendanceDate, 1 + memberIndex) : null,
-          checkOut: isPresent ? addHoursUTC(attendanceDate, 9 + memberIndex) : null,
-          minutesLate: status === AttendanceStatus.RETARD ? 12 + memberIndex * 3 : status === AttendanceStatus.PRESENT ? 0 : null,
+          checkIn: isPresent
+            ? addHoursUTC(attendanceDate, 1 + memberIndex)
+            : null,
+          checkOut: isPresent
+            ? addHoursUTC(attendanceDate, 9 + memberIndex)
+            : null,
+          minutesLate:
+            status === AttendanceStatus.RETARD
+              ? 12 + memberIndex * 3
+              : status === AttendanceStatus.PRESENT
+                ? 0
+                : null,
           notes:
             status === AttendanceStatus.ABSENT
               ? 'Absence justifiee'
@@ -659,12 +852,18 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
       const taskNumber = siteIndex * 10 + zoneIndex * 2 + taskIndex;
       const taskType = cycle(taskTypes, taskNumber);
       const taskStatus = cycle(taskStatuses, taskNumber);
-      const plannedEnd = addDaysUTC(BASE_DATE, siteIndex * 8 + zoneIndex * 3 + taskIndex * 2 + 20);
+      const plannedEnd = addDaysUTC(
+        BASE_DATE,
+        siteIndex * 8 + zoneIndex * 3 + taskIndex * 2 + 20,
+      );
       const taskTime = `${2 + ((taskNumber + 1) % 5)}h${taskNumber % 2 === 0 ? '00' : '30'}`;
       const realStart =
         taskStatus === TaskStatus.EN_ATTENTE
           ? null
-          : addDaysUTC(plannedEnd, taskStatus === TaskStatus.TERMINEE ? -10 : -6);
+          : addDaysUTC(
+              plannedEnd,
+              taskStatus === TaskStatus.TERMINEE ? -10 : -6,
+            );
       const realEnd =
         taskStatus === TaskStatus.TERMINEE
           ? addDaysUTC(plannedEnd, -1)
@@ -687,8 +886,10 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
         },
       });
 
-      const primaryAssignee = taskAssignees[(taskNumber + 1) % taskAssignees.length];
-      const secondaryAssignee = taskAssignees[(taskNumber + 3) % taskAssignees.length];
+      const primaryAssignee =
+        taskAssignees[(taskNumber + 1) % taskAssignees.length];
+      const secondaryAssignee =
+        taskAssignees[(taskNumber + 3) % taskAssignees.length];
 
       await prisma.taskAssignment.create({
         data: {
@@ -715,12 +916,27 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
                 ? [10]
                 : [];
 
-      for (let progressIndex = 0; progressIndex < progressSteps.length; progressIndex += 1) {
+      for (
+        let progressIndex = 0;
+        progressIndex < progressSteps.length;
+        progressIndex += 1
+      ) {
         await prisma.taskProgress.create({
           data: {
             taskId: task.id,
-            reportedById: cycle([users.get('chef-1'), users.get('chef-2'), users.get('conducteur-1'), users.get('conducteur-2')], taskNumber + progressIndex)!.id,
-            date: addDaysUTC(BASE_DATE, siteIndex * 7 + zoneIndex * 2 + taskIndex + progressIndex),
+            reportedById: cycle(
+              [
+                users.get('chef-1'),
+                users.get('chef-2'),
+                users.get('conducteur-1'),
+                users.get('conducteur-2'),
+              ],
+              taskNumber + progressIndex,
+            )!.id,
+            date: addDaysUTC(
+              BASE_DATE,
+              siteIndex * 7 + zoneIndex * 2 + taskIndex + progressIndex,
+            ),
             progressPercent: progressSteps[progressIndex],
             notes: `Avancement ${progressSteps[progressIndex]}% sur ${task.name}`,
           },
@@ -746,10 +962,20 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
         data: {
           resourceId: resources[(zoneIndex + taskIndex) % resources.length].id,
           taskId: task.id,
-          date: addDaysUTC(BASE_DATE, siteIndex * 8 + zoneIndex * 2 + taskIndex),
+          date: addDaysUTC(
+            BASE_DATE,
+            siteIndex * 8 + zoneIndex * 2 + taskIndex,
+          ),
           quantity: dec((3 + siteIndex + zoneIndex + taskIndex / 2).toFixed(3)),
           notes: `Consommation liee a ${task.name}`,
-          createdById: cycle([users.get('admin'), users.get('chef-1'), users.get('conducteur-1')], siteIndex + zoneIndex + taskIndex)!.id,
+          createdById: cycle(
+            [
+              users.get('admin'),
+              users.get('chef-1'),
+              users.get('conducteur-1'),
+            ],
+            siteIndex + zoneIndex + taskIndex,
+          )!.id,
         },
       });
     }
@@ -763,7 +989,9 @@ async function seedSite(siteSeed: SeedSite, siteIndex: number, users: Map<string
   };
 }
 
-async function seedSites(users: Map<string, { id: string; email: string; role: UserRole }>) {
+async function seedSites(
+  users: Map<string, { id: string; email: string; role: UserRole }>,
+) {
   const contexts: SiteContext[] = [];
 
   for (let siteIndex = 0; siteIndex < siteSeeds.length; siteIndex += 1) {
