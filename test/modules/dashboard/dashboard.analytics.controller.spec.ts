@@ -7,6 +7,7 @@ import { ArmatureReportsQueryDto } from '../../../src/modules/dashboard/dto/arma
 describe('DashboardController - getArmatureAnalytics', () => {
   let controller: DashboardController;
   let service: DashboardService;
+  const mockRequest = { user: { organizationId: 'org-a' } } as any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -40,7 +41,7 @@ describe('DashboardController - getArmatureAnalytics', () => {
 
   it('should return analytics data with correct structure', async () => {
     const query: ArmatureReportsQueryDto = {};
-    const result = await controller.getArmatureAnalytics(query);
+    const result = await controller.getArmatureAnalytics(query, mockRequest);
     expect(result).toHaveProperty('kpiCards');
     expect(result).toHaveProperty('chartData');
     expect(result).toHaveProperty('filters');
@@ -49,14 +50,14 @@ describe('DashboardController - getArmatureAnalytics', () => {
     expect(result).toHaveProperty('totalSpent');
     expect(result).toHaveProperty('overallPercentage');
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(service.getArmatureAnalytics).toHaveBeenCalledWith(query);
+    expect(service.getArmatureAnalytics).toHaveBeenCalledWith(query, 'org-a');
   });
 
   it('should validate date format', async () => {
     const query: ArmatureReportsQueryDto = {
       startDate: 'invalid-date',
     };
-    await expect(controller.getArmatureAnalytics(query)).rejects.toThrow();
+    await expect(controller.getArmatureAnalytics(query, mockRequest)).rejects.toThrow();
   });
 
   it('should accept valid date format', async () => {
@@ -64,9 +65,9 @@ describe('DashboardController - getArmatureAnalytics', () => {
       startDate: '2024-01-01',
       endDate: '2024-12-31',
     };
-    const result = await controller.getArmatureAnalytics(query);
+    const result = await controller.getArmatureAnalytics(query, mockRequest);
     expect(result).toBeDefined();
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(service.getArmatureAnalytics).toHaveBeenCalledWith(query);
+    expect(service.getArmatureAnalytics).toHaveBeenCalledWith(query, 'org-a');
   });
 });

@@ -39,9 +39,13 @@ describe('GenericTableController (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue({
+        site: {
+          findFirst: jest.fn().mockResolvedValue({ id: mockSiteId, organizationId: 'org-a' }),
+        },
         genericTable: {
           create: jest.fn().mockResolvedValue(mockTable),
           findUnique: jest.fn().mockResolvedValue(mockTable),
+          findFirst: jest.fn().mockResolvedValue(mockTable),
           findMany: jest.fn().mockResolvedValue([mockTable]),
           update: jest.fn().mockResolvedValue(mockTable),
           delete: jest.fn().mockResolvedValue(mockTable),
@@ -49,6 +53,7 @@ describe('GenericTableController (e2e)', () => {
         genericTableRow: {
           create: jest.fn().mockResolvedValue(mockRow),
           findUnique: jest.fn().mockResolvedValue(mockRow),
+          findFirst: jest.fn().mockResolvedValue(mockRow),
           findMany: jest.fn().mockResolvedValue([mockRow]),
           update: jest.fn().mockResolvedValue(mockRow),
           delete: jest.fn().mockResolvedValue(mockRow),
@@ -57,7 +62,12 @@ describe('GenericTableController (e2e)', () => {
         $disconnect: jest.fn(),
       })
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: jest.fn(() => true) })
+      .useValue({
+        canActivate: jest.fn((context: any) => {
+          context.switchToHttp().getRequest().user = { organizationId: 'org-a' };
+          return true;
+        }),
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
@@ -161,7 +171,10 @@ describe('GenericTableController (e2e)', () => {
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.genericTable.findMany).toHaveBeenCalledWith({
-        where: { siteId: mockSiteId },
+        where: {
+          siteId: mockSiteId,
+          site: { organizationId: 'org-a' },
+        },
         include: { rows: true },
       });
     });
@@ -190,8 +203,11 @@ describe('GenericTableController (e2e)', () => {
       expect(responseBody).toHaveProperty('columns');
       expect(responseBody).toHaveProperty('rows');
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prisma.genericTable.findUnique).toHaveBeenCalledWith({
-        where: { id: mockTableId },
+      expect(prisma.genericTable.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: mockTableId,
+          site: { organizationId: 'org-a' },
+        },
         include: { rows: true },
       });
     });
@@ -327,8 +343,11 @@ describe('GenericTableController (e2e)', () => {
       expect(responseBody).toHaveProperty('tableId');
       expect(responseBody).toHaveProperty('data');
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prisma.genericTableRow.findUnique).toHaveBeenCalledWith({
-        where: { id: mockRowId },
+      expect(prisma.genericTableRow.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: mockRowId,
+          table: { site: { organizationId: 'org-a' } },
+        },
       });
     });
   });
