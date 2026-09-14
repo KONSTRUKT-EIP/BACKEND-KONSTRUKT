@@ -5,14 +5,20 @@ describe('TeamService', () => {
   let service: TeamService;
   let teamFindMany: jest.Mock;
   let attendanceFindMany: jest.Mock;
+  let siteFindFirst: jest.Mock;
 
   beforeEach(() => {
     teamFindMany = jest.fn().mockResolvedValue([{ id: 'team-1' }]);
     attendanceFindMany = jest.fn();
+    siteFindFirst = jest.fn().mockResolvedValue({
+      id: 'site-1',
+      organizationId: 'org-a',
+    });
 
     service = new TeamService({
       team: { findMany: teamFindMany },
       attendance: { findMany: attendanceFindMany },
+      site: { findFirst: siteFindFirst },
     } as unknown as PrismaService);
   });
 
@@ -48,7 +54,7 @@ describe('TeamService', () => {
       },
     ]);
 
-    const result = await service.getTeamStats('site-1');
+    const result = await service.getTeamStats('site-1', 'org-a');
 
     expect(result.enCours).toBe(2);
     expect(result.retards).toBe(1);
@@ -58,7 +64,7 @@ describe('TeamService', () => {
   it('returns zero pctEnCours when there are no attendances', async () => {
     attendanceFindMany.mockResolvedValue([]);
 
-    const result = await service.getTeamStats('site-1');
+    const result = await service.getTeamStats('site-1', 'org-a');
 
     expect(result.enCours).toBe(0);
     expect(result.pctEnCours).toBe(0);
