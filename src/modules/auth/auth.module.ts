@@ -6,6 +6,7 @@ import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
 import { UserModule } from '../users/user.module';
 import { PrismaModule } from '../../lib/prisma/prisma.module';
+import { OnboardingController } from './onboarding.controller';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { PrismaModule } from '../../lib/prisma/prisma.module';
     UserModule,
     PrismaModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, OnboardingController],
   providers: [AuthService, JwtStrategy],
+  exports: [AuthService],
 })
 export class AuthModule {}
