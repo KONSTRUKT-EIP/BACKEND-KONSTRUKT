@@ -27,10 +27,6 @@ import {
   DashboardSummaryQuerySchema,
 } from './dto/dashboard-summary.dto';
 import {
-  CreateSummaryDto,
-  CreateSummarySchema,
-} from './dto/create-summary.dto';
-import {
   ArmatureReportsQueryDto,
   ArmatureReportsResponseDto,
   ArmatureReportsQuerySchema,
@@ -54,9 +50,7 @@ export class DashboardController {
   @Get('summary')
   @ApiOperation({
     summary: 'Get dashboard summary (KPIs + category progress)',
-    description:
-      'Returns the summary last set via POST /summary if one exists, ' +
-      'otherwise computes it from database resources and usages.',
+    description: 'Computes the summary from database resources and usages.',
   })
   @ApiQuery({
     name: 'startDate',
@@ -90,28 +84,6 @@ export class DashboardController {
       result.data,
       request.user.organizationId,
     );
-  }
-
-  @Post('summary')
-  @ApiOperation({
-    summary: 'Set dashboard summary values (overrides computed values)',
-    description:
-      'Directly set the globalProgress, globalSpent and per-category progress/spent values. ' +
-      'Once set, GET /summary will return these stored values instead of computing from DB.',
-  })
-  @ApiBody({ type: CreateSummaryDto })
-  @ApiResponse({ status: 201, type: DashboardSummaryResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation failed.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  createSummary(@Body() dto: CreateSummaryDto): DashboardSummaryResponseDto {
-    const result = CreateSummarySchema.safeParse(dto);
-    if (!result.success) {
-      throw new BadRequestException(
-        'Validation failed: ' + JSON.stringify(result.error.issues),
-      );
-    }
-    return this.dashboardService.createSummary(result.data);
   }
 
   @Get('resources')
