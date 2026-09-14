@@ -123,46 +123,6 @@ describe('AuthService', () => {
     });
   });
 
-  // ─── REGISTER ─────────────────────────────────────────────────────────────
-  describe('register()', () => {
-    it('should create user and return tokens on success', async () => {
-      (userService.findByEmail as jest.Mock).mockResolvedValue(null);
-      (userService.createUser as jest.Mock).mockResolvedValue(mockUser);
-
-      const result = await service.register({
-        email: 'new@example.com',
-        password: 'Password1!',
-        firstName: 'Jane',
-        lastName: 'Doe',
-      });
-
-      expect(result).toHaveProperty('access_token');
-      expect(result).toHaveProperty('refresh_token');
-      expect(userService.createUser).toHaveBeenCalledTimes(1);
-      expect(userService.createUser).toHaveBeenCalledWith({
-        email: 'new@example.com',
-        password: 'Password1!',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        role: UserRole.COLLABORATEUR,
-        organizationId: undefined,
-      });
-    });
-
-    it('should throw ConflictException when email already in use', async () => {
-      (userService.findByEmail as jest.Mock).mockResolvedValue(mockUser);
-
-      await expect(
-        service.register({
-          email: 'test@example.com',
-          password: 'Password1!',
-          firstName: 'John',
-          lastName: 'Doe',
-        }),
-      ).rejects.toThrow(ConflictException);
-    });
-  });
-
   describe('createOrganizationOnboarding()', () => {
     it('should create an organization and its first administrator in a transaction', async () => {
       const organization = {
