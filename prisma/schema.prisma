@@ -117,6 +117,7 @@ model User {
 	createdAt      DateTime     @default(now())
 
 	organization    Organization?    @relation(fields: [organizationId], references: [id])
+	siteMemberships SiteMembership[]
 	uploadedDocs    Document[]       @relation("DocumentUploadedBy")
 	reports         Report[]         @relation("ReportGeneratedBy")
 	taskAssignments TaskAssignment[]
@@ -158,6 +159,7 @@ model Site {
 	updatedAt      DateTime   @updatedAt
 
 	organization Organization @relation(fields: [organizationId], references: [id])
+	memberships   SiteMembership[]
 	zones        SiteZone[]
 	resources    Resource[]
 	deliveries   Delivery[]
@@ -181,6 +183,22 @@ model SiteZone {
 	site  Site   @relation(fields: [siteId], references: [id])
 	tasks Task[]
 
+	@@index([siteId])
+}
+
+model SiteMembership {
+	id        String   @id @default(uuid()) @db.Uuid
+	userId    String   @db.Uuid
+	siteId    String   @db.Uuid
+	role      UserRole
+	isActive  Boolean  @default(true)
+	createdAt DateTime @default(now())
+
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+	site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+	@@unique([userId, siteId])
+	@@index([userId])
 	@@index([siteId])
 }
 
