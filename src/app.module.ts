@@ -12,6 +12,7 @@ import { OrganizationModule } from './modules/organizations/organization.module'
 import { TeamModule } from './modules/teams/team.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { PlanningModule } from './modules/planning/planning.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 
 @Controller()
 export class AppController {
@@ -39,6 +40,7 @@ export class AppController {
     TeamModule,
     AttendanceModule,
     PlanningModule,
+    InvitationsModule,
   ],
   controllers: [AppController],
   providers: [
