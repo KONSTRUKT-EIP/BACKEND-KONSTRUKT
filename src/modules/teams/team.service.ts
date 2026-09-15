@@ -7,7 +7,8 @@ import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto, TeamMemberRole } from './dto/add-member.dto';
-import { AttendanceStatus } from '@prisma/client';
+import { AttendanceStatus, UserRole } from '@prisma/client';
+import type { userPayload } from '../auth/jwt.strategy';
 
 interface TeamMemberDetail {
   id: string;
@@ -38,12 +39,25 @@ export class TeamService {
     if (!site) throw new NotFoundException(`Chantier ${siteId} introuvable`);
   }
 
-  async findAll(siteId?: string, organizationId?: string | null) {
+  async findAll(
+    siteId?: string,
+    organizationId?: string | null,
+    user?: userPayload,
+  ) {
     if (!organizationId) return [];
+    const accessibleSite =
+      !user || user.role === UserRole.ADMIN
+        ? { organizationId }
+        : {
+            organizationId,
+            memberships: {
+              some: { userId: user?.userId, isActive: true },
+            },
+          };
     return this.prisma.team.findMany({
       where: siteId
         ? { siteId, site: { organizationId } }
-        : { site: { organizationId } },
+        : { site: accessibleSite },
       orderBy: { createdAt: 'desc' },
       include: {
         site: { select: { id: true, name: true } },

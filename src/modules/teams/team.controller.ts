@@ -27,6 +27,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
 import type { requestWithUser } from '../auth/jwt.strategy';
+import { RequireSiteAccess } from '../../shared/authorization/site-access.decorator';
+import { SiteAccessGuard } from '../../shared/authorization/site-access.guard';
 
 @ApiTags('Teams')
 @ApiBearerAuth()
@@ -38,6 +40,8 @@ export class TeamController {
   // ─── Équipes ────────────────────────────────────────────────────────────────
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
+  @RequireSiteAccess('query', 'siteId', true)
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Lister les équipes (filtrable par chantier)' })
   @ApiQuery({
@@ -50,7 +54,11 @@ export class TeamController {
     @Query('siteId') siteId: string | undefined,
     @Request() request: requestWithUser,
   ) {
-    return this.service.findAll(siteId, request.user.organizationId);
+    return this.service.findAll(
+      siteId,
+      request.user.organizationId,
+      request.user,
+    );
   }
 
   @Get(':id')
@@ -146,6 +154,8 @@ export class TeamController {
   }
 
   @Get('site/:siteId/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
+  @RequireSiteAccess()
   @Roles(
     UserRole.ADMIN,
     UserRole.CHEF_PROJET,
@@ -176,6 +186,8 @@ export class TeamController {
   }
 
   @Get('site/:siteId/members-details')
+  @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
+  @RequireSiteAccess()
   @Roles(
     UserRole.ADMIN,
     UserRole.CHEF_PROJET,
@@ -211,6 +223,8 @@ export class TeamController {
   }
 
   @Get('site/:siteId/attendance-week')
+  @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
+  @RequireSiteAccess()
   @Roles(
     UserRole.ADMIN,
     UserRole.CHEF_PROJET,
