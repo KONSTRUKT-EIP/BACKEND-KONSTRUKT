@@ -6,6 +6,7 @@ import { AppModule } from '../../../src/app.module';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { RolesGuard } from '../../../src/modules/auth/roles.guard';
 import { JwtAuthGuard } from '../../../src/modules/auth/jwt-auth.guard';
+import { UserRole } from '@prisma/client';
 
 describe('GenericTableController (e2e)', () => {
   let app: INestApplication<App>;
@@ -64,7 +65,11 @@ describe('GenericTableController (e2e)', () => {
       .overrideGuard(JwtAuthGuard)
       .useValue({
         canActivate: jest.fn((context: any) => {
-          context.switchToHttp().getRequest().user = { organizationId: 'org-a' };
+          context.switchToHttp().getRequest().user = {
+            userId: 'admin-1',
+            organizationId: 'org-a',
+            role: UserRole.ADMIN,
+          };
           return true;
         }),
       })

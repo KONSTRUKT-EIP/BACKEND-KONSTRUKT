@@ -5,6 +5,8 @@ import { UpdateGenericTableDto } from './dto/update-generic-table.dto';
 import { CreateGenericTableRowDto } from './dto/create-generic-table-row.dto';
 import { UpdateGenericTableRowDto } from './dto/update-generic-table-row.dto';
 import { Prisma } from '@prisma/client';
+import { UserRole } from '@prisma/client';
+import type { userPayload } from '../auth/jwt.strategy';
 
 @Injectable()
 export class GenericTableService {
@@ -80,13 +82,26 @@ export class GenericTableService {
     }
   }
 
-  async listTables(siteId?: string, organizationId?: string | null) {
+  async listTables(
+    siteId?: string,
+    organizationId?: string | null,
+    user?: userPayload,
+  ) {
     if (!organizationId) return [];
     if (siteId) await this.assertSiteAccess(siteId, organizationId);
+    const accessibleSite =
+      !user || user.role === UserRole.ADMIN
+        ? { organizationId }
+        : {
+            organizationId,
+            memberships: {
+              some: { userId: user?.userId, isActive: true },
+            },
+          };
     return await this.prisma.genericTable.findMany({
       where: siteId
         ? { siteId, site: { organizationId } }
-        : { site: { organizationId } },
+        : { site: accessibleSite },
       include: { rows: true },
     });
   }
