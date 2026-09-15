@@ -5,9 +5,10 @@ import { InvitationMailerService } from './invitation-mailer.service';
 import { InvitationService } from './invitation.service';
 import { InvitationController } from './invitation.controller';
 import { SiteInvitationController } from './site-invitation.controller';
+import { SiteAccessModule } from '../../shared/authorization/site-access.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, SiteAccessModule],
   controllers: [InvitationController, SiteInvitationController],
   providers: [InvitationService, InvitationMailerService],
 })

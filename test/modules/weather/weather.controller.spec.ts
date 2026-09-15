@@ -3,6 +3,7 @@ import { WeatherController } from '../../../src/modules/weather/weather.controll
 import { WeatherService } from '../../../src/modules/weather/weather.service';
 import { SiteService } from '../../../src/modules/sites/site.service';
 import { HttpException } from '@nestjs/common';
+import { SiteAccessService } from '../../../src/shared/authorization/site-access.service';
 
 describe('WeatherController', () => {
   let controller: WeatherController;
@@ -60,6 +61,10 @@ describe('WeatherController', () => {
         {
           provide: SiteService,
           useValue: mockSiteService,
+        },
+        {
+          provide: SiteAccessService,
+          useValue: { assertAccess: jest.fn() },
         },
       ],
     }).compile();

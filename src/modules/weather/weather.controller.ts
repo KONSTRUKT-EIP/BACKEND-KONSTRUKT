@@ -21,6 +21,8 @@ import { SiteService } from '../sites/site.service';
 import { Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { requestWithUser } from '../auth/jwt.strategy';
+import { RequireSiteAccess } from '../../shared/authorization/site-access.decorator';
+import { SiteAccessGuard } from '../../shared/authorization/site-access.guard';
 
 @ApiTags('Weather')
 @Controller('weather')
@@ -30,7 +32,8 @@ export class WeatherController {
     @Inject(SiteService) private readonly siteService: SiteService,
   ) {}
   @Get('by-site/:siteId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SiteAccessGuard)
+  @RequireSiteAccess()
   @ApiOperation({
     summary: "Obtenir la météo d'un chantier par son ID",
     description: 'Retourne la météo pour le chantier (ville du site)',
