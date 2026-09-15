@@ -24,6 +24,21 @@ type RequestWithBody = requestWithUser & {
   body: Record<string, string | undefined>;
 };
 
+function getSiteId(
+  request: RequestWithBody,
+  source: SiteAccessSource,
+  name: string,
+): string | undefined {
+  switch (source) {
+    case 'param':
+      return request.params[name];
+    case 'query':
+      return request.query[name];
+    case 'body':
+      return request.body[name];
+  }
+}
+
 @Injectable()
 export class SiteAccessGuard implements CanActivate {
   constructor(
@@ -42,8 +57,7 @@ export class SiteAccessGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<RequestWithBody>();
-    const source = request[metadata.source];
-    const siteId = source?.[metadata.name];
+    const siteId = getSiteId(request, metadata.source, metadata.name);
 
     if (!siteId) {
       if (metadata.optional) return true;
