@@ -32,6 +32,8 @@ describe('AuthService', () => {
   let jwtService: jest.Mocked<Partial<JwtService>>;
   let prisma: {
     organization: { create: jest.Mock };
+    site: { findMany: jest.Mock };
+    siteMembership: { findMany: jest.Mock };
     refreshToken: {
       create: jest.Mock;
       findUnique: jest.Mock;
@@ -54,6 +56,12 @@ describe('AuthService', () => {
     prisma = {
       organization: {
         create: jest.fn(),
+      },
+      site: {
+        findMany: jest.fn(),
+      },
+      siteMembership: {
+        findMany: jest.fn(),
       },
       refreshToken: {
         create: jest.fn().mockResolvedValue(mockRefreshToken),
@@ -78,6 +86,50 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+  });
+
+  describe('getAccessibleSites()', () => {
+    it('returns all organization sites for an admin', async () => {
+      const sites = [{ id: 'site-1', name: 'Site A' }];
+      prisma.site.findMany.mockResolvedValue(sites);
+
+      await expect(
+        service.getAccessibleSites({
+          userId: 'admin-1',
+          organizationId: 'org-1',
+          role: UserRole.ADMIN,
+        }),
+      ).resolves.toEqual([
+        { id: 'site-1', name: 'Site A', membershipRole: UserRole.ADMIN },
+      ]);
+
+      expect(prisma.siteMembership.findMany).not.toHaveBeenCalled();
+    });
+
+    it('returns only active memberships for a non-admin user', async () => {
+      const site = { id: 'site-1', name: 'Site A' };
+      prisma.siteMembership.findMany.mockResolvedValue([
+        { role: UserRole.COLLABORATEUR, site },
+      ]);
+
+      await expect(
+        service.getAccessibleSites({
+          userId: 'user-1',
+          organizationId: 'org-1',
+          role: UserRole.COLLABORATEUR,
+        }),
+      ).resolves.toEqual([{ ...site, membershipRole: UserRole.COLLABORATEUR }]);
+
+      expect(prisma.siteMembership.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          isActive: true,
+          site: { organizationId: 'org-1' },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { role: true, site: true },
+      });
+    });
   });
 
   // ─── LOGIN ────────────────────────────────────────────────────────────────

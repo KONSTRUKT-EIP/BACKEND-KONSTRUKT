@@ -159,6 +159,40 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
+  async getAccessibleSites(user: userPayload) {
+    if (!user.organizationId) return [];
+
+    if (user.role === UserRole.ADMIN) {
+      const sites = await this.prisma.site.findMany({
+        where: { organizationId: user.organizationId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return sites.map((site) => ({
+        ...site,
+        membershipRole: UserRole.ADMIN,
+      }));
+    }
+
+    const memberships = await this.prisma.siteMembership.findMany({
+      where: {
+        userId: user.userId,
+        isActive: true,
+        site: { organizationId: user.organizationId },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        role: true,
+        site: true,
+      },
+    });
+
+    return memberships.map(({ site, role }) => ({
+      ...site,
+      membershipRole: role,
+    }));
+  }
+
   async authenticateUser({
     userId,
     organizationId,

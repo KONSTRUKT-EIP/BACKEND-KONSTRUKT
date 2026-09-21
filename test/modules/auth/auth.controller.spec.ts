@@ -6,6 +6,7 @@ import { AuthService } from '../../../src/modules/auth/auth.service';
 import { UserService } from '../../../src/modules/users/user.service';
 import { JwtAuthGuard } from '../../../src/modules/auth/jwt-auth.guard';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import type { requestWithUser } from '../../../src/modules/auth/jwt.strategy';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -27,6 +28,7 @@ describe('AuthController', () => {
 
   const mockAuthService = {
     login: jest.fn(),
+    getAccessibleSites: jest.fn(),
     refreshTokens: jest.fn(),
     logout: jest.fn(),
     changePassword: jest.fn(),
@@ -40,6 +42,7 @@ describe('AuthController', () => {
     jest.clearAllMocks();
 
     mockAuthService.login.mockResolvedValue(mockTokens);
+    mockAuthService.getAccessibleSites.mockResolvedValue([]);
     mockAuthService.refreshTokens.mockResolvedValue(mockTokens);
     mockAuthService.logout.mockResolvedValue({ message: 'Logged out successfully' });
     mockAuthService.changePassword.mockResolvedValue({ message: 'Password changed successfully' });
@@ -171,6 +174,25 @@ describe('AuthController', () => {
       const result = await controller.authenticateUser(req);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getAccessibleSites()', () => {
+    it('should return sites accessible to the authenticated user', async () => {
+      const sites = [{ id: 'site-1', membershipRole: UserRole.COLLABORATEUR }];
+      mockAuthService.getAccessibleSites.mockResolvedValue(sites);
+      const req: requestWithUser = {
+        user: {
+          userId: 'user-uuid-1',
+          organizationId: 'organization-uuid-1',
+          role: UserRole.COLLABORATEUR,
+        },
+      };
+
+      const result = await controller.getAccessibleSites(req);
+
+      expect(mockAuthService.getAccessibleSites).toHaveBeenCalledWith(req.user);
+      expect(result).toEqual(sites);
     });
   });
 });

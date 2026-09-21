@@ -114,4 +114,14 @@ export class AuthController {
   async authenticateUser(@Request() request: requestWithUser) {
     return await this.userService.findOne(request.user.userId);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('me/sites')
+  @ApiOperation({ summary: 'List sites accessible to the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Accessible sites.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async getAccessibleSites(@Request() request: requestWithUser) {
+    return await this.authService.getAccessibleSites(request.user);
+  }
 }
