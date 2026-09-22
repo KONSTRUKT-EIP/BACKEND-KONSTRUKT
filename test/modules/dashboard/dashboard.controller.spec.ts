@@ -1,0 +1,159 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
+import { DashboardController } from '../../../src/modules/dashboard/dashboard.controller';
+import { DashboardService } from '../../../src/modules/dashboard/dashboard.service';
+import { RolesGuard } from '../../../src/modules/auth/roles.guard';
+import { JwtAuthGuard } from '../../../src/modules/auth/jwt-auth.guard';
+import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/dashboard-summary.dto';
+
+const mockSummaryResponse = {
+  globalProgress: 50,
+  globalSpent: 1000,
+  categories: [
+    { id: 1, name: 'Voiles', progress: 60, spent: 600 },
+    { id: 2, name: 'Planchers', progress: 40, spent: 400 },
+    { id: 3, name: 'Poutres', progress: 0, spent: 0 },
+    { id: 4, name: 'Superstructure', progress: 0, spent: 0 },
+  ],
+};
+
+const mockOrdersResponse = {
+  orders: [
+    {
+      id: 'order_1',
+      productName: 'Armature 12mm',
+      productIcon: 'https://cdn.konstrukt.com/icons/armature12.png',
+      price: 120,
+      totalOrder: 3,
+      total: 360,
+    },
+  ],
+};
+
+const mockRequest = { user: { organizationId: 'org-a' } } as any;
+
+describe('DashboardController', () => {
+  let controller: DashboardController;
+  let service: jest.Mocked<DashboardService>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [DashboardController],
+      providers: [
+        {
+          provide: DashboardService,
+          useValue: {
+            getSummary: jest.fn().mockResolvedValue(mockSummaryResponse),
+            getRecentOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
+            getAllOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
+            createOrder: jest.fn().mockResolvedValue(mockOrdersResponse),
+            getResources: jest.fn().mockResolvedValue([
+              { id: 'res-1', name: 'Armature 12mm', type: 'STEEL', unit: 'kg', unitPrice: 120, supplier: 'Acier SA', siteId: 'site-1' },
+            ]),
+            getArmatureAnalytics: jest.fn().mockResolvedValue({
+              kpiCards: [],
+              chartData: [],
+              filters: [],
+              donutChart: { data: [] },
+              totalBudget: 0,
+              totalSpent: 0,
+              overallPercentage: 0,
+            }),
+            getReports: jest.fn().mockResolvedValue({}),
+          },
+        },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+
+    controller = module.get<DashboardController>(DashboardController);
+    service = module.get(DashboardService);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  // ─── getAllOrders ─────────────────────────────────────────────────────────
+  describe('getAllOrders()', () => {
+    it('should return all orders from the service', async () => {
+      const result = await controller.getAllOrders(mockRequest);
+
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0]).toHaveProperty('id');
+      expect(result.orders[0]).toHaveProperty('productName');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getAllOrders).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ─── getRecentOrders ──────────────────────────────────────────────────────
+  describe('getRecentOrders()', () => {
+    it('should return paginated orders', async () => {
+      const query = { page: 1, pageSize: 10 };
+      const result = await controller.getRecentOrders(query, mockRequest);
+
+      expect(result.orders).toBeInstanceOf(Array);
+      expect(result.orders[0]).toHaveProperty('id');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getRecentOrders).toHaveBeenCalledWith(query, 'org-a');
+    });
+
+    it('should throw BadRequestException for invalid page query', async () => {
+      await expect(
+        controller.getRecentOrders({ page: -1 } as any, mockRequest),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ─── createOrder ──────────────────────────────────────────────────────────
+  describe('createOrder()', () => {
+    it('should create and return an order when input is valid', async () => {
+      const dto = {
+        productName: 'Armature 12mm',
+        productIcon: '',
+        price: 120,
+        totalOrder: 5,
+        total: 600,
+      };
+
+      const result = await controller.createOrder(dto as any, mockRequest);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.createOrder).toHaveBeenCalledWith(dto, 'org-a');
+      expect(result.orders[0].productName).toBe('Armature 12mm');
+    });
+
+    it('should throw BadRequestException when totalOrder is zero', async () => {
+      const dto = {
+        productName: 'Armature 12mm',
+        price: 120,
+        totalOrder: 0, // min is 1
+        total: 0,
+      };
+
+      await expect(
+        controller.createOrder(dto as any, mockRequest),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ─── getResources ─────────────────────────────────────────────────────────
+  describe('getResources()', () => {
+    it('should return list of resources from the service', async () => {
+      const result = await controller.getResources(mockRequest);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result[0]).toHaveProperty('id');
+      expect(result[0]).toHaveProperty('name');
+      expect(result[0]).toHaveProperty('unitPrice');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getResources).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+

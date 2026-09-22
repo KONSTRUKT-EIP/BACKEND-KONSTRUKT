@@ -11,6 +11,32 @@
 npm install
 ```
 
+## Base de données (Supabase + Prisma) 🗄️
+
+1. Créer un fichier `.env` à partir de l'exemple :
+```bash
+cp .env.example .env
+```
+
+2. Renseigner `DATABASE_URL` avec la chaîne de connexion PostgreSQL Supabase.
+
+3. Générer le client Prisma :
+```bash
+npm run db:generate
+```
+
+4. Synchroniser le schéma avec Supabase :
+```bash
+npm run db:push
+```
+
+5. Remplir la base avec les données démo :
+```bash
+npm run db:seed
+```
+
+Le backend n'utilise plus de migrations Prisma dans ce workflow. Le schéma est synchronisé directement avec Supabase via `db push`, puis la base est peuplée avec le seed demo.
+
 ## Lancer le serveur en développement 🚀
 ```bash
 npm run start:dev

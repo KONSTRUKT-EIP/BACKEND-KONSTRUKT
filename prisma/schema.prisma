@@ -1,0 +1,455 @@
+generator client {
+	provider = "prisma-client-js"
+}
+
+datasource db {
+	provider = "postgresql"
+	url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+	ADMIN              @map("admin")
+	CHEF_PROJET        @map("chef_projet")
+	CONDUCTEUR_TRAVAUX @map("conducteur_travaux")
+	COLLABORATEUR      @map("collaborateur")
+	CLIENT             @map("client")
+}
+
+enum TaskType {
+	GROS_OEUVRE
+	SECOND_OEUVRE
+	VRD
+	ELECTRICITE
+	PLOMBERIE
+	MENUISERIE
+	PEINTURE
+}
+
+enum TaskStatus {
+	EN_ATTENTE
+	EN_COURS
+	EN_PAUSE
+	TERMINEE
+	ANNULEE
+}
+
+enum ResourceType {
+	MATERIAU
+	MATERIEL
+	EQUIPEMENT
+	CONSOMMABLE
+}
+
+enum DeliveryStatus {
+	PLANIFIEE
+	EN_TRANSIT
+	LIVREE
+	PARTIELLE
+	ANNULEE
+}
+
+enum DocumentType {
+	PLAN
+	CCTP
+	CONTRAT
+	FACTURE
+	RAPPORT
+	SECURITE
+	AUTRE
+}
+
+enum SiteStatus {
+	PLANIFIE
+	EN_COURS
+	SUSPENDU
+	TERMINE
+	ANNULE
+}
+
+enum AlertType {
+	RETARD
+	SECURITE
+	QUALITE
+	BUDGET
+	AUTRE
+}
+
+enum AlertSeverity {
+	LOW
+	MEDIUM
+	HIGH
+	CRITICAL
+}
+
+enum ReportType {
+	DAILY
+	WEEKLY
+	MONTHLY
+	OTHER
+}
+
+enum AttendanceStatus {
+	PRESENT
+	ABSENT
+	RETARD
+	CONGE
+}
+
+model Organization {
+	id        String   @id @default(uuid()) @db.Uuid
+	name      String
+	plan      String
+	isActive  Boolean  @default(true)
+	createdAt DateTime @default(now())
+
+	users User[]
+	sites Site[]
+}
+
+model User {
+	id             String       @id @default(uuid()) @db.Uuid
+	organizationId String?      @db.Uuid
+	email          String       @unique
+	password   String
+	role           UserRole
+	firstName      String
+	lastName       String
+	createdAt      DateTime     @default(now())
+
+	organization    Organization?    @relation(fields: [organizationId], references: [id])
+	uploadedDocs    Document[]       @relation("DocumentUploadedBy")
+	reports         Report[]         @relation("ReportGeneratedBy")
+	taskAssignments TaskAssignment[]
+	taskProgress    TaskProgress[]
+	resourceUsage   ResourceUsage[]
+	workforce       WorkforceEntry[] @relation("WorkforceEntryWorker")
+	refreshTokens   RefreshToken[]
+	ledTeams        Team[]           @relation("TeamLeader")
+	teamMemberships TeamMember[]     @relation("TeamMemberships")
+	attendances     Attendance[]     @relation("UserAttendances")
+
+	@@index([organizationId])
+}
+
+model RefreshToken {
+	id        String   @id @default(uuid()) @db.Uuid
+	userId    String   @db.Uuid
+	tokenHash String   @unique
+	expiresAt DateTime
+	createdAt DateTime @default(now())
+
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+	@@index([userId])
+}
+
+model Site {
+	id             String     @id @default(uuid()) @db.Uuid
+	organizationId String     @db.Uuid
+	name           String
+	address        String
+	city           String
+	postalCode     String
+	startDate      DateTime
+	endDate        DateTime?
+	status         SiteStatus
+	budget         Decimal    @db.Decimal(14, 2)
+	createdAt      DateTime   @default(now())
+	updatedAt      DateTime   @updatedAt
+
+	organization Organization @relation(fields: [organizationId], references: [id])
+	zones        SiteZone[]
+	resources    Resource[]
+	deliveries   Delivery[]
+	documents    Document[]
+	reports      Report[]
+	workforceDays WorkforceDay[]
+	genericTables GenericTable[]
+	teams        Team[]
+
+	@@index([organizationId])
+}
+
+model SiteZone {
+	id          String   @id @default(uuid()) @db.Uuid
+	siteId      String   @db.Uuid
+	name        String
+	level       String
+	description String
+	createdAt   DateTime @default(now())
+
+	site  Site   @relation(fields: [siteId], references: [id])
+	tasks Task[]
+
+	@@index([siteId])
+}
+
+model Resource {
+	id        String       @id @default(uuid()) @db.Uuid
+	siteId    String       @db.Uuid
+	name      String
+	type      ResourceType
+	unit      String
+	quantity  Decimal      @db.Decimal(14, 3)
+	unitPrice Decimal      @db.Decimal(14, 2)
+	supplier  String
+	createdAt DateTime     @default(now())
+
+	site       Site           @relation(fields: [siteId], references: [id])
+	deliveries Delivery[]
+	usages     ResourceUsage[]
+
+	@@index([siteId])
+}
+
+model Delivery {
+	id           String        @id @default(uuid()) @db.Uuid
+	siteId       String        @db.Uuid
+	resourceId   String        @db.Uuid
+	expectedDate DateTime
+	receivedDate DateTime?
+	quantity     Decimal       @db.Decimal(14, 3)
+	status       DeliveryStatus
+	supplier     String
+	createdAt    DateTime      @default(now())
+
+	site     Site     @relation(fields: [siteId], references: [id])
+	resource Resource @relation(fields: [resourceId], references: [id])
+
+	@@index([siteId])
+	@@index([resourceId])
+}
+
+model Task {
+	id          String     @id @default(uuid()) @db.Uuid
+	siteZoneId  String?    @db.Uuid
+	name        String
+	description String
+	type        TaskType
+	priority    Int
+	plannedEnd  DateTime
+	time        String?
+	realStart   DateTime?
+	realEnd     DateTime?
+	status      TaskStatus
+	createdAt   DateTime   @default(now())
+
+	siteZone       SiteZone?         @relation(fields: [siteZoneId], references: [id])
+	assignments    TaskAssignment[]
+	progress       TaskProgress[]
+	alerts         TaskAlert[]
+	resourceUsages ResourceUsage[]
+
+	@@index([siteZoneId])
+}
+
+model TaskAssignment {
+	id        String   @id @default(uuid()) @db.Uuid
+	taskId    String   @db.Uuid
+	userId    String   @db.Uuid
+	createdAt DateTime @default(now())
+
+	task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+	@@unique([taskId, userId])
+	@@index([taskId])
+	@@index([userId])
+}
+
+model TaskProgress {
+	id              String   @id @default(uuid()) @db.Uuid
+	taskId          String   @db.Uuid
+	reportedById    String   @db.Uuid
+	date            DateTime
+	progressPercent Int
+	notes           String
+	createdAt       DateTime @default(now())
+
+	task       Task @relation(fields: [taskId], references: [id])
+	reportedBy User @relation(fields: [reportedById], references: [id])
+
+	@@index([taskId])
+	@@index([reportedById])
+}
+
+model TaskAlert {
+	id        String        @id @default(uuid()) @db.Uuid
+	taskId    String        @db.Uuid
+	type      AlertType
+	severity  AlertSeverity
+	message   String
+	isRead    Boolean       @default(false)
+	createdAt DateTime      @default(now())
+
+	task Task @relation(fields: [taskId], references: [id])
+
+	@@index([taskId])
+}
+
+model ResourceUsage {
+	id          String   @id @default(uuid()) @db.Uuid
+	resourceId  String   @db.Uuid
+	taskId      String   @db.Uuid
+	date        DateTime
+	quantity    Decimal  @db.Decimal(14, 3)
+	notes       String
+	createdById String   @db.Uuid
+	createdAt   DateTime @default(now())
+
+	resource  Resource @relation(fields: [resourceId], references: [id])
+	task      Task     @relation(fields: [taskId], references: [id])
+	createdBy User     @relation(fields: [createdById], references: [id])
+
+	@@index([resourceId])
+	@@index([taskId])
+	@@index([createdById])
+}
+
+model Document {
+	id           String       @id @default(uuid()) @db.Uuid
+	siteId       String       @db.Uuid
+	uploadedById String       @db.Uuid
+	type         DocumentType
+	name         String
+	path         String
+	fileSize     Int
+	mimeType     String
+	createdAt    DateTime     @default(now())
+
+	site       Site @relation(fields: [siteId], references: [id])
+	uploadedBy User @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+
+	@@index([siteId])
+	@@index([uploadedById])
+}
+
+model Report {
+	id            String     @id @default(uuid()) @db.Uuid
+	siteId        String     @db.Uuid
+	generatedById String     @db.Uuid
+	type          ReportType
+	period        String
+	path          String
+	generatedAt   DateTime
+	createdAt     DateTime   @default(now())
+
+	site        Site @relation(fields: [siteId], references: [id])
+	generatedBy User @relation("ReportGeneratedBy", fields: [generatedById], references: [id])
+
+	@@index([siteId])
+	@@index([generatedById])
+}
+
+model WorkforceDay {
+	id               String   @id @default(uuid()) @db.Uuid
+	siteId           String   @db.Uuid
+	date             DateTime
+	totalManHours    Int
+	totalActualHours Int
+	createdAt        DateTime @default(now())
+
+	site    Site            @relation(fields: [siteId], references: [id])
+	entries WorkforceEntry[]
+
+	@@index([siteId])
+}
+
+model WorkforceEntry {
+	id            String   @id @default(uuid()) @db.Uuid
+	workforceDayId String  @db.Uuid
+	workerId      String   @db.Uuid
+	category      String
+	trade         String
+	plannedHours  Int
+	actualHours   Int
+	subcontractor String
+	notes         String
+	createdAt     DateTime @default(now())
+
+	workforceDay WorkforceDay @relation(fields: [workforceDayId], references: [id])
+	worker       User         @relation("WorkforceEntryWorker", fields: [workerId], references: [id])
+
+	@@index([workforceDayId])
+	@@index([workerId])
+}
+
+model GenericTable {
+	id        String   @id @default(uuid()) @db.Uuid
+	siteId    String   @db.Uuid
+	name      String
+	columns   Json
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	site Site              @relation(fields: [siteId], references: [id])
+	rows GenericTableRow[]
+
+	@@index([siteId])
+}
+
+model GenericTableRow {
+	id        String   @id @default(uuid()) @db.Uuid
+	tableId   String   @db.Uuid
+	data      Json
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	table GenericTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+	@@index([tableId])
+}
+
+model Team {
+	id        String    @id @default(uuid()) @db.Uuid
+	siteId    String    @db.Uuid
+	name      String
+	leaderId  String?   @db.Uuid
+	createdAt DateTime  @default(now())
+	updatedAt DateTime  @updatedAt
+
+	site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+	leader      User?        @relation("TeamLeader", fields: [leaderId], references: [id])
+	members     TeamMember[]
+	attendances Attendance[]
+
+	@@index([siteId])
+	@@index([leaderId])
+}
+
+model TeamMember {
+	id       String   @id @default(uuid()) @db.Uuid
+	teamId   String   @db.Uuid
+	userId   String   @db.Uuid
+	role     String   @default("WORKER")
+	joinedAt DateTime @default(now())
+
+	team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+	user User @relation("TeamMemberships", fields: [userId], references: [id])
+
+	@@unique([teamId, userId])
+	@@index([teamId])
+	@@index([userId])
+}
+
+model Attendance {
+	id          String           @id @default(uuid()) @db.Uuid
+	teamId      String           @db.Uuid
+	userId      String           @db.Uuid
+	date        DateTime         @db.Date
+	status      AttendanceStatus
+	checkIn     DateTime?
+	checkOut    DateTime?
+	minutesLate Int?
+	notes       String?
+	createdAt   DateTime         @default(now())
+	updatedAt   DateTime         @updatedAt
+
+	team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+	user User @relation("UserAttendances", fields: [userId], references: [id])
+
+	@@unique([teamId, userId, date])
+	@@index([teamId])
+	@@index([userId])
+	@@index([date])
+}
