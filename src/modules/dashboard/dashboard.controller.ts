@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
   BadRequestException,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,10 +27,6 @@ import {
   DashboardSummaryQuerySchema,
 } from './dto/dashboard-summary.dto';
 import {
-  CreateSummaryDto,
-  CreateSummarySchema,
-} from './dto/create-summary.dto';
-import {
   ArmatureReportsQueryDto,
   ArmatureReportsResponseDto,
   ArmatureReportsQuerySchema,
@@ -40,6 +37,7 @@ import {
 } from './dto/recent-orders.query.dto';
 import { RecentOrdersResponseDto } from './dto/recent-orders.dto';
 import { CreateOrderDto, CreateOrderSchema } from './dto/create-order.dto';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
@@ -52,9 +50,7 @@ export class DashboardController {
   @Get('summary')
   @ApiOperation({
     summary: 'Get dashboard summary (KPIs + category progress)',
-    description:
-      'Returns the summary last set via POST /summary if one exists, ' +
-      'otherwise computes it from database resources and usages.',
+    description: 'Computes the summary from database resources and usages.',
   })
   @ApiQuery({
     name: 'startDate',
@@ -76,6 +72,7 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async getSummary(
     @Query() query: DashboardSummaryQueryDto,
+    @Request() request: requestWithUser,
   ): Promise<DashboardSummaryResponseDto> {
     const result = DashboardSummaryQuerySchema.safeParse(query);
     if (!result.success) {
@@ -83,29 +80,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.getSummary(result.data);
-  }
-
-  @Post('summary')
-  @ApiOperation({
-    summary: 'Set dashboard summary values (overrides computed values)',
-    description:
-      'Directly set the globalProgress, globalSpent and per-category progress/spent values. ' +
-      'Once set, GET /summary will return these stored values instead of computing from DB.',
-  })
-  @ApiBody({ type: CreateSummaryDto })
-  @ApiResponse({ status: 201, type: DashboardSummaryResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation failed.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  createSummary(@Body() dto: CreateSummaryDto): DashboardSummaryResponseDto {
-    const result = CreateSummarySchema.safeParse(dto);
-    if (!result.success) {
-      throw new BadRequestException(
-        'Validation failed: ' + JSON.stringify(result.error.issues),
-      );
-    }
-    return this.dashboardService.createSummary(result.data);
+    return this.dashboardService.getSummary(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Get('resources')
@@ -133,8 +111,8 @@ export class DashboardController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async getResources() {
-    return this.dashboardService.getResources();
+  async getResources(@Request() request: requestWithUser) {
+    return this.dashboardService.getResources(request.user.organizationId);
   }
 
   @Get('reports')
@@ -166,6 +144,7 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async getReports(
     @Query() query: ArmatureReportsQueryDto,
+    @Request() request: requestWithUser,
   ): Promise<ArmatureReportsResponseDto> {
     const result = ArmatureReportsQuerySchema.safeParse(query);
     if (!result.success) {
@@ -173,7 +152,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return await this.dashboardService.getReports(result.data);
+    return await this.dashboardService.getReports(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Get('analytics')
@@ -205,6 +187,7 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async getArmatureAnalytics(
     @Query() query: ArmatureReportsQueryDto,
+    @Request() request: requestWithUser,
   ): Promise<ArmatureReportsResponseDto> {
     const result = ArmatureReportsQuerySchema.safeParse(query);
     if (!result.success) {
@@ -212,7 +195,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return await this.dashboardService.getArmatureAnalytics(result.data);
+    return await this.dashboardService.getArmatureAnalytics(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Get('orders')
@@ -220,8 +206,10 @@ export class DashboardController {
   @ApiResponse({ status: 200, type: RecentOrdersResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async getAllOrders(): Promise<RecentOrdersResponseDto> {
-    return this.dashboardService.getAllOrders();
+  async getAllOrders(
+    @Request() request: requestWithUser,
+  ): Promise<RecentOrdersResponseDto> {
+    return this.dashboardService.getAllOrders(request.user.organizationId);
   }
 
   @Get('orders/recent')
@@ -260,6 +248,7 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async getRecentOrders(
     @Query() query: RecentOrdersQueryDto,
+    @Request() request: requestWithUser,
   ): Promise<RecentOrdersResponseDto> {
     const result = RecentOrdersQuerySchema.safeParse(query);
     if (!result.success) {
@@ -267,7 +256,10 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.getRecentOrders(result.data);
+    return this.dashboardService.getRecentOrders(
+      result.data,
+      request.user.organizationId,
+    );
   }
 
   @Post('orders')
@@ -279,6 +271,7 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async createOrder(
     @Body() dto: CreateOrderDto,
+    @Request() request: requestWithUser,
   ): Promise<RecentOrdersResponseDto> {
     const result = CreateOrderSchema.safeParse(dto);
     if (!result.success) {
@@ -286,6 +279,9 @@ export class DashboardController {
         'Validation failed: ' + JSON.stringify(result.error.issues),
       );
     }
-    return this.dashboardService.createOrder(result.data);
+    return this.dashboardService.createOrder(
+      result.data,
+      request.user.organizationId,
+    );
   }
 }

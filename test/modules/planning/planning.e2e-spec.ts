@@ -92,12 +92,14 @@ describe('Planning (e2e)', () => {
       task: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
       },
       siteZone: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
       },
       user: {
         findUnique: jest.fn(),
@@ -106,6 +108,7 @@ describe('Planning (e2e)', () => {
       taskAlert: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       },
@@ -119,7 +122,12 @@ describe('Planning (e2e)', () => {
       .overrideProvider(PrismaService)
       .useValue(prismaService)
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: jest.fn(() => true) })
+      .useValue({
+        canActivate: jest.fn((context: any) => {
+          context.switchToHttp().getRequest().user = { organizationId: 'org-a' };
+          return true;
+        }),
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
@@ -175,7 +183,7 @@ describe('Planning (e2e)', () => {
 
   describe('GET /planning/tasks/:id', () => {
     it('should return a task by id', () => {
-      prismaService.task.findUnique.mockResolvedValue(mockTask);
+      prismaService.task.findFirst.mockResolvedValue(mockTask);
 
       return request(app.getHttpServer())
         .get('/planning/tasks/task-uuid-1')
@@ -187,7 +195,7 @@ describe('Planning (e2e)', () => {
     });
 
     it('should return 404 when task does not exist', () => {
-      prismaService.task.findUnique.mockResolvedValue(null);
+      prismaService.task.findFirst.mockResolvedValue(null);
 
       return request(app.getHttpServer())
         .get('/planning/tasks/invalid-uuid')
@@ -208,7 +216,7 @@ describe('Planning (e2e)', () => {
     };
 
     it('should create a new task', () => {
-      prismaService.siteZone.findUnique.mockResolvedValue(mockSiteZone);
+      prismaService.siteZone.findFirst.mockResolvedValue(mockSiteZone);
       prismaService.user.findMany.mockResolvedValue([mockUser]);
       prismaService.task.create.mockResolvedValue(mockTask);
 
@@ -223,7 +231,7 @@ describe('Planning (e2e)', () => {
     });
 
     it('should return 404 when siteZone does not exist', () => {
-      prismaService.siteZone.findUnique.mockResolvedValue(null);
+      prismaService.siteZone.findFirst.mockResolvedValue(null);
 
       return request(app.getHttpServer())
         .post('/planning/tasks')
@@ -232,7 +240,7 @@ describe('Planning (e2e)', () => {
     });
 
     it('should return 404 when user does not exist', () => {
-      prismaService.siteZone.findUnique.mockResolvedValue(mockSiteZone);
+      prismaService.siteZone.findFirst.mockResolvedValue(mockSiteZone);
       prismaService.user.findMany.mockResolvedValue([]);
 
       return request(app.getHttpServer())
@@ -249,7 +257,7 @@ describe('Planning (e2e)', () => {
     };
 
     it('should update a task', () => {
-      prismaService.task.findUnique.mockResolvedValue(mockTask);
+      prismaService.task.findFirst.mockResolvedValue(mockTask);
       prismaService.task.update.mockResolvedValue({
         ...mockTask,
         ...updateDto,
@@ -265,7 +273,7 @@ describe('Planning (e2e)', () => {
     });
 
     it('should return 404 when task does not exist', () => {
-      prismaService.task.findUnique.mockResolvedValue(null);
+      prismaService.task.findFirst.mockResolvedValue(null);
 
       return request(app.getHttpServer())
         .put('/planning/tasks/invalid-uuid')
@@ -276,7 +284,7 @@ describe('Planning (e2e)', () => {
 
   describe('DELETE /planning/tasks/:id', () => {
     it('should delete a task', () => {
-      prismaService.task.findUnique.mockResolvedValue(mockTask);
+      prismaService.task.findFirst.mockResolvedValue(mockTask);
       prismaService.task.delete.mockResolvedValue(mockTask);
 
       return request(app.getHttpServer())
@@ -289,7 +297,7 @@ describe('Planning (e2e)', () => {
     });
 
     it('should return 404 when task does not exist', () => {
-      prismaService.task.findUnique.mockResolvedValue(null);
+      prismaService.task.findFirst.mockResolvedValue(null);
 
       return request(app.getHttpServer())
         .delete('/planning/tasks/invalid-uuid')
@@ -317,7 +325,7 @@ describe('Planning (e2e)', () => {
 
   describe('GET /planning/tasks/:id/actions', () => {
     it('should return actions for a specific task', () => {
-      prismaService.task.findUnique.mockResolvedValue(mockTask);
+      prismaService.task.findFirst.mockResolvedValue(mockTask);
       prismaService.taskAlert.findMany.mockResolvedValue([mockAlert]);
 
       return request(app.getHttpServer())
@@ -329,7 +337,7 @@ describe('Planning (e2e)', () => {
     });
 
     it('should return 404 when task does not exist', () => {
-      prismaService.task.findUnique.mockResolvedValue(null);
+      prismaService.task.findFirst.mockResolvedValue(null);
 
       return request(app.getHttpServer())
         .get('/planning/tasks/invalid-uuid/actions')
@@ -339,7 +347,7 @@ describe('Planning (e2e)', () => {
 
   describe('DELETE /planning/actions/:id', () => {
     it('should mark an action as read', () => {
-      prismaService.taskAlert.findUnique.mockResolvedValue(mockAlert);
+      prismaService.taskAlert.findFirst.mockResolvedValue(mockAlert);
       prismaService.taskAlert.update.mockResolvedValue({
         ...mockAlert,
         isRead: true,
@@ -355,7 +363,7 @@ describe('Planning (e2e)', () => {
     });
 
     it('should return 404 when action does not exist', () => {
-      prismaService.taskAlert.findUnique.mockResolvedValue(null);
+      prismaService.taskAlert.findFirst.mockResolvedValue(null);
 
       return request(app.getHttpServer())
         .delete('/planning/actions/invalid-uuid')

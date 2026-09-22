@@ -23,6 +23,7 @@ describe('UserService', () => {
     user: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -76,7 +77,10 @@ describe('UserService', () => {
 
       mockPrismaService.user.create.mockResolvedValue(expectedUser);
 
-      const result = await service.create(createUserDto);
+      const result = await service.create(
+        createUserDto,
+        createUserDto.organizationId,
+      );
 
       expect(result).toEqual(expectedUser);
       expect(mockPrismaService.user.create).toHaveBeenCalledWith({
@@ -123,7 +127,11 @@ describe('UserService', () => {
       const total = 2;
       mockPrismaService.$transaction.mockResolvedValue([expectedUsers, total]);
 
-      const result = await service.findAll(1, 20);
+      const result = await service.findAll(
+        1,
+        20,
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual({ data: expectedUsers, total, page: 1, limit: 20 });
       expect(mockPrismaService.$transaction).toHaveBeenCalled();
@@ -131,6 +139,18 @@ describe('UserService', () => {
   });
 
   describe('findOne', () => {
+    it('should not return a user from another organization', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      const result = await service.findOne('user-from-other-org', 'org-a');
+
+      expect(result).toBeNull();
+      expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
+        where: { id: 'user-from-other-org', organizationId: 'org-a' },
+        select: userSelect,
+      });
+    });
+
     it('should return a user by id', async () => {
       const userId = '123e4567-e89b-12d3-a456-426614174001';
       const expectedUser = {
@@ -144,13 +164,19 @@ describe('UserService', () => {
         createdAt: new Date(),
       };
 
-      mockPrismaService.user.findUnique.mockResolvedValue(expectedUser);
+      mockPrismaService.user.findFirst.mockResolvedValue(expectedUser);
 
-      const result = await service.findOne(userId);
+      const result = await service.findOne(
+        userId,
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(expectedUser);
-      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { id: userId },
+      expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: userId,
+          organizationId: '123e4567-e89b-12d3-a456-426614174000',
+        },
         select: userSelect,
       });
     });
@@ -180,12 +206,20 @@ describe('UserService', () => {
 
       mockPrismaService.user.update.mockResolvedValue(expectedUser);
 
-      const result = await service.update(userId, updateUserDto);
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: userId });
+      const result = await service.update(
+        userId,
+        updateUserDto,
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(expectedUser);
       expect(mockPrismaService.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: userId },
+          where: {
+            id: userId,
+            organizationId: '123e4567-e89b-12d3-a456-426614174000',
+          },
           select: userSelect,
         }),
       );
@@ -208,7 +242,11 @@ describe('UserService', () => {
 
       mockPrismaService.user.delete.mockResolvedValue(expectedUser);
 
-      const result = await service.remove(userId);
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: userId });
+      const result = await service.remove(
+        userId,
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual({ message: `User ${userId} deleted` });
       expect(mockPrismaService.user.delete).toHaveBeenCalledWith({
@@ -311,7 +349,8 @@ describe('UserService', () => {
       const dto: UpdateUserDto = { firstName: 'Changed' };
       mockPrismaService.user.update.mockResolvedValue({ id: userId, firstName: 'Changed' });
 
-      await service.update(userId, dto);
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: userId });
+      await service.update(userId, dto, '123e4567-e89b-12d3-a456-426614174000');
 
       const callData = mockPrismaService.user.update.mock.calls[0][0].data;
       expect(callData).not.toHaveProperty('password');

@@ -4,6 +4,7 @@ import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/dashboard-summary.dto';
 
 describe('DashboardService', () => {
+  const organizationId = 'org-a';
   describe('getArmatureAnalytics', () => {
     it('should return analytics data with correct structure', async () => {
       mockResourceFindMany.mockResolvedValue([
@@ -15,7 +16,7 @@ describe('DashboardService', () => {
         { resourceId: 2, quantity: 5, date: new Date('2024-01-02') },
       ]);
       const query = { startDate: '2024-01-01', endDate: '2024-12-31' };
-      const result = await service.getArmatureAnalytics(query);
+      const result = await service.getArmatureAnalytics(query, organizationId);
       expect(result).toHaveProperty('kpiCards');
       expect(result).toHaveProperty('chartData');
       expect(result).toHaveProperty('filters');
@@ -76,7 +77,7 @@ describe('DashboardService', () => {
           },
         },
       ]);
-      const result = await service.getRecentOrders(query);
+      const result = await service.getRecentOrders(query, organizationId);
       expect(result.orders).toBeInstanceOf(Array);
       expect(result.orders[0]).toHaveProperty('id');
       expect(result.orders[0]).toHaveProperty('productName');
@@ -104,7 +105,7 @@ describe('DashboardService', () => {
     mockResourceUsageFindMany.mockResolvedValue(usages);
 
     const query: DashboardSummaryQueryDto = {};
-    const result = await service.getSummary(query);
+    const result = await service.getSummary(query, organizationId);
     expect(result.globalProgress).toBeGreaterThanOrEqual(0);
     expect(result.globalSpent).toBeGreaterThanOrEqual(0);
     expect(result.categories.length).toBe(4);
@@ -117,7 +118,7 @@ describe('DashboardService', () => {
     mockResourceFindMany.mockResolvedValue([]);
     mockResourceUsageFindMany.mockResolvedValue([]);
     const query: DashboardSummaryQueryDto = {};
-    const result = await service.getSummary(query);
+    const result = await service.getSummary(query, organizationId);
     expect(result.globalProgress).toBe(0);
     expect(result.globalSpent).toBe(0);
     expect(result.categories.length).toBe(4);
@@ -134,76 +135,36 @@ describe('DashboardService', () => {
       startDate: '2024-01-01',
       endDate: '2024-12-31',
     };
-    await service.getSummary(query);
+    await service.getSummary(query, organizationId);
     expect(mockResourceUsageFindMany).toHaveBeenCalledWith({
       where: {
         date: {
           gte: new Date('2024-01-01'),
           lte: new Date('2024-12-31'),
         },
+        resource: { site: { organizationId } },
       },
     });
   });
 
-  // ─── getSummary — summaryState caching ──────────────────────────────────
-  describe('getSummary() with stored summaryState', () => {
-    it('should return stored summaryState without querying the DB', async () => {
-      const stored = {
-        globalProgress: 75,
-        globalSpent: 5000,
-        categories: [{ id: 1, name: 'Voiles', progress: 75, spent: 5000 }],
-      };
-      // Seed the state directly
-      service['summaryState'] = stored;
+  it('should query the database for every summary request', async () => {
+    const resources = [
+      { id: 1, name: 'Voiles A', quantity: 10, unitPrice: 5 },
+    ];
+    mockResourceFindMany
+      .mockResolvedValueOnce(resources)
+      .mockResolvedValueOnce([]);
+    mockResourceUsageFindMany
+      .mockResolvedValueOnce([{ resourceId: 1, quantity: 2 }])
+      .mockResolvedValueOnce([]);
 
-      const result = await service.getSummary({});
+    const firstResult = await service.getSummary({}, organizationId);
+    const secondResult = await service.getSummary({}, organizationId);
 
-      expect(result).toEqual(stored);
-      expect(mockResourceFindMany).not.toHaveBeenCalled();
-      expect(mockResourceUsageFindMany).not.toHaveBeenCalled();
-    });
-  });
-
-  // ─── createSummary ───────────────────────────────────────────────────────
-  describe('createSummary()', () => {
-    it('should store the summary and return it', () => {
-      const input = {
-        globalProgress: 60,
-        globalSpent: 3000,
-        categories: [
-          { id: 1, name: 'Voiles', progress: 60, spent: 3000 },
-        ],
-      };
-
-      const result = service.createSummary(input);
-
-      expect(result).toEqual(input);
-      expect(service['summaryState']).toEqual(input);
-    });
-
-    it('should deep-clone categories so mutations do not affect the stored state', () => {
-      const cats = [{ id: 1, name: 'Voiles', progress: 50, spent: 1000 }];
-      service.createSummary({ globalProgress: 50, globalSpent: 1000, categories: cats });
-
-      // Mutate the original array after storing
-      cats[0].progress = 99;
-
-      expect(service['summaryState']!.categories[0].progress).toBe(50);
-    });
-
-    it('should make getSummary return the stored state on next call', async () => {
-      const input = {
-        globalProgress: 42,
-        globalSpent: 420,
-        categories: [{ id: 1, name: 'Voiles', progress: 42, spent: 420 }],
-      };
-      service.createSummary(input);
-
-      const result = await service.getSummary({});
-
-      expect(result).toEqual(input);
-      expect(mockResourceFindMany).not.toHaveBeenCalled();
-    });
+    expect(firstResult.globalSpent).toBe(10);
+    expect(secondResult.globalSpent).toBe(0);
+    expect(mockResourceFindMany).toHaveBeenCalledTimes(2);
+    expect(mockResourceUsageFindMany).toHaveBeenCalledTimes(2);
   });
 
   // ─── getAllOrders ────────────────────────────────────────────────────────
@@ -224,7 +185,7 @@ describe('DashboardService', () => {
         },
       ]);
 
-      const result = await service.getAllOrders();
+      const result = await service.getAllOrders(organizationId);
 
       expect(result.orders).toHaveLength(2);
       expect(result.orders[0]).toEqual({
@@ -243,7 +204,7 @@ describe('DashboardService', () => {
     it('should return an empty orders array when there are no deliveries', async () => {
       mockDeliveryFindMany.mockResolvedValue([]);
 
-      const result = await service.getAllOrders();
+      const result = await service.getAllOrders(organizationId);
 
       expect(result.orders).toEqual([]);
     });
@@ -278,7 +239,7 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce(mockResource); // name match
       mockDeliveryCreate.mockResolvedValue(mockDelivery);
 
-      const result = await service.createOrder(orderData);
+      const result = await service.createOrder(orderData, organizationId);
 
       expect(mockDeliveryCreate).toHaveBeenCalledTimes(1);
       expect(result.orders[0].id).toBe('del-new');
@@ -291,7 +252,7 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce(mockResource); // fallback
       mockDeliveryCreate.mockResolvedValue(mockDelivery);
 
-      const result = await service.createOrder({ ...orderData, productName: 'Unknown' });
+      const result = await service.createOrder({ ...orderData, productName: 'Unknown' }, organizationId);
 
       expect(result.orders[0].id).toBe('del-new');
     });
@@ -301,7 +262,7 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce(null) // no name match
         .mockResolvedValueOnce(null); // no fallback
 
-      const result = await service.createOrder(orderData);
+      const result = await service.createOrder(orderData, organizationId);
 
       expect(mockDeliveryCreate).not.toHaveBeenCalled();
       expect(result.orders[0].productName).toBe('Armature 12mm');
@@ -324,7 +285,7 @@ describe('DashboardService', () => {
         },
       ]);
 
-      const result = await service.getResources();
+      const result = await service.getResources(organizationId);
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
@@ -344,7 +305,7 @@ describe('DashboardService', () => {
     it('should return an empty array when there are no resources', async () => {
       mockResourceFindMany.mockResolvedValue([]);
 
-      const result = await service.getResources();
+      const result = await service.getResources(organizationId);
 
       expect(result).toEqual([]);
     });
