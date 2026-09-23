@@ -111,11 +111,12 @@ export class DashboardService {
     return this.deliveriesService.getRecentOrders(query);
   }
 
-  async getAllOrders(): Promise<RecentOrdersResponseDto> {
-    return this.deliveriesService.getAllOrders();
+  async getAllOrders(siteId?: string): Promise<RecentOrdersResponseDto> {
+    return this.deliveriesService.getAllOrders(siteId);
   }
 
   async createOrder(data: {
+    siteId: string;
     productName: string;
     productIcon?: string;
     price: number;

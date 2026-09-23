@@ -125,7 +125,12 @@ describe('UserService', () => {
 
       const result = await service.findAll(1, 20);
 
-      expect(result).toEqual({ data: expectedUsers, total, page: 1, limit: 20 });
+      expect(result).toEqual({
+        data: expectedUsers,
+        total,
+        page: 1,
+        limit: 20,
+      });
       expect(mockPrismaService.$transaction).toHaveBeenCalled();
     });
   });
@@ -284,7 +289,12 @@ describe('UserService', () => {
   describe('findByEmail', () => {
     it('should return the user when found', async () => {
       const email = 'found@example.com';
-      const user = { id: 'u-3', email, password: '$2b$hash', role: UserRole.ADMIN };
+      const user = {
+        id: 'u-3',
+        email,
+        password: '$2b$hash',
+        role: UserRole.ADMIN,
+      };
       mockPrismaService.user.findUnique.mockResolvedValue(user);
 
       const result = await service.findByEmail(email);
@@ -309,7 +319,10 @@ describe('UserService', () => {
     it('should update user fields without hashing when no password is provided', async () => {
       const userId = '123e4567-e89b-12d3-a456-426614174001';
       const dto: UpdateUserDto = { firstName: 'Changed' };
-      mockPrismaService.user.update.mockResolvedValue({ id: userId, firstName: 'Changed' });
+      mockPrismaService.user.update.mockResolvedValue({
+        id: userId,
+        firstName: 'Changed',
+      });
 
       await service.update(userId, dto);
 
@@ -319,4 +332,3 @@ describe('UserService', () => {
     });
   });
 });
-

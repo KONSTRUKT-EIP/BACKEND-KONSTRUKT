@@ -152,12 +152,8 @@ describe('UserController (e2e)', () => {
         .expect((res) => {
           const body = res.body as { data: Array<{ email: string }> };
           expect(body.data).toHaveLength(2);
-          expect(body.data[0].email).toBe(
-            'user1@example.com',
-          );
-          expect(body.data[1].email).toBe(
-            'user2@example.com',
-          );
+          expect(body.data[0].email).toBe('user1@example.com');
+          expect(body.data[1].email).toBe('user2@example.com');
         });
     });
   });

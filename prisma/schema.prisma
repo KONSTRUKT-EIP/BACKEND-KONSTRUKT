@@ -205,7 +205,9 @@ model Resource {
 model Delivery {
 	id           String        @id @default(uuid()) @db.Uuid
 	siteId       String        @db.Uuid
-	resourceId   String        @db.Uuid
+	resourceId   String?       @db.Uuid
+	productName  String?
+ 	price        Decimal?      @db.Decimal(14, 2)
 	expectedDate DateTime
 	receivedDate DateTime?
 	quantity     Decimal       @db.Decimal(14, 3)
@@ -214,7 +216,7 @@ model Delivery {
 	createdAt    DateTime      @default(now())
 
 	site     Site     @relation(fields: [siteId], references: [id])
-	resource Resource @relation(fields: [resourceId], references: [id])
+	resource Resource? @relation(fields: [resourceId], references: [id])
 
 	@@index([siteId])
 	@@index([resourceId])

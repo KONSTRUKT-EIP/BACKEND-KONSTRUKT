@@ -178,9 +178,7 @@ describe('DashboardService', () => {
       const input = {
         globalProgress: 60,
         globalSpent: 3000,
-        categories: [
-          { id: 1, name: 'Voiles', progress: 60, spent: 3000 },
-        ],
+        categories: [{ id: 1, name: 'Voiles', progress: 60, spent: 3000 }],
       };
 
       const result = service.createSummary(input);
@@ -191,7 +189,11 @@ describe('DashboardService', () => {
 
     it('should deep-clone categories so mutations do not affect the stored state', () => {
       const cats = [{ id: 1, name: 'Voiles', progress: 50, spent: 1000 }];
-      service.createSummary({ globalProgress: 50, globalSpent: 1000, categories: cats });
+      service.createSummary({
+        globalProgress: 50,
+        globalSpent: 1000,
+        categories: cats,
+      });
 
       // Mutate the original array after storing
       cats[0].progress = 99;
