@@ -331,14 +331,20 @@ export class DeliveriesService {
   }
 
   private mapDelivery(delivery: DeliveryWithResource) {
-    const unitPrice = Number(delivery.resource.unitPrice);
+    const resource = delivery.resource;
+
+    if (!resource) {
+      throw new Error(`Delivery ${delivery.id} is missing associated resource`);
+    }
+
+    const unitPrice = Number(resource.unitPrice);
     const quantity = Number(delivery.quantity);
 
     return {
       id: delivery.id,
       siteId: delivery.siteId,
       resourceId: delivery.resourceId,
-      resourceName: delivery.resource.name,
+      resourceName: resource.name,
       expectedDate: delivery.expectedDate,
       receivedDate: delivery.receivedDate,
       quantity,
@@ -351,13 +357,19 @@ export class DeliveriesService {
   }
 
   private mapOrder(delivery: DeliveryWithResource): OrderProjection {
+    const resource = delivery.resource;
+
+    if (!resource) {
+      throw new Error(`Delivery ${delivery.id} is missing associated resource`);
+    }
+
     return {
       id: delivery.id,
-      productName: delivery.resource.name,
+      productName: resource.name,
       productIcon: '',
-      price: Number(delivery.resource.unitPrice),
+      price: Number(resource.unitPrice),
       totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+      total: Number(delivery.quantity) * Number(resource.unitPrice),
     };
   }
 }
