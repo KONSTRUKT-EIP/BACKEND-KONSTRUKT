@@ -16,12 +16,18 @@ import {
   DonutDataPointDto,
 } from './dto/armature-reports.dto';
 import { RecentOrdersQueryDto } from './dto/recent-orders.query.dto';
-import { RecentOrdersResponseDto, OrderDto } from './dto/recent-orders.dto';
+import { RecentOrdersResponseDto } from './dto/recent-orders.dto';
 import { DASHBOARD_CATEGORIES } from './dashboard.constants';
+import { DeliveriesService } from '../deliveries/deliveries.service';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  private summaryState: DashboardSummaryResponseDto | null = null;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly deliveriesService: DeliveriesService,
+  ) {}
 
   async getSummary(
     query: DashboardSummaryQueryDto,
@@ -96,137 +102,22 @@ export class DashboardService {
     query: RecentOrdersQueryDto,
     organizationId?: string | null,
   ): Promise<RecentOrdersResponseDto> {
-    const page = query.page || 1;
-    const pageSize = query.pageSize || 10;
-
-    const where: Prisma.DeliveryFindManyArgs['where'] = {};
-    if (!organizationId) return { orders: [] };
-    where.site = { organizationId };
-
-    if (query.startDate || query.endDate) {
-      const dateFilter: { gte?: Date; lte?: Date } = {};
-      if (query.startDate) {
-        dateFilter.gte = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        const endDate = new Date(query.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-        dateFilter.lte = endDate;
-      }
-      where.createdAt = dateFilter;
-    }
-
-    const deliveries = await this.prisma.delivery.findMany({
-      where,
-      include: {
-        resource: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    });
-
-    const orders: OrderDto[] = deliveries.map((delivery) => ({
-      id: delivery.id,
-      productName: delivery.resource.name,
-      productIcon: '',
-      price: Number(delivery.resource.unitPrice),
-      totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
-    }));
-
-    return { orders };
+    return this.deliveriesService.getRecentOrders(query);
   }
 
-  async getAllOrders(
-    organizationId?: string | null,
-  ): Promise<RecentOrdersResponseDto> {
-    if (!organizationId) return { orders: [] };
-    const deliveries = await this.prisma.delivery.findMany({
-      where: { site: { organizationId } },
-      include: { resource: true },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const orders: OrderDto[] = deliveries.map((delivery) => ({
-      id: delivery.id,
-      productName: delivery.resource.name,
-      productIcon: '',
-      price: Number(delivery.resource.unitPrice),
-      totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
-    }));
-
-    return { orders };
+  async getAllOrders(siteId?: string): Promise<RecentOrdersResponseDto> {
+    return this.deliveriesService.getAllOrders(siteId);
   }
 
-  async createOrder(
-    data: {
-      productName: string;
-      productIcon?: string;
-      price: number;
-      totalOrder: number;
-      total: number;
-    },
-    organizationId?: string | null,
-  ): Promise<RecentOrdersResponseDto> {
-    // Find a matching resource by name, fall back to first available
-    if (!organizationId) return { orders: [] };
-    let resource = await this.prisma.resource.findFirst({
-      where: {
-        name: { contains: data.productName, mode: 'insensitive' },
-        site: { organizationId },
-      },
-    });
-    if (!resource) {
-      resource = await this.prisma.resource.findFirst({
-        where: { site: { organizationId } },
-      });
-    }
-
-    if (!resource) {
-      // No resource in DB — return a transient order
-      return {
-        orders: [
-          {
-            id: `order_${Date.now()}`,
-            productName: data.productName,
-            productIcon: data.productIcon ?? '',
-            price: data.price,
-            totalOrder: data.totalOrder,
-            total: data.total,
-          },
-        ],
-      };
-    }
-
-    const delivery = await this.prisma.delivery.create({
-      data: {
-        resourceId: resource.id,
-        siteId: resource.siteId,
-        quantity: data.totalOrder,
-        expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        supplier: resource.supplier,
-        status: 'PLANIFIEE',
-      },
-      include: { resource: true },
-    });
-
-    return {
-      orders: [
-        {
-          id: delivery.id,
-          productName: delivery.resource.name,
-          productIcon: data.productIcon ?? '',
-          price: Number(delivery.resource.unitPrice),
-          totalOrder: Number(delivery.quantity),
-          total:
-            Number(delivery.quantity) * Number(delivery.resource.unitPrice),
-        },
-      ],
-    };
+  async createOrder(data: {
+    siteId: string;
+    productName: string;
+    productIcon?: string;
+    price: number;
+    totalOrder: number;
+    total: number;
+  }): Promise<RecentOrdersResponseDto> {
+    return this.deliveriesService.createOrder(data);
   }
 
   async getResources(organizationId?: string | null): Promise<

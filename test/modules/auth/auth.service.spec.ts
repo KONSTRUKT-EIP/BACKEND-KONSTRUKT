@@ -109,7 +109,10 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.login({ email: 'test@example.com', password: 'WrongPassword1!' }),
+        service.login({
+          email: 'test@example.com',
+          password: 'WrongPassword1!',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
@@ -173,9 +176,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for unknown token', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.refreshTokens('bad-token'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshTokens('bad-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for expired token', async () => {
@@ -185,9 +188,9 @@ describe('AuthService', () => {
       });
       prisma.refreshToken.delete.mockResolvedValue(mockRefreshToken);
 
-      await expect(
-        service.refreshTokens('expired-token'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshTokens('expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
