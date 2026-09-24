@@ -15,6 +15,7 @@ describe('UserController (e2e)', () => {
     user: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -30,7 +31,16 @@ describe('UserController (e2e)', () => {
       .overrideProvider(PrismaService)
       .useValue(mockPrismaService)
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: jest.fn(() => true) })
+      .useValue({
+        canActivate: jest.fn((context: any) => {
+          context.switchToHttp().getRequest().user = {
+            userId: '123e4567-e89b-12d3-a456-426614174001',
+            organizationId: '123e4567-e89b-12d3-a456-426614174000',
+            role: UserRole.ADMIN,
+          };
+          return true;
+        }),
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
@@ -172,6 +182,8 @@ describe('UserController (e2e)', () => {
         createdAt: new Date().toISOString(),
       };
 
+      mockPrismaService.user.findFirst.mockResolvedValue(expectedUser);
+
       mockPrismaService.user.findUnique.mockResolvedValue(expectedUser);
 
       return request(app.getHttpServer())
@@ -209,6 +221,7 @@ describe('UserController (e2e)', () => {
         createdAt: new Date().toISOString(),
       };
 
+      mockPrismaService.user.findFirst.mockResolvedValue(expectedUser);
       mockPrismaService.user.update.mockResolvedValue(expectedUser);
 
       return request(app.getHttpServer())
@@ -237,6 +250,7 @@ describe('UserController (e2e)', () => {
         createdAt: new Date().toISOString(),
       };
 
+      mockPrismaService.user.findFirst.mockResolvedValue(expectedUser);
       mockPrismaService.user.delete.mockResolvedValue(expectedUser);
 
       return request(app.getHttpServer())

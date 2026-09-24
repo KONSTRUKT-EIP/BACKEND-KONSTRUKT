@@ -5,6 +5,7 @@ import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/das
 import { DeliveriesService } from '../../../src/modules/deliveries/deliveries.service';
 
 describe('DashboardService', () => {
+  const organizationId = 'org-a';
   describe('getArmatureAnalytics', () => {
     it('should return analytics data with correct structure', async () => {
       mockResourceFindMany.mockResolvedValue([
@@ -16,7 +17,7 @@ describe('DashboardService', () => {
         { resourceId: 2, quantity: 5, date: new Date('2024-01-02') },
       ]);
       const query = { startDate: '2024-01-01', endDate: '2024-12-31' };
-      const result = await service.getArmatureAnalytics(query);
+      const result = await service.getArmatureAnalytics(query, organizationId);
       expect(result).toHaveProperty('kpiCards');
       expect(result).toHaveProperty('chartData');
       expect(result).toHaveProperty('filters');
@@ -112,7 +113,7 @@ describe('DashboardService', () => {
     mockResourceUsageFindMany.mockResolvedValue(usages);
 
     const query: DashboardSummaryQueryDto = {};
-    const result = await service.getSummary(query);
+    const result = await service.getSummary(query, organizationId);
     expect(result.globalProgress).toBeGreaterThanOrEqual(0);
     expect(result.globalSpent).toBeGreaterThanOrEqual(0);
     expect(result.categories.length).toBe(4);
@@ -125,7 +126,7 @@ describe('DashboardService', () => {
     mockResourceFindMany.mockResolvedValue([]);
     mockResourceUsageFindMany.mockResolvedValue([]);
     const query: DashboardSummaryQueryDto = {};
-    const result = await service.getSummary(query);
+    const result = await service.getSummary(query, organizationId);
     expect(result.globalProgress).toBe(0);
     expect(result.globalSpent).toBe(0);
     expect(result.categories.length).toBe(4);
@@ -142,13 +143,14 @@ describe('DashboardService', () => {
       startDate: '2024-01-01',
       endDate: '2024-12-31',
     };
-    await service.getSummary(query);
+    await service.getSummary(query, organizationId);
     expect(mockResourceUsageFindMany).toHaveBeenCalledWith({
       where: {
         date: {
           gte: new Date('2024-01-01'),
           lte: new Date('2024-12-31'),
         },
+        resource: { site: { organizationId } },
       },
     });
   });
@@ -240,7 +242,7 @@ describe('DashboardService', () => {
         ],
       });
 
-      const result = await service.getAllOrders();
+      const result = await service.getAllOrders(organizationId);
 
       expect(result.orders).toHaveLength(2);
       expect(mockDeliveriesGetAllOrders).toHaveBeenCalledTimes(1);
@@ -249,7 +251,7 @@ describe('DashboardService', () => {
     it('should return an empty orders array when there are no deliveries', async () => {
       mockDeliveriesGetAllOrders.mockResolvedValue({ orders: [] });
 
-      const result = await service.getAllOrders();
+      const result = await service.getAllOrders(organizationId);
 
       expect(result.orders).toEqual([]);
     });
@@ -279,7 +281,7 @@ describe('DashboardService', () => {
         ],
       });
 
-      const result = await service.createOrder(orderData);
+      const result = await service.createOrder(orderData, organizationId);
 
       expect(mockDeliveriesCreateOrder).toHaveBeenCalledWith(orderData);
       expect(result.orders[0].id).toBe('del-new');
@@ -301,7 +303,7 @@ describe('DashboardService', () => {
         },
       ]);
 
-      const result = await service.getResources();
+      const result = await service.getResources(organizationId);
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
@@ -321,7 +323,7 @@ describe('DashboardService', () => {
     it('should return an empty array when there are no resources', async () => {
       mockResourceFindMany.mockResolvedValue([]);
 
-      const result = await service.getResources();
+      const result = await service.getResources(organizationId);
 
       expect(result).toEqual([]);
     });

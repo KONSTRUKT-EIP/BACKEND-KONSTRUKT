@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
+import type { requestWithUser } from '../auth/jwt.strategy';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -37,8 +39,8 @@ export class UserController {
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  create(@Body() dto: CreateUserDto) {
-    return this.userService.create(dto);
+  create(@Body() dto: CreateUserDto, @Request() request: requestWithUser) {
+    return this.userService.create(dto, request.user.organizationId);
   }
 
   @Get()
@@ -47,8 +49,8 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'List of users.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Request() request: requestWithUser) {
+    return this.userService.findAll(1, 20, request.user.organizationId);
   }
 
   @Get(':id')
@@ -59,8 +61,8 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
+  findOne(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.userService.findOne(id, request.user.organizationId);
   }
 
   @Put(':id')
@@ -72,8 +74,12 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.userService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.userService.update(id, dto, request.user.organizationId);
   }
 
   @Delete(':id')
@@ -84,7 +90,7 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  remove(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.userService.remove(id, request.user.organizationId);
   }
 }

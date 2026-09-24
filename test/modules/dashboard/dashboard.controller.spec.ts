@@ -30,6 +30,8 @@ const mockOrdersResponse = {
   ],
 };
 
+const mockRequest = { user: { organizationId: 'org-a' } } as any;
+
 describe('DashboardController', () => {
   let controller: DashboardController;
   let service: jest.Mocked<DashboardService>;
@@ -42,7 +44,6 @@ describe('DashboardController', () => {
           provide: DashboardService,
           useValue: {
             getSummary: jest.fn().mockResolvedValue(mockSummaryResponse),
-            createSummary: jest.fn().mockReturnValue(mockSummaryResponse),
             getRecentOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             getAllOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             createOrder: jest.fn().mockResolvedValue(mockOrdersResponse),
@@ -163,7 +164,7 @@ describe('DashboardController', () => {
   // ─── getAllOrders ─────────────────────────────────────────────────────────
   describe('getAllOrders()', () => {
     it('should return all orders from the service', async () => {
-      const result = await controller.getAllOrders();
+      const result = await controller.getAllOrders(mockRequest);
 
       expect(result.orders).toHaveLength(1);
       expect(result.orders[0]).toHaveProperty('id');
@@ -177,17 +178,17 @@ describe('DashboardController', () => {
   describe('getRecentOrders()', () => {
     it('should return paginated orders', async () => {
       const query = { page: 1, pageSize: 10 };
-      const result = await controller.getRecentOrders(query);
+      const result = await controller.getRecentOrders(query, mockRequest);
 
       expect(result.orders).toBeInstanceOf(Array);
       expect(result.orders[0]).toHaveProperty('id');
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.getRecentOrders).toHaveBeenCalledWith(query);
+      expect(service.getRecentOrders).toHaveBeenCalledWith(query, 'org-a');
     });
 
     it('should throw BadRequestException for invalid page query', async () => {
       await expect(
-        controller.getRecentOrders({ page: -1 } as any),
+        controller.getRecentOrders({ page: -1 } as any, mockRequest),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -203,10 +204,10 @@ describe('DashboardController', () => {
         total: 600,
       };
 
-      const result = await controller.createOrder(dto as any);
+      const result = await controller.createOrder(dto as any, mockRequest);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.createOrder).toHaveBeenCalledWith(dto);
+      expect(service.createOrder).toHaveBeenCalledWith(dto, 'org-a');
       expect(result.orders[0].productName).toBe('Armature 12mm');
     });
 
@@ -227,7 +228,7 @@ describe('DashboardController', () => {
   // ─── getResources ─────────────────────────────────────────────────────────
   describe('getResources()', () => {
     it('should return list of resources from the service', async () => {
-      const result = await controller.getResources();
+      const result = await controller.getResources(mockRequest);
 
       expect(Array.isArray(result)).toBe(true);
       expect(result[0]).toHaveProperty('id');
