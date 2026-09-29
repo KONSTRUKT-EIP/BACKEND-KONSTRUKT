@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ConflictException,
@@ -8,6 +9,7 @@ import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto, TeamMemberRole } from './dto/add-member.dto';
 import { AttendanceStatus } from '@prisma/client';
+import { UpsertWorkforceHoursDto } from './dto/upsert-workforce-hours.dto';
 
 interface TeamMemberDetail {
   id: string;
@@ -376,7 +378,7 @@ export class TeamService {
     });
 
     if (teams.length === 0) {
-      return { days: [], dates: [], attendances: {} };
+      return { days: [], dates: [], attendances: {}, workforceHours: {} };
     }
 
     const start = startDate ? new Date(startDate) : new Date();
@@ -416,6 +418,10 @@ export class TeamService {
     });
 
     const attendanceMap: Record<string, string[]> = {};
+    const workforceHours: Record<
+      string,
+      { normalHours: number; overtimeHours: number }[]
+    > = {};
 
     const members = await this.prisma.teamMember.findMany({
       where: {
@@ -437,6 +443,7 @@ export class TeamService {
 
     uniqueUserIds.forEach((userId) => {
       const userAttendances: string[] = [];
+      const userHours: { normalHours: number; overtimeHours: number }[] = [];
 
       dates.forEach((date) => {
         const dateStr = date.toISOString().split('T')[0];
@@ -451,16 +458,69 @@ export class TeamService {
             ? statusMap[attendance.status] || 'en-attente'
             : 'en-attente',
         );
+        userHours.push({
+          normalHours: Number(attendance?.normalHours ?? 0),
+          overtimeHours: Number(attendance?.overtimeHours ?? 0),
+        });
       });
 
       attendanceMap[userId] = userAttendances;
+      workforceHours[userId] = userHours;
     });
 
     return {
       days,
       dates: dates.map((d) => d.toISOString().split('T')[0]),
       attendances: attendanceMap,
+      workforceHours,
     };
+  }
+
+  async upsertWorkforceHours(
+    siteId: string,
+    dto: UpsertWorkforceHoursDto,
+    organizationId?: string | null,
+  ) {
+    await this.assertSiteAccess(siteId, organizationId);
+
+    const membership = await this.prisma.teamMember.findFirst({
+      where: {
+        userId: dto.userId,
+        team: { siteId },
+        ...(dto.teamId ? { teamId: dto.teamId } : {}),
+      },
+      select: { teamId: true },
+    });
+    if (!membership) {
+      throw new NotFoundException('Membre introuvable pour ce chantier');
+    }
+
+    const date = new Date(`${dto.date}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Date invalide');
+    }
+
+    return this.prisma.attendance.upsert({
+      where: {
+        teamId_userId_date: {
+          teamId: membership.teamId,
+          userId: dto.userId,
+          date,
+        },
+      },
+      update: {
+        normalHours: dto.normalHours,
+        overtimeHours: dto.overtimeHours,
+      },
+      create: {
+        teamId: membership.teamId,
+        userId: dto.userId,
+        date,
+        status: AttendanceStatus.PRESENT,
+        normalHours: dto.normalHours,
+        overtimeHours: dto.overtimeHours,
+      },
+    });
   }
 
   private getRoleDisplayName(role: string): string {

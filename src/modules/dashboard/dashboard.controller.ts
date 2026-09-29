@@ -4,6 +4,8 @@ import {
   Post,
   Body,
   Query,
+  Param,
+  ParseUUIDPipe,
   UseGuards,
   BadRequestException,
   Request,
@@ -210,6 +212,22 @@ export class DashboardController {
     @Request() request: requestWithUser,
   ): Promise<RecentOrdersResponseDto> {
     return this.dashboardService.getAllOrders(request.user.organizationId);
+  }
+
+  @Get('orders/site/:siteId')
+  @ApiOperation({ summary: 'Get orders for one site' })
+  @ApiResponse({ status: 200, type: RecentOrdersResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid site UUID.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async getOrdersBySite(
+    @Param('siteId', new ParseUUIDPipe()) siteId: string,
+    @Request() request: requestWithUser,
+  ): Promise<RecentOrdersResponseDto> {
+    return this.dashboardService.getAllOrders(
+      request.user.organizationId,
+      siteId,
+    );
   }
 
   @Get('orders/recent')

@@ -22,6 +22,7 @@ import { TeamService } from './team.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto } from './dto/add-member.dto';
+import { UpsertWorkforceHoursDto } from './dto/upsert-workforce-hours.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -235,10 +236,31 @@ export class TeamController {
     days: string[];
     dates: string[];
     attendances: Record<string, string[]>;
+    workforceHours: Record<
+      string,
+      { normalHours: number; overtimeHours: number }[]
+    >;
   }> {
     return await this.service.getAttendanceWeek(
       siteId,
       startDate,
+      request.user.organizationId,
+    );
+  }
+
+  @Post('site/:siteId/workforce-hours')
+  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @ApiOperation({ summary: 'Enregistrer les heures travaillées d’un membre' })
+  @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
+  @ApiResponse({ status: 201, description: 'Heures enregistrées' })
+  async upsertWorkforceHours(
+    @Param('siteId') siteId: string,
+    @Body() dto: UpsertWorkforceHoursDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.upsertWorkforceHours(
+      siteId,
+      dto,
       request.user.organizationId,
     );
   }
