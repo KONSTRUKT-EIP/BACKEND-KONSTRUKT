@@ -102,11 +102,16 @@ export class DashboardService {
     query: RecentOrdersQueryDto,
     organizationId?: string | null,
   ): Promise<RecentOrdersResponseDto> {
-    return this.deliveriesService.getRecentOrders(query);
+    return organizationId
+      ? this.deliveriesService.getRecentOrders(query, organizationId)
+      : this.deliveriesService.getRecentOrders(query);
   }
 
-  async getAllOrders(siteId?: string): Promise<RecentOrdersResponseDto> {
-    return this.deliveriesService.getAllOrders(siteId);
+  async getAllOrders(
+    organizationId?: string | null,
+    siteId?: string,
+  ): Promise<RecentOrdersResponseDto> {
+    return this.deliveriesService.getAllOrders(siteId, organizationId);
   }
 
   async createOrder(data: {
@@ -116,8 +121,8 @@ export class DashboardService {
     price: number;
     totalOrder: number;
     total: number;
-  }): Promise<RecentOrdersResponseDto> {
-    return this.deliveriesService.createOrder(data);
+  }, organizationId?: string | null): Promise<RecentOrdersResponseDto> {
+    return this.deliveriesService.createOrder(data, organizationId);
   }
 
   async getResources(organizationId?: string | null): Promise<

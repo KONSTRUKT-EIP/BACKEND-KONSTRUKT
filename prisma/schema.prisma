@@ -440,6 +440,8 @@ model Attendance {
 	userId      String           @db.Uuid
 	date        DateTime         @db.Date
 	status      AttendanceStatus
+	normalHours Decimal          @default(0) @db.Decimal(6, 2)
+	overtimeHours Decimal        @default(0) @db.Decimal(6, 2)
 	checkIn     DateTime?
 	checkOut    DateTime?
 	minutesLate Int?

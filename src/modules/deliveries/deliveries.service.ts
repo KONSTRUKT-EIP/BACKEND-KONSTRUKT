@@ -177,9 +177,12 @@ export class DeliveriesService {
     return { message: `Delivery ${id} supprimee` };
   }
 
-  async getAllOrders(siteId?: string) {
+  async getAllOrders(siteId?: string, organizationId?: string | null) {
     const deliveries = await this.prisma.delivery.findMany({
-      where: siteId ? { siteId } : undefined,
+      where: {
+        ...(siteId ? { siteId } : {}),
+        ...(organizationId ? { site: { organizationId } } : {}),
+      },
       include: { resource: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -187,12 +190,15 @@ export class DeliveriesService {
     return { orders: deliveries.map((delivery) => this.mapOrder(delivery)) };
   }
 
-  async getRecentOrders(query: {
-    page?: number;
-    pageSize?: number;
-    startDate?: string;
-    endDate?: string;
-  }) {
+  async getRecentOrders(
+    query: {
+      page?: number;
+      pageSize?: number;
+      startDate?: string;
+      endDate?: string;
+    },
+    organizationId?: string | null,
+  ) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
 
@@ -208,6 +214,9 @@ export class DeliveriesService {
         createdAt.lte = endDate;
       }
       where.createdAt = createdAt;
+    }
+    if (organizationId) {
+      where.site = { organizationId };
     }
 
     const deliveries = await this.prisma.delivery.findMany({
@@ -228,16 +237,30 @@ export class DeliveriesService {
     price: number;
     totalOrder: number;
     total: number;
-  }) {
+  }, organizationId?: string | null) {
+    const resource = await this.prisma.resource.findFirst({
+      where: {
+        siteId: data.siteId,
+        name: data.productName,
+        ...(organizationId ? { site: { organizationId } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!resource) {
+      throw new NotFoundException(
+        `Resource "${data.productName}" introuvable pour le site ${data.siteId}`,
+      );
+    }
+
     const delivery = await this.prisma.delivery.create({
       data: {
         siteId: data.siteId,
-        productName: data.productName,
-        price: data.price,
-        quantity: data.totalOrder,
+        resourceId: resource.id,
         expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        supplier: 'Non defini',
+        quantity: data.totalOrder,
         status: DeliveryStatus.PLANIFIEE,
+        supplier: resource.supplier,
       },
       include: { resource: true },
     });
@@ -332,22 +355,12 @@ export class DeliveriesService {
 
     const unitPrice = Number(resource.unitPrice);
     const quantity = Number(delivery.quantity);
-    const unitPrice = delivery.price
-      ? Number(delivery.price)
-      : delivery.resource
-        ? Number(delivery.resource.unitPrice)
-        : 0;
 
     return {
       id: delivery.id,
       siteId: delivery.siteId,
       resourceId: delivery.resourceId,
-<<<<<<< HEAD
       resourceName: resource.name,
-=======
-      resourceName:
-        delivery.productName ?? delivery.resource?.name ?? 'Produit sans nom',
->>>>>>> 74938938c403df7c38a13e0c8f681175701b6f46
       expectedDate: delivery.expectedDate,
       receivedDate: delivery.receivedDate,
       quantity,
@@ -360,36 +373,21 @@ export class DeliveriesService {
   }
 
   private mapOrder(delivery: DeliveryWithResource): OrderProjection {
-<<<<<<< HEAD
     const resource = delivery.resource;
 
     if (!resource) {
       throw new Error(`Delivery ${delivery.id} is missing associated resource`);
     }
 
+    const price = Number(resource.unitPrice);
+
     return {
       id: delivery.id,
       productName: resource.name,
       productIcon: '',
-      price: Number(resource.unitPrice),
-      totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(resource.unitPrice),
-=======
-    const price = delivery.price
-      ? Number(delivery.price)
-      : delivery.resource
-        ? Number(delivery.resource.unitPrice)
-        : 0;
-
-    return {
-      id: delivery.id,
-      productName:
-        delivery.productName ?? delivery.resource?.name ?? 'Produit sans nom',
-      productIcon: '',
       price,
       totalOrder: Number(delivery.quantity),
       total: Number(delivery.quantity) * price,
->>>>>>> 74938938c403df7c38a13e0c8f681175701b6f46
     };
   }
 }

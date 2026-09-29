@@ -222,8 +222,12 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async getOrdersBySite(
     @Param('siteId', new ParseUUIDPipe()) siteId: string,
+    @Request() request: requestWithUser,
   ): Promise<RecentOrdersResponseDto> {
-    return this.dashboardService.getAllOrders(siteId);
+    return this.dashboardService.getAllOrders(
+      request.user.organizationId,
+      siteId,
+    );
   }
 
   @Get('orders/recent')
