@@ -43,7 +43,7 @@ export class SiteController {
   })
   @ApiResponse({ status: 200, description: 'Liste des chantiers' })
   findAll(@Request() request: requestWithUser) {
-    return this.service.findAll(request.user.organizationId);
+    return this.service.findAll(request.user.organizationId, request.user.userId);
   }
 
   @Get(':id')
@@ -53,7 +53,7 @@ export class SiteController {
   @ApiResponse({ status: 200, description: 'Chantier trouvé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   findOne(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.findOne(id, request.user.organizationId);
+    return this.service.findOne(id, request.user.organizationId, request.user.userId);
   }
 
   @Post()
@@ -61,7 +61,7 @@ export class SiteController {
   @ApiOperation({ summary: 'Créer un chantier' })
   @ApiResponse({ status: 201, description: 'Chantier créé' })
   create(@Body() dto: CreateSiteDto, @Request() request: requestWithUser) {
-    return this.service.create(dto, request.user.organizationId);
+    return this.service.create(dto, request.user.organizationId, request.user.userId);
   }
 
   @Put(':id')
@@ -75,7 +75,7 @@ export class SiteController {
     @Body() dto: UpdateSiteDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.update(id, dto, request.user.organizationId);
+    return this.service.update(id, dto, request.user.organizationId, request.user.userId);
   }
 
   @Delete(':id')
@@ -85,6 +85,6 @@ export class SiteController {
   @ApiResponse({ status: 200, description: 'Chantier supprimé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   remove(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.remove(id, request.user.organizationId);
+    return this.service.remove(id, request.user.organizationId, request.user.userId);
   }
 }

@@ -40,7 +40,11 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   create(@Body() dto: CreateUserDto, @Request() request: requestWithUser) {
-    return this.userService.create(dto, request.user.organizationId);
+    return this.userService.create(
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Get()
@@ -50,7 +54,12 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAll(@Request() request: requestWithUser) {
-    return this.userService.findAll(1, 20, request.user.organizationId);
+    return this.userService.findAll(
+      1,
+      20,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Get(':id')
@@ -62,7 +71,11 @@ export class UserController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   findOne(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.userService.findOne(id, request.user.organizationId);
+    return this.userService.findOne(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Put(':id')
@@ -79,7 +92,12 @@ export class UserController {
     @Body() dto: UpdateUserDto,
     @Request() request: requestWithUser,
   ) {
-    return this.userService.update(id, dto, request.user.organizationId);
+    return this.userService.update(
+      id,
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Delete(':id')
@@ -91,6 +109,10 @@ export class UserController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   remove(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.userService.remove(id, request.user.organizationId);
+    return this.userService.remove(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 }
