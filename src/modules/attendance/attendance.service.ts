@@ -10,18 +10,64 @@ import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 import { UpsertAttendanceDto } from './dto/upsert-attendance.dto';
 
+function parseAttendanceDate(value: string) {
+  const normalized = value.slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+
+  if (!match) {
+    throw new BadRequestException('Date invalide');
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (isNaN(date.getTime())) {
+    throw new BadRequestException('Date invalide');
+  }
+
+  return date;
+}
+
 @Injectable()
 export class AttendanceService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async resolveOrganizationId(
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    if (organizationId) {
+      return organizationId;
+    }
+
+    if (!userId) {
+      return null;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    });
+
+    return user?.organizationId ?? null;
+  }
+
   private async assertTeamAccess(
     teamId: string,
     organizationId?: string | null,
+    userId?: string,
   ) {
-    if (!organizationId)
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      organizationId,
+      userId,
+    );
+
+    if (!resolvedOrganizationId)
       throw new NotFoundException(`Équipe ${teamId} introuvable`);
     const team = await this.prisma.team.findFirst({
-      where: { id: teamId, site: { organizationId } },
+      where: { id: teamId, site: { organizationId: resolvedOrganizationId } },
     });
     if (!team) throw new NotFoundException(`Équipe ${teamId} introuvable`);
   }
@@ -32,17 +78,21 @@ export class AttendanceService {
     date?: string;
     status?: AttendanceStatus;
     organizationId?: string | null;
+    userIdRequest?: string;
   }) {
-    if (!filters.organizationId) return [];
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      filters.organizationId,
+      filters.userIdRequest,
+    );
+
+    if (!resolvedOrganizationId) return [];
     const where: Record<string, unknown> = {};
-    where.team = { site: { organizationId: filters.organizationId } };
+    where.team = { site: { organizationId: resolvedOrganizationId } };
     if (filters.teamId) where.teamId = filters.teamId;
     if (filters.userId) where.userId = filters.userId;
     if (filters.status) where.status = filters.status;
     if (filters.date) {
-      const day = new Date(filters.date);
-      if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
-      where.date = day;
+      where.date = parseAttendanceDate(filters.date);
     }
 
     return this.prisma.attendance.findMany({
@@ -55,11 +105,16 @@ export class AttendanceService {
     });
   }
 
-  async findOne(id: string, organizationId?: string | null) {
+  async findOne(id: string, organizationId?: string | null, userId?: string) {
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      organizationId,
+      userId,
+    );
+
     const record = await this.prisma.attendance.findFirst({
       where: {
         id,
-        team: { site: { organizationId: organizationId ?? '__no_org__' } },
+        team: { site: { organizationId: resolvedOrganizationId ?? '__no_org__' } },
       },
       include: {
         team: { select: { id: true, name: true } },
@@ -70,15 +125,25 @@ export class AttendanceService {
     return record;
   }
 
-  async create(dto: CreateAttendanceDto, organizationId?: string | null) {
-    await this.assertTeamAccess(dto.teamId, organizationId);
+  async create(
+    dto: CreateAttendanceDto,
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    await this.assertTeamAccess(dto.teamId, organizationId, userId);
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      organizationId,
+      userId,
+    );
     const user = await this.prisma.user.findFirst({
-      where: { id: dto.userId, organizationId: organizationId ?? '__no_org__' },
+      where: {
+        id: dto.userId,
+        organizationId: resolvedOrganizationId ?? '__no_org__',
+      },
     });
     if (!user)
       throw new NotFoundException(`Utilisateur ${dto.userId} introuvable`);
-    const day = new Date(dto.date);
-    if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
+    const day = parseAttendanceDate(dto.date);
 
     const existing = await this.prisma.attendance.findUnique({
       where: {
@@ -118,8 +183,9 @@ export class AttendanceService {
     id: string,
     dto: UpdateAttendanceDto,
     organizationId?: string | null,
+    userId?: string,
   ) {
-    await this.findOne(id, organizationId);
+    await this.findOne(id, organizationId, userId);
     return this.prisma.attendance.update({
       where: { id },
       data: {
@@ -146,8 +212,8 @@ export class AttendanceService {
     });
   }
 
-  async remove(id: string, organizationId?: string | null) {
-    await this.findOne(id, organizationId);
+  async remove(id: string, organizationId?: string | null, userId?: string) {
+    await this.findOne(id, organizationId, userId);
     await this.prisma.attendance.delete({ where: { id } });
     return { message: 'Pointage supprimé' };
   }
@@ -156,10 +222,10 @@ export class AttendanceService {
     teamId: string,
     date: string,
     organizationId?: string | null,
+    userId?: string,
   ) {
-    await this.assertTeamAccess(teamId, organizationId);
-    const day = new Date(date);
-    if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
+    await this.assertTeamAccess(teamId, organizationId, userId);
+    const day = parseAttendanceDate(date);
 
     const records = await this.prisma.attendance.findMany({
       where: { teamId, date: day },
@@ -185,15 +251,25 @@ export class AttendanceService {
     return summary;
   }
 
-  async upsert(dto: UpsertAttendanceDto, organizationId?: string | null) {
-    await this.assertTeamAccess(dto.teamId, organizationId);
+  async upsert(
+    dto: UpsertAttendanceDto,
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    await this.assertTeamAccess(dto.teamId, organizationId, userId);
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      organizationId,
+      userId,
+    );
     const user = await this.prisma.user.findFirst({
-      where: { id: dto.userId, organizationId: organizationId ?? '__no_org__' },
+      where: {
+        id: dto.userId,
+        organizationId: resolvedOrganizationId ?? '__no_org__',
+      },
     });
     if (!user)
       throw new NotFoundException(`Utilisateur ${dto.userId} introuvable`);
-    const day = new Date(dto.date);
-    if (isNaN(day.getTime())) throw new BadRequestException('Date invalide');
+    const day = parseAttendanceDate(dto.date);
 
     return this.prisma.attendance.upsert({
       where: {

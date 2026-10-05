@@ -68,6 +68,7 @@ export class AttendanceController {
       date,
       status,
       organizationId: request.user.organizationId,
+      userIdRequest: request.user.userId,
     });
   }
 
@@ -88,6 +89,7 @@ export class AttendanceController {
       teamId,
       date,
       request.user.organizationId,
+      request.user.userId,
     );
   }
 
@@ -103,7 +105,7 @@ export class AttendanceController {
   @ApiResponse({ status: 200, description: 'Pointage trouvé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   findOne(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.findOne(id, request.user.organizationId);
+    return this.service.findOne(id, request.user.organizationId, request.user.userId);
   }
 
   @Post()
@@ -125,7 +127,7 @@ export class AttendanceController {
     @Body() dto: CreateAttendanceDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.create(dto, request.user.organizationId);
+    return this.service.create(dto, request.user.organizationId, request.user.userId);
   }
 
   @Put(':id')
@@ -144,7 +146,7 @@ export class AttendanceController {
     @Body() dto: UpdateAttendanceDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.update(id, dto, request.user.organizationId);
+    return this.service.update(id, dto, request.user.organizationId, request.user.userId);
   }
 
   @Delete(':id')
@@ -154,7 +156,7 @@ export class AttendanceController {
   @ApiResponse({ status: 200, description: 'Pointage supprimé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   remove(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.remove(id, request.user.organizationId);
+    return this.service.remove(id, request.user.organizationId, request.user.userId);
   }
 
   @Patch('upsert')
@@ -170,6 +172,6 @@ export class AttendanceController {
     @Body() dto: UpsertAttendanceDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.upsert(dto, request.user.organizationId);
+    return this.service.upsert(dto, request.user.organizationId, request.user.userId);
   }
 }

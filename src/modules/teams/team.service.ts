@@ -29,14 +29,40 @@ interface TeamMemberDetail {
 export class TeamService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async resolveOrganizationId(
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    if (organizationId) {
+      return organizationId;
+    }
+
+    if (!userId) {
+      return null;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    });
+
+    return user?.organizationId ?? null;
+  }
+
   private async assertSiteAccess(
     siteId: string,
     organizationId?: string | null,
+    userId?: string,
   ) {
-    if (!organizationId)
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      organizationId,
+      userId,
+    );
+
+    if (!resolvedOrganizationId)
       throw new NotFoundException(`Chantier ${siteId} introuvable`);
     const site = await this.prisma.site.findFirst({
-      where: { id: siteId, organizationId },
+      where: { id: siteId, organizationId: resolvedOrganizationId },
     });
     if (!site) throw new NotFoundException(`Chantier ${siteId} introuvable`);
   }
@@ -60,6 +86,21 @@ export class TeamService {
       where: siteId
         ? { siteId, site: { organizationId } }
         : { site: accessibleSite },
+  ) {
+    if (!organizationId) return [];
+    const accessibleSite =
+      !user || user.role === UserRole.ADMIN
+        ? { organizationId }
+        : {
+            organizationId,
+            memberships: {
+              some: { userId: user.userId, isActive: true },
+            },
+          };
+    return this.prisma.team.findMany({
+      where: siteId
+        ? { siteId, site: { organizationId } }
+        : { site: accessibleSite },
       orderBy: { createdAt: 'desc' },
       include: {
         site: { select: { id: true, name: true } },
@@ -69,9 +110,18 @@ export class TeamService {
     });
   }
 
-  async findOne(id: string, organizationId?: string | null) {
+  async findOne(
+    id: string,
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      organizationId,
+      userId,
+    );
+
     const team = await this.prisma.team.findFirst({
-      where: { id, site: { organizationId: organizationId ?? '__no_org__' } },
+      where: { id, site: { organizationId: resolvedOrganizationId ?? '__no_org__' } },
       include: {
         site: { select: { id: true, name: true } },
         leader: { select: { id: true, firstName: true, lastName: true } },
@@ -95,8 +145,12 @@ export class TeamService {
     return team;
   }
 
-  async create(dto: CreateTeamDto, organizationId?: string | null) {
-    await this.assertSiteAccess(dto.siteId, organizationId);
+  async create(
+    dto: CreateTeamDto,
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    await this.assertSiteAccess(dto.siteId, organizationId, userId);
     return this.prisma.team.create({
       data: {
         siteId: dto.siteId,
@@ -110,8 +164,13 @@ export class TeamService {
     });
   }
 
-  async update(id: string, dto: UpdateTeamDto, organizationId?: string | null) {
-    await this.findOne(id, organizationId);
+  async update(
+    id: string,
+    dto: UpdateTeamDto,
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    await this.findOne(id, organizationId, userId);
     return this.prisma.team.update({
       where: { id },
       data: {
@@ -125,14 +184,18 @@ export class TeamService {
     });
   }
 
-  async remove(id: string, organizationId?: string | null) {
-    await this.findOne(id, organizationId);
+  async remove(id: string, organizationId?: string | null, userId?: string) {
+    await this.findOne(id, organizationId, userId);
     await this.prisma.team.delete({ where: { id } });
     return { message: 'Équipe supprimée' };
   }
 
-  async getMembers(teamId: string, organizationId?: string | null) {
-    await this.findOne(teamId, organizationId);
+  async getMembers(
+    teamId: string,
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    await this.findOne(teamId, organizationId, userId);
     return this.prisma.teamMember.findMany({
       where: { teamId },
       include: {
@@ -154,10 +217,15 @@ export class TeamService {
     teamId: string,
     dto: AddMemberDto,
     organizationId?: string | null,
+    userId?: string,
   ) {
-    await this.findOne(teamId, organizationId);
+    await this.findOne(teamId, organizationId, userId);
     const user = await this.prisma.user.findFirst({
-      where: { id: dto.userId, organizationId: organizationId ?? '__no_org__' },
+      where: {
+        id: dto.userId,
+        organizationId:
+          (await this.resolveOrganizationId(organizationId, userId)) ?? '__no_org__',
+      },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
@@ -195,10 +263,15 @@ export class TeamService {
     teamId: string,
     userId: string,
     organizationId?: string | null,
+    requesterId?: string,
   ) {
-    await this.findOne(teamId, organizationId);
+    await this.findOne(teamId, organizationId, requesterId);
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, organizationId: organizationId ?? '__no_org__' },
+      where: {
+        id: userId,
+        organizationId:
+          (await this.resolveOrganizationId(organizationId, requesterId)) ?? '__no_org__',
+      },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
@@ -218,11 +291,26 @@ export class TeamService {
     return { message: "Membre retiré de l'équipe" };
   }
 
-  async getTeamStats(siteId: string, organizationId?: string | null) {
-    await this.assertSiteAccess(siteId, organizationId);
+  async getTeamStats(
+    siteId: string,
+    organizationId?: string | null,
+    userId?: string,
+  ) {
+    await this.assertSiteAccess(siteId, organizationId, userId);
     const teams = await this.prisma.team.findMany({
       where: { siteId },
     });
+
+    const members = await this.prisma.teamMember.findMany({
+      where: {
+        teamId: { in: teams.map((team) => team.id) },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    const totalEmployees = new Set(members.map((member) => member.userId)).size;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfWeek = new Date(today);
@@ -253,6 +341,7 @@ export class TeamService {
         (a) => a.date.getTime() === selectedDate.getTime(),
       );
     }
+    const presentUserIds = new Set(dayAttendances.map((attendance) => attendance.userId));
     const total = dayAttendances.length;
     const presents = dayAttendances.filter(
       (a) => a.status === AttendanceStatus.PRESENT,
@@ -266,16 +355,18 @@ export class TeamService {
     const conges = dayAttendances.filter(
       (a) => a.status === AttendanceStatus.CONGE,
     ).length;
+    const enAttente = Math.max(totalEmployees - presentUserIds.size, 0);
     const surSite = dayAttendances.filter(
       (a) => a.status === AttendanceStatus.PRESENT && a.checkOut === null,
     ).length;
     const totalNonPresents = absents + conges;
     return {
       total: total,
+      totalEmployees,
       complete: presents,
       enCours: surSite,
       retards,
-      enAttente: 0,
+      enAttente,
       annule: absents,
       pctPresents: total > 0 ? Math.round((presents / total) * 100) : 0,
       pctAbsents: total > 0 ? Math.round((totalNonPresents / total) * 100) : 0,
@@ -287,8 +378,9 @@ export class TeamService {
   async getTeamMembersDetails(
     siteId: string,
     organizationId?: string | null,
+    userId?: string,
   ): Promise<TeamMemberDetail[]> {
-    await this.assertSiteAccess(siteId, organizationId);
+    await this.assertSiteAccess(siteId, organizationId, userId);
     const teams = await this.prisma.team.findMany({
       where: { siteId },
       include: {
@@ -385,8 +477,9 @@ export class TeamService {
     siteId: string,
     startDate?: string,
     organizationId?: string | null,
+    userId?: string,
   ) {
-    await this.assertSiteAccess(siteId, organizationId);
+    await this.assertSiteAccess(siteId, organizationId, userId);
     const teams = await this.prisma.team.findMany({
       where: { siteId },
     });
@@ -494,8 +587,9 @@ export class TeamService {
     siteId: string,
     dto: UpsertWorkforceHoursDto,
     organizationId?: string | null,
+    userId?: string,
   ) {
-    await this.assertSiteAccess(siteId, organizationId);
+    await this.assertSiteAccess(siteId, organizationId, userId);
 
     const membership = await this.prisma.teamMember.findFirst({
       where: {
