@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { InvitationService } from '../../../src/modules/invitations/invitation.service';
 
@@ -8,7 +13,7 @@ const adminId = 'admin-1';
 
 function createService() {
   const prisma = {
-    site: { findFirst: jest.fn() },
+    site: { findFirst: jest.fn(), findUnique: jest.fn() },
     invitation: {
       create: jest.fn(),
       findUnique: jest.fn(),
@@ -48,6 +53,14 @@ describe('InvitationService', () => {
   it('stores only a hash and returns the activation link', async () => {
     const { service, prisma, mailer } = createService();
     prisma.site.findFirst.mockResolvedValue({ id: siteId, organizationId });
+    prisma.site.findUnique.mockResolvedValue({
+      name: 'Site A',
+      organization: { name: 'Konstrukt' },
+    });
+    prisma.user.findUnique.mockResolvedValue({
+      firstName: 'Marie',
+      lastName: 'Dupont',
+    });
     prisma.invitation.create.mockImplementation(async ({ data, select }) => ({
       id: 'invitation-1',
       ...data,
@@ -67,11 +80,18 @@ describe('InvitationService', () => {
     const createData = prisma.invitation.create.mock.calls[0][0].data;
     expect(createData.email).toBe('person@example.com');
     expect(createData.tokenHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(result.link).toMatch(/^https:\/\/app\.konstrukt\.io\/invite\/[a-f0-9]{64}$/);
+    expect(result.link).toMatch(/^https?:\/\/[^/]+\/invite\/[a-f0-9]{64}$/);
     expect(result.link).not.toContain(createData.tokenHash);
     expect(mailer.sendInvitation).toHaveBeenCalledWith(
       'person@example.com',
-      result.link,
+      expect.objectContaining({
+        inviterName: 'Marie Dupont',
+        organizationName: 'Konstrukt',
+        siteName: 'Site A',
+        role: UserRole.COLLABORATEUR,
+        invitationLink: result.link,
+        expirationHours: 48,
+      }),
     );
   });
 
@@ -163,5 +183,55 @@ describe('InvitationService', () => {
         password: 'Password1!',
       }),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects an expired invitation', async () => {
+    const { service, prisma } = createService();
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback({
+        invitation: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'invitation-1',
+            acceptedAt: null,
+            expiresAt: new Date(Date.now() - 60_000),
+          }),
+        },
+      }),
+    );
+
+    await expect(
+      service.accept('expired-token', {
+        firstName: 'John',
+        lastName: 'Doe',
+        password: 'Password1!',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects accepting an invitation for an existing email', async () => {
+    const { service, prisma } = createService();
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback({
+        invitation: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'invitation-1',
+            email: 'person@example.com',
+            acceptedAt: null,
+            expiresAt: new Date(Date.now() + 60_000),
+          }),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'existing-user' }),
+        },
+      }),
+    );
+
+    await expect(
+      service.accept('used-email-token', {
+        firstName: 'John',
+        lastName: 'Doe',
+        password: 'Password1!',
+      }),
+    ).rejects.toThrow(ConflictException);
   });
 });

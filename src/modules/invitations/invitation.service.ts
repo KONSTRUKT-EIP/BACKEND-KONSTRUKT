@@ -12,7 +12,10 @@ import { PrismaService } from '../../lib/prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
-import { InvitationMailerService } from './invitation-mailer.service';
+import {
+  InvitationEmailData,
+  InvitationMailerService,
+} from './invitation-mailer.service';
 
 const invitationPublicSelect = {
   id: true,
@@ -63,14 +66,25 @@ export class InvitationService {
         tokenHash: this.hashToken(token),
         expiresAt: new Date(now.getTime() + this.invitationLifetimeMs),
         invitedById,
-        sentAt: now,
+        sentAt: null,
       },
       select: invitationPublicSelect,
     });
 
     const link = this.buildLink(token);
-    this.mailer.sendInvitation(invitation.email, link);
-    return { invitation, link };
+    const emailData = await this.buildInvitationEmailData(
+      site.id,
+      invitation.role,
+      invitedById,
+      link,
+    );
+    await this.mailer.sendInvitation(invitation.email, emailData);
+    const sentInvitation = await this.prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { sentAt: new Date() },
+      select: invitationPublicSelect,
+    });
+    return { invitation: sentInvitation ?? invitation, link };
   }
 
   async getByToken(token: string) {
@@ -176,15 +190,26 @@ export class InvitationService {
       data: {
         tokenHash: this.hashToken(token),
         expiresAt: new Date(now.getTime() + this.invitationLifetimeMs),
-        sentAt: now,
+        sentAt: null,
         invitedById,
       },
       select: invitationPublicSelect,
     });
 
     const link = this.buildLink(token);
-    this.mailer.sendInvitation(updated.email, link);
-    return { invitation: updated, link };
+    const emailData = await this.buildInvitationEmailData(
+      invitation.siteId,
+      invitation.role,
+      invitedById,
+      link,
+    );
+    await this.mailer.sendInvitation(updated.email, emailData);
+    const sentInvitation = await this.prisma.invitation.update({
+      where: { id: updated.id },
+      data: { sentAt: new Date() },
+      select: invitationPublicSelect,
+    });
+    return { invitation: sentInvitation ?? updated, link };
   }
 
   async remove(
@@ -250,6 +275,40 @@ export class InvitationService {
       throw new NotFoundException('Invitation not found');
     }
     return invitation;
+  }
+
+  private async buildInvitationEmailData(
+    siteId: string,
+    role: UserRole,
+    invitedById: string,
+    invitationLink: string,
+  ): Promise<InvitationEmailData> {
+    const [site, inviter] = await Promise.all([
+      this.prisma.site.findUnique({
+        where: { id: siteId },
+        select: {
+          name: true,
+          organization: { select: { name: true } },
+        },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: invitedById },
+        select: { firstName: true, lastName: true },
+      }),
+    ]);
+
+    if (!site || !inviter) {
+      throw new NotFoundException('Invitation context not found');
+    }
+
+    return {
+      inviterName: `${inviter.firstName} ${inviter.lastName}`.trim(),
+      organizationName: site.organization.name,
+      siteName: site.name,
+      role,
+      invitationLink,
+      expirationHours: Number(process.env.INVITATION_EXPIRES_IN_HOURS ?? 48),
+    };
   }
 
   private assertAdmin(role?: UserRole) {

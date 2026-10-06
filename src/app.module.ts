@@ -16,6 +16,7 @@ import { DeliveriesModule } from './modules/deliveries/deliveries.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { ResourceUsagesModule } from './modules/resource-usages/resource-usages.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
+import { SiteMembershipModule } from './modules/site-memberships/site-membership.module';
 
 @Controller()
 export class AppController {
@@ -47,6 +48,7 @@ export class AppController {
     ResourcesModule,
     ResourceUsagesModule,
     InvitationsModule,
+    SiteMembershipModule,
   ],
   controllers: [AppController],
   providers: [
