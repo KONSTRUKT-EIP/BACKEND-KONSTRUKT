@@ -2,15 +2,23 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
-  IsOptional,
   IsString,
-  IsUUID,
   Matches,
   MinLength,
 } from 'class-validator';
 
-export class RegisterDto {
-  @ApiProperty({ example: 'user@example.com' })
+export class CreateOrganizationOnboardingDto {
+  @ApiProperty({ example: 'Konstrukt BTP' })
+  @IsString()
+  @IsNotEmpty()
+  organizationName: string;
+
+  @ApiProperty({ example: 'FREE' })
+  @IsString()
+  @IsNotEmpty()
+  plan: string;
+
+  @ApiProperty({ example: 'owner@example.com' })
   @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'Email is required' })
   email: string;
@@ -34,12 +42,4 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty({ message: 'Last name is required' })
   lastName: string;
-
-  @ApiProperty({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    required: false,
-  })
-  @IsOptional()
-  @IsUUID('all', { message: 'Invalid organization ID format' })
-  organizationId?: string;
 }

@@ -44,6 +44,32 @@ npm run start:dev
 
 Le backend sera accessible sur [http://localhost:3000](http://localhost:3000)
 
+## Emails d'invitation avec Brevo
+
+Le développement local utilise par défaut `MAIL_PROVIDER=console` et simule
+l'envoi dans les logs. Pour activer Brevo, renseigner dans `.env` :
+
+```env
+MAIL_PROVIDER=brevo
+BREVO_API_KEY=xkeysib-...
+MAIL_FROM_EMAIL=konstrukt.compagnie@gmail.com
+MAIL_FROM_NAME=Konstrukt
+APP_URL=httphttp://localhost:8081
+BREVO_INVITATION_TEMPLATE_ID=2
+```
+
+Dans Brevo, le domaine d'envoi doit être vérifié avant utilisation. Les
+enregistrements SPF et DKIM fournis par Brevo doivent être ajoutés au DNS.
+Le mode `console` est refusé lorsque `NODE_ENV=production`.
+
+Pour tester sans compte Brevo :
+
+```bash
+MAIL_PROVIDER=console npm run start:dev
+```
+
+La clé API ne doit jamais être ajoutée au dépôt.
+
 ## Structure du projet 🗂️
 ```
 src/

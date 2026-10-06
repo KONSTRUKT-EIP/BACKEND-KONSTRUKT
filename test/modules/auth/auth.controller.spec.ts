@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthController } from '../../../src/modules/auth/auth.controller';
 import { AuthService } from '../../../src/modules/auth/auth.service';
 import { UserService } from '../../../src/modules/users/user.service';
 import { JwtAuthGuard } from '../../../src/modules/auth/jwt-auth.guard';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import type { requestWithUser } from '../../../src/modules/auth/jwt.strategy';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -27,7 +28,7 @@ describe('AuthController', () => {
 
   const mockAuthService = {
     login: jest.fn(),
-    register: jest.fn(),
+    getAccessibleSites: jest.fn(),
     refreshTokens: jest.fn(),
     logout: jest.fn(),
     changePassword: jest.fn(),
@@ -41,7 +42,7 @@ describe('AuthController', () => {
     jest.clearAllMocks();
 
     mockAuthService.login.mockResolvedValue(mockTokens);
-    mockAuthService.register.mockResolvedValue(mockTokens);
+    mockAuthService.getAccessibleSites.mockResolvedValue([]);
     mockAuthService.refreshTokens.mockResolvedValue(mockTokens);
     mockAuthService.logout.mockResolvedValue({ message: 'Logged out successfully' });
     mockAuthService.changePassword.mockResolvedValue({ message: 'Password changed successfully' });
@@ -86,38 +87,6 @@ describe('AuthController', () => {
       await expect(
         controller.login({ email: 'bad@bad.com', password: 'wrong' }),
       ).rejects.toThrow(UnauthorizedException);
-    });
-  });
-
-  // ─── REGISTER ────────────────────────────────────────────────────────────
-  describe('register()', () => {
-    it('should call authService.register and return tokens', async () => {
-      const dto = {
-        email: 'new@example.com',
-        password: 'Password1!',
-        firstName: 'Jane',
-        lastName: 'Doe',
-      };
-
-      const result = await controller.register(dto);
-
-      expect(mockAuthService.register).toHaveBeenCalledWith(dto);
-      expect(result).toEqual(mockTokens);
-    });
-
-    it('should propagate ConflictException from authService', async () => {
-      mockAuthService.register.mockRejectedValue(
-        new ConflictException('Email already in use'),
-      );
-
-      await expect(
-        controller.register({
-          email: 'exists@example.com',
-          password: 'Password1!',
-          firstName: 'John',
-          lastName: 'Doe',
-        }),
-      ).rejects.toThrow(ConflictException);
     });
   });
 
@@ -205,6 +174,25 @@ describe('AuthController', () => {
       const result = await controller.authenticateUser(req);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getAccessibleSites()', () => {
+    it('should return sites accessible to the authenticated user', async () => {
+      const sites = [{ id: 'site-1', membershipRole: UserRole.COLLABORATEUR }];
+      mockAuthService.getAccessibleSites.mockResolvedValue(sites);
+      const req: requestWithUser = {
+        user: {
+          userId: 'user-uuid-1',
+          organizationId: 'organization-uuid-1',
+          role: UserRole.COLLABORATEUR,
+        },
+      };
+
+      const result = await controller.getAccessibleSites(req);
+
+      expect(mockAuthService.getAccessibleSites).toHaveBeenCalledWith(req.user);
+      expect(result).toEqual(sites);
     });
   });
 });

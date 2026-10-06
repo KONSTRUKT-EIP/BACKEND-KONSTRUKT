@@ -15,6 +15,10 @@ enum UserRole {
 	CLIENT             @map("client")
 }
 
+enum InvitationDeliveryMethod {
+  EMAIL
+}
+
 enum TaskType {
 	GROS_OEUVRE
 	SECOND_OEUVRE
@@ -104,6 +108,7 @@ model Organization {
 
 	users User[]
 	sites Site[]
+	invitations Invitation[]
 }
 
 model User {
@@ -117,6 +122,8 @@ model User {
 	createdAt      DateTime     @default(now())
 
 	organization    Organization?    @relation(fields: [organizationId], references: [id])
+	siteMemberships SiteMembership[]
+	sentInvitations Invitation[]     @relation("InvitationInvitedBy")
 	uploadedDocs    Document[]       @relation("DocumentUploadedBy")
 	reports         Report[]         @relation("ReportGeneratedBy")
 	taskAssignments TaskAssignment[]
@@ -158,6 +165,8 @@ model Site {
 	updatedAt      DateTime   @updatedAt
 
 	organization Organization @relation(fields: [organizationId], references: [id])
+	memberships   SiteMembership[]
+	invitations   Invitation[]
 	zones        SiteZone[]
 	resources    Resource[]
 	deliveries   Delivery[]
@@ -168,6 +177,30 @@ model Site {
 	teams        Team[]
 
 	@@index([organizationId])
+}
+
+model Invitation {
+  id             String                   @id @default(uuid()) @db.Uuid
+  email          String
+  organizationId String                   @db.Uuid
+  siteId         String                   @db.Uuid
+  role           UserRole
+  tokenHash      String                   @unique
+  expiresAt      DateTime
+  invitedById    String                   @db.Uuid
+  acceptedAt     DateTime?
+  createdAt      DateTime                 @default(now())
+  deliveryMethod InvitationDeliveryMethod @default(EMAIL)
+  sentAt         DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("InvitationInvitedBy", fields: [invitedById], references: [id])
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([email])
+  @@index([expiresAt])
 }
 
 model SiteZone {
@@ -181,6 +214,22 @@ model SiteZone {
 	site  Site   @relation(fields: [siteId], references: [id])
 	tasks Task[]
 
+	@@index([siteId])
+}
+
+model SiteMembership {
+	id        String   @id @default(uuid()) @db.Uuid
+	userId    String   @db.Uuid
+	siteId    String   @db.Uuid
+	role      UserRole
+	isActive  Boolean  @default(true)
+	createdAt DateTime @default(now())
+
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+	site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+	@@unique([userId, siteId])
+	@@index([userId])
 	@@index([siteId])
 }
 

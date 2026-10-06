@@ -78,6 +78,38 @@ describe('DashboardController', () => {
     expect(controller).toBeDefined();
   });
 
+  // ─── getSummary ───────────────────────────────────────────────────────────
+  describe('getSummary()', () => {
+    it('should return dashboard summary', async () => {
+      const query: DashboardSummaryQueryDto = {};
+      const result = await controller.getSummary(query, mockRequest);
+
+      expect(result.globalProgress).toBe(50);
+      expect(result.globalSpent).toBe(1000);
+      expect(result.categories).toHaveLength(4);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getSummary).toHaveBeenCalledWith(query, 'org-a');
+    });
+
+    it('should throw BadRequestException for invalid date format', async () => {
+      await expect(
+        controller.getSummary({ startDate: 'not-a-date' }, mockRequest),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should accept valid YYYY-MM-DD dates', async () => {
+      const query: DashboardSummaryQueryDto = {
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      };
+      const result = await controller.getSummary(query, mockRequest);
+
+      expect(result).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getSummary).toHaveBeenCalledWith(query, 'org-a');
+    });
+  });
+
   // ─── getAllOrders ─────────────────────────────────────────────────────────
   describe('getAllOrders()', () => {
     it('should return all orders from the service', async () => {

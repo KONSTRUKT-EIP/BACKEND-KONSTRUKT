@@ -5,6 +5,7 @@ import { CreateGenericTableDto } from '../../../src/modules/dashboard/dto/create
 import { UpdateGenericTableDto } from '../../../src/modules/dashboard/dto/update-generic-table.dto';
 import { AddGenericTableRowDto } from '../../../src/modules/dashboard/dto/add-generic-table-row.dto';
 import { UpdateGenericTableRowDto } from '../../../src/modules/dashboard/dto/update-generic-table-row.dto';
+import { SiteAccessService } from '../../../src/shared/authorization/site-access.service';
 
 describe('GenericTableController', () => {
   let controller: GenericTableController;
@@ -48,6 +49,10 @@ describe('GenericTableController', () => {
             deleteRow: jest.fn().mockResolvedValue(mockRow),
           },
         },
+        {
+          provide: SiteAccessService,
+          useValue: { assertAccess: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -67,11 +72,11 @@ describe('GenericTableController', () => {
         siteId: '550e8400-e29b-41d4-a716-446655440001',
       };
 
-        const result = await controller.createTable(dto, mockRequest);
+      const result = await controller.createTable(dto, mockRequest);
 
       expect(result).toEqual(mockTable);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(service.createTable).toHaveBeenCalledWith(dto, 'org-a');
+      expect(service.createTable).toHaveBeenCalledWith(dto, 'org-a');
     });
   });
 
@@ -79,11 +84,11 @@ describe('GenericTableController', () => {
     it('should return a table by ID', async () => {
       const tableId = '550e8400-e29b-41d4-a716-446655440000';
 
-        const result = await controller.getTable(tableId, mockRequest);
+      const result = await controller.getTable(tableId, mockRequest);
 
       expect(result).toEqual(mockTable);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(service.getTable).toHaveBeenCalledWith(tableId, 'org-a');
+      expect(service.getTable).toHaveBeenCalledWith(tableId, 'org-a');
     });
   });
 
@@ -94,11 +99,11 @@ describe('GenericTableController', () => {
         name: 'Updated Table',
       };
 
-        const result = await controller.updateTable(tableId, dto, mockRequest);
+      const result = await controller.updateTable(tableId, dto, mockRequest);
 
       expect(result).toEqual(mockTable);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(service.updateTable).toHaveBeenCalledWith(tableId, dto, 'org-a');
+      expect(service.updateTable).toHaveBeenCalledWith(tableId, dto, 'org-a');
     });
   });
 
@@ -106,11 +111,11 @@ describe('GenericTableController', () => {
     it('should delete a table', async () => {
       const tableId = '550e8400-e29b-41d4-a716-446655440000';
 
-        const result = await controller.deleteTable(tableId, mockRequest);
+      const result = await controller.deleteTable(tableId, mockRequest);
 
       expect(result).toEqual(mockTable);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(service.deleteTable).toHaveBeenCalledWith(tableId, 'org-a');
+      expect(service.deleteTable).toHaveBeenCalledWith(tableId, 'org-a');
     });
   });
 
@@ -120,7 +125,11 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual([mockTable]);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.listTables).toHaveBeenCalledWith(undefined, 'org-a');
+      expect(service.listTables).toHaveBeenCalledWith(
+        undefined,
+        'org-a',
+        mockRequest.user,
+      );
     });
 
     it('should list tables filtered by siteId', async () => {
@@ -130,7 +139,11 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual([mockTable]);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.listTables).toHaveBeenCalledWith(siteId, 'org-a');
+      expect(service.listTables).toHaveBeenCalledWith(
+        siteId,
+        'org-a',
+        mockRequest.user,
+      );
     });
   });
 
@@ -145,7 +158,10 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual(mockRow);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.addRow).toHaveBeenCalledWith({ tableId, data: dto.data }, 'org-a');
+      expect(service.addRow).toHaveBeenCalledWith(
+        { tableId, data: dto.data },
+        'org-a',
+      );
     });
   });
 

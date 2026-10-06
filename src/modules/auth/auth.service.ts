@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -15,6 +14,7 @@ import { UserService } from '../users/user.service';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { randomBytes, createHash } from 'crypto';
 import { UserRole } from '../../shared/types/roles.enum';
+import { CreateOrganizationOnboardingDto } from './dto/create-organization-onboarding.dto';
 
 @Injectable()
 export class AuthService {
@@ -46,27 +46,55 @@ export class AuthService {
     });
   }
 
-  async register(dto: RegisterDto) {
-    this.logger.log(`[REGISTER] Attempt for email: ${dto.email}`);
-    const existingUser = await this.userService.findByEmail(dto.email);
+  async createOrganizationOnboarding(dto: CreateOrganizationOnboardingDto) {
+    this.logger.log(`[ONBOARDING] Attempt for email: ${dto.email}`);
 
+    const existingUser = await this.userService.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Email already in use');
     }
 
-    const newUser = await this.userService.createUser({
-      email: dto.email,
-      password: dto.password,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      role: UserRole.COLLABORATEUR,
+    const password = await hash(dto.password, 10);
+    const { organization, user } = await this.prisma.$transaction(
+      async (tx) => {
+        const organization = await tx.organization.create({
+          data: {
+            name: dto.organizationName,
+            plan: dto.plan,
+          },
+        });
+
+        const user = await tx.user.create({
+          data: {
+            email: dto.email,
+            password,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            role: UserRole.ADMIN,
+            organizationId: organization.id,
+          },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            organizationId: true,
+            createdAt: true,
+          },
+        });
+
+        return { organization, user };
+      },
+    );
+
+    const tokens = await this.authenticateUser({
+      userId: user.id,
+      organizationId: user.organizationId,
+      role: user.role,
     });
 
-    return this.authenticateUser({
-      userId: newUser.id,
-      organizationId: newUser.organizationId,
-      role: newUser.role,
-    });
+    return { ...tokens, organization, user };
   }
 
   async refreshTokens(token: string) {
@@ -131,7 +159,41 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
-  private async authenticateUser({
+  async getAccessibleSites(user: userPayload) {
+    if (!user.organizationId) return [];
+
+    if (user.role === UserRole.ADMIN) {
+      const sites = await this.prisma.site.findMany({
+        where: { organizationId: user.organizationId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return sites.map((site) => ({
+        ...site,
+        membershipRole: UserRole.ADMIN,
+      }));
+    }
+
+    const memberships = await this.prisma.siteMembership.findMany({
+      where: {
+        userId: user.userId,
+        isActive: true,
+        site: { organizationId: user.organizationId },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        role: true,
+        site: true,
+      },
+    });
+
+    return memberships.map(({ site, role }) => ({
+      ...site,
+      membershipRole: role,
+    }));
+  }
+
+  async authenticateUser({
     userId,
     organizationId,
     role,

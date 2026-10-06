@@ -3,6 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { WeatherController } from './weather.controller';
 import { WeatherService } from './weather.service';
 import { SiteModule } from '../sites/site.module';
+import { SiteAccessModule } from '../../shared/authorization/site-access.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { SiteModule } from '../sites/site.module';
       maxRedirects: 5,
     }),
     SiteModule,
+    SiteAccessModule,
   ],
   controllers: [WeatherController],
   providers: [WeatherService],

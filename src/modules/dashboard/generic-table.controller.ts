@@ -28,6 +28,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
 import type { requestWithUser } from '../auth/jwt.strategy';
+import { RequireSiteAccess } from '../../shared/authorization/site-access.decorator';
+import { SiteAccessGuard } from '../../shared/authorization/site-access.guard';
 
 @ApiTags('Dashboard - Generic Tables')
 @ApiBearerAuth()
@@ -36,7 +38,8 @@ export class GenericTableController {
   constructor(private readonly service: GenericTableService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
+  @RequireSiteAccess('body')
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'Create a new generic table' })
   @ApiResponse({ status: 201, description: 'Table created successfully.' })
@@ -87,7 +90,8 @@ export class GenericTableController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
+  @RequireSiteAccess('query', 'siteId', true)
   @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
   @ApiOperation({ summary: 'List all tables' })
   @ApiQuery({
@@ -100,7 +104,11 @@ export class GenericTableController {
     @Query('siteId') siteId: string | undefined,
     @Request() request: requestWithUser,
   ) {
-    return this.service.listTables(siteId, request.user.organizationId);
+    return this.service.listTables(
+      siteId,
+      request.user.organizationId,
+      request.user,
+    );
   }
 
   @Post(':tableId/rows')
