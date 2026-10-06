@@ -309,7 +309,10 @@ describe('WeatherService', () => {
 
     it('ne devrait pas supprimer le cache valide', () => {
       const cacheKey = 'test_key';
-      const testData: { latitude: number; longitude: number } = { latitude: 48.8566, longitude: 2.3522 };
+      const testData: { latitude: number; longitude: number } = {
+        latitude: 48.8566,
+        longitude: 2.3522,
+      };
       service['setCache'](cacheKey, testData);
 
       service.clearExpiredCache();
