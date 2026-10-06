@@ -44,7 +44,6 @@ describe('DashboardController', () => {
           provide: DashboardService,
           useValue: {
             getSummary: jest.fn().mockResolvedValue(mockSummaryResponse),
-            createSummary: jest.fn().mockReturnValue(mockSummaryResponse),
             getRecentOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             getAllOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             createOrder: jest.fn().mockResolvedValue(mockOrdersResponse),
@@ -108,43 +107,6 @@ describe('DashboardController', () => {
       expect(result).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.getSummary).toHaveBeenCalledWith(query, 'org-a');
-    });
-  });
-
-  // ─── createSummary ────────────────────────────────────────────────────────
-  describe('createSummary()', () => {
-    it('should store and return the summary when input is valid', () => {
-      const dto = {
-        globalProgress: 60,
-        globalSpent: 3000,
-        categories: [{ id: 1, name: 'Voiles', progress: 60, spent: 3000 }],
-      };
-
-      const result = controller.createSummary(dto as any);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.createSummary).toHaveBeenCalledWith(dto);
-      expect(result).toEqual(mockSummaryResponse);
-    });
-
-    it('should throw BadRequestException when categories contain non-integer id', () => {
-      const dto = {
-        globalProgress: 50,
-        globalSpent: 1000,
-        categories: [{ id: 1.5, name: 'Voiles', progress: 50, spent: 1000 }],
-      };
-
-      expect(() => controller.createSummary(dto as any)).toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException when globalProgress is out of range', () => {
-      const dto = {
-        globalProgress: 150,
-        globalSpent: 1000,
-        categories: [],
-      };
-
-      expect(() => controller.createSummary(dto as any)).toThrow(BadRequestException);
     });
   });
 
