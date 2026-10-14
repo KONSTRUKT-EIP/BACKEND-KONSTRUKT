@@ -44,8 +44,12 @@ describe('AuthController', () => {
     mockAuthService.login.mockResolvedValue(mockTokens);
     mockAuthService.getAccessibleSites.mockResolvedValue([]);
     mockAuthService.refreshTokens.mockResolvedValue(mockTokens);
-    mockAuthService.logout.mockResolvedValue({ message: 'Logged out successfully' });
-    mockAuthService.changePassword.mockResolvedValue({ message: 'Password changed successfully' });
+    mockAuthService.logout.mockResolvedValue({
+      message: 'Logged out successfully',
+    });
+    mockAuthService.changePassword.mockResolvedValue({
+      message: 'Password changed successfully',
+    });
     mockUserService.findOne.mockResolvedValue(mockUser);
 
     const module: TestingModule = await Test.createTestingModule({

@@ -14,7 +14,9 @@ describe('GenericTableService Integration', () => {
   beforeAll(async () => {
     const mockPrismaService = {
       site: {
-        findFirst: jest.fn().mockResolvedValue({ id: mockSiteId, organizationId }),
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: mockSiteId, organizationId }),
       },
       genericTable: {
         create: jest.fn(),
@@ -129,9 +131,7 @@ describe('GenericTableService Integration', () => {
         mockRow2,
       ]);
 
-      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue(
-        mockTable,
-      );
+      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue(mockTable);
 
       const allRows = await service.listRows(tableId, organizationId);
       expect(allRows).toHaveLength(2);
@@ -240,8 +240,15 @@ describe('GenericTableService Integration', () => {
 
       (prisma.genericTable.update as jest.Mock).mockResolvedValue(updatedTable);
 
-      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue({ id: tableId, siteId: mockSiteId });
-      const result = await service.updateTable(tableId, updateDto, organizationId);
+      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue({
+        id: tableId,
+        siteId: mockSiteId,
+      });
+      const result = await service.updateTable(
+        tableId,
+        updateDto,
+        organizationId,
+      );
 
       expect(result.name).toBe('Updated Table Name');
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -300,7 +307,10 @@ describe('GenericTableService Integration', () => {
         deletedRow,
       );
 
-      (prisma.genericTableRow.findFirst as jest.Mock).mockResolvedValue({ id: rowId, tableId: '550e8400-e29b-41d4-a716-446655440000' });
+      (prisma.genericTableRow.findFirst as jest.Mock).mockResolvedValue({
+        id: rowId,
+        tableId: '550e8400-e29b-41d4-a716-446655440000',
+      });
       const result = await service.deleteRow(rowId, organizationId);
 
       expect(result.id).toBe(rowId);
@@ -324,7 +334,10 @@ describe('GenericTableService Integration', () => {
 
       (prisma.genericTable.delete as jest.Mock).mockResolvedValue(deletedTable);
 
-      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue({ id: tableId, siteId: mockSiteId });
+      (prisma.genericTable.findFirst as jest.Mock).mockResolvedValue({
+        id: tableId,
+        siteId: mockSiteId,
+      });
       const result = await service.deleteTable(tableId, organizationId);
 
       expect(result.id).toBe(tableId);

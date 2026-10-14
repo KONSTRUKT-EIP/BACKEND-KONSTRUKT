@@ -148,9 +148,7 @@ describe('DashboardService', () => {
   });
 
   it('should query the database for every summary request', async () => {
-    const resources = [
-      { id: 1, name: 'Voiles A', quantity: 10, unitPrice: 5 },
-    ];
+    const resources = [{ id: 1, name: 'Voiles A', quantity: 10, unitPrice: 5 }];
     mockResourceFindMany
       .mockResolvedValueOnce(resources)
       .mockResolvedValueOnce([]);
@@ -235,8 +233,7 @@ describe('DashboardService', () => {
     };
 
     it('should create a delivery when a matching resource is found by name', async () => {
-      mockResourceFindFirst
-        .mockResolvedValueOnce(mockResource); // name match
+      mockResourceFindFirst.mockResolvedValueOnce(mockResource); // name match
       mockDeliveryCreate.mockResolvedValue(mockDelivery);
 
       const result = await service.createOrder(orderData, organizationId);
@@ -248,11 +245,14 @@ describe('DashboardService', () => {
 
     it('should fall back to first resource when name does not match', async () => {
       mockResourceFindFirst
-        .mockResolvedValueOnce(null)     // no name match
+        .mockResolvedValueOnce(null) // no name match
         .mockResolvedValueOnce(mockResource); // fallback
       mockDeliveryCreate.mockResolvedValue(mockDelivery);
 
-      const result = await service.createOrder({ ...orderData, productName: 'Unknown' }, organizationId);
+      const result = await service.createOrder(
+        { ...orderData, productName: 'Unknown' },
+        organizationId,
+      );
 
       expect(result.orders[0].id).toBe('del-new');
     });

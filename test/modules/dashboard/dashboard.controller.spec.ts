@@ -48,7 +48,15 @@ describe('DashboardController', () => {
             getAllOrders: jest.fn().mockResolvedValue(mockOrdersResponse),
             createOrder: jest.fn().mockResolvedValue(mockOrdersResponse),
             getResources: jest.fn().mockResolvedValue([
-              { id: 'res-1', name: 'Armature 12mm', type: 'STEEL', unit: 'kg', unitPrice: 120, supplier: 'Acier SA', siteId: 'site-1' },
+              {
+                id: 'res-1',
+                name: 'Armature 12mm',
+                type: 'STEEL',
+                unit: 'kg',
+                unitPrice: 120,
+                supplier: 'Acier SA',
+                siteId: 'site-1',
+              },
             ]),
             getArmatureAnalytics: jest.fn().mockResolvedValue({
               kpiCards: [],
@@ -153,7 +161,7 @@ describe('DashboardController', () => {
         total: 600,
       };
 
-      const result = await controller.createOrder(dto as any, mockRequest);
+      const result = await controller.createOrder(dto, mockRequest);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.createOrder).toHaveBeenCalledWith(dto, 'org-a');
@@ -188,4 +196,3 @@ describe('DashboardController', () => {
     });
   });
 });
-
