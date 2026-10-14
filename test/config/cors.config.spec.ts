@@ -61,6 +61,11 @@ describe('CORS Configuration', () => {
       ]);
     });
 
+    it('normalizes APP_URL-like values to their origin', () => {
+      const result = parseCorsOrigins('https://app.konstrukt.io/dashboard');
+      expect(result).toEqual(['https://app.konstrukt.io']);
+    });
+
     it('returns "*" if "*" is one of the comma-separated origins', () => {
       const result = parseCorsOrigins('http://localhost:5173, *');
       expect(result).toBe('*');
@@ -76,6 +81,12 @@ describe('CORS Configuration', () => {
       expect((regex as RegExp).test('https://attacker.io')).toBe(false);
       expect((regex as RegExp).test('https://konstrukt.io.attacker.com')).toBe(
         false,
+      );
+    });
+
+    it('rejects unsafe wildcard host patterns', () => {
+      expect(() => parseCorsOrigins('https://*konstrukt.io')).toThrow(
+        'Invalid wildcard CORS origin: https://*konstrukt.io. Use a subdomain wildcard such as https://*.example.com',
       );
     });
   });
@@ -103,20 +114,29 @@ describe('CORS Configuration', () => {
     it('falls back to APP_URL if no CORS variable is set', () => {
       delete process.env.CORS_ALLOWED_ORIGINS;
       delete process.env.CORS_ORIGIN;
-      process.env.APP_URL = 'https://client.konstrukt.io/';
+      process.env.APP_URL = 'https://client.konstrukt.io/dashboard';
 
       const origins = resolveAllowedOrigins();
       expect(origins).toEqual(['https://client.konstrukt.io']);
     });
 
-    it('defaults to https://app.konstrukt.io in production when no variables are set', () => {
+    it('skips empty env values and falls back to the next source', () => {
+      process.env.CORS_ALLOWED_ORIGINS = '';
+      process.env.APP_URL = 'https://client.konstrukt.io/dashboard';
+
+      const origins = resolveAllowedOrigins();
+      expect(origins).toEqual(['https://client.konstrukt.io']);
+    });
+
+    it('throws in production when no variables are set', () => {
       delete process.env.CORS_ALLOWED_ORIGINS;
       delete process.env.CORS_ORIGIN;
       delete process.env.APP_URL;
       process.env.NODE_ENV = 'production';
 
-      const origins = resolveAllowedOrigins();
-      expect(origins).toEqual(['https://app.konstrukt.io']);
+      expect(() => resolveAllowedOrigins()).toThrow(
+        'No CORS allowed origins configured in production',
+      );
     });
 
     it('defaults to localhost origins in development when no variables are set', () => {
@@ -271,4 +291,3 @@ describe('CORS Configuration', () => {
     });
   });
 });
-

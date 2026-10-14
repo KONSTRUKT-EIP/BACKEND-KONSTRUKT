@@ -2,13 +2,47 @@ import { Logger } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { ConfigService } from '@nestjs/config';
 
+type CorsOrigin = string | RegExp;
+type CorsOriginValue = CorsOrigin[] | string | boolean;
+
+const DEFAULT_LOCAL_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
+function getEnvValue(
+  configService: ConfigService | undefined,
+  key: string,
+): string | undefined {
+  return configService?.get<string>(key) ?? process.env[key];
+}
+
+function parseCommaSeparatedList(value?: string): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function normalizeOrigin(origin: string): string {
+  const trimmed = origin.trim().replace(/\/+$/, '');
+
+  if (trimmed.includes('*')) {
+    return trimmed;
+  }
+
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return trimmed;
+  }
+}
+
 /**
  * Parses raw CORS origins string into an array of allowed origins (strings or RegExps),
  * a wildcard string '*', or boolean false (CORS disabled/denied).
  */
-export function parseCorsOrigins(
-  rawOrigins?: string,
-): (string | RegExp)[] | string | boolean {
+export function parseCorsOrigins(rawOrigins?: string): CorsOriginValue {
   if (rawOrigins === undefined || rawOrigins === null) {
     return [];
   }
@@ -26,10 +60,7 @@ export function parseCorsOrigins(
     return false;
   }
 
-  const origins = trimmed
-    .split(',')
-    .map((origin) => origin.trim().replace(/\/+$/, ''))
-    .filter((origin) => origin.length > 0);
+  const origins = parseCommaSeparatedList(trimmed).map(normalizeOrigin);
 
   if (origins.includes('*')) {
     return '*';
@@ -37,8 +68,14 @@ export function parseCorsOrigins(
 
   return origins.map((origin) => {
     if (origin.includes('*')) {
+      if (!/^https?:\/\/\*\.[^/*]+(?:\.[^/*]+)*(?::\d+)?$/.test(origin)) {
+        throw new Error(
+          `Invalid wildcard CORS origin: ${origin}. Use a subdomain wildcard such as https://*.example.com`,
+        );
+      }
+
       const escaped = origin.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-      const pattern = escaped.replace(/\*/g, '.*');
+      const pattern = escaped.replace(/\*/g, '[a-z0-9-]+');
       return new RegExp(`^${pattern}$`);
     }
     return origin;
@@ -55,79 +92,84 @@ export function parseCorsOrigins(
  */
 export function resolveAllowedOrigins(
   configService?: ConfigService,
-): (string | RegExp)[] | string | boolean {
-  const getEnv = (key: string): string | undefined => {
-    return configService?.get<string>(key) ?? process.env[key];
+): CorsOriginValue {
+  const resolveConfiguredOrigins = (
+    key: string,
+  ): CorsOriginValue | undefined => {
+    const rawValue = getEnvValue(configService, key);
+
+    if (rawValue === undefined) {
+      return undefined;
+    }
+
+    const parsed = parseCorsOrigins(rawValue);
+
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 0 &&
+      rawValue.trim() === ''
+    ) {
+      Logger.warn(
+        `${key} is defined but empty. Falling back to the next CORS source.`,
+        'CorsConfig',
+      );
+      return undefined;
+    }
+
+    return parsed;
   };
 
-  const corsAllowedOrigins = getEnv('CORS_ALLOWED_ORIGINS');
+  const corsAllowedOrigins = resolveConfiguredOrigins('CORS_ALLOWED_ORIGINS');
   if (corsAllowedOrigins !== undefined) {
-    return parseCorsOrigins(corsAllowedOrigins);
+    return corsAllowedOrigins;
   }
 
-  const corsOrigin = getEnv('CORS_ORIGIN');
+  const corsOrigin = resolveConfiguredOrigins('CORS_ORIGIN');
   if (corsOrigin !== undefined) {
-    return parseCorsOrigins(corsOrigin);
+    return corsOrigin;
   }
 
-  const appUrl = getEnv('APP_URL');
-  if (appUrl !== undefined && appUrl.trim() !== '') {
-    return parseCorsOrigins(appUrl);
+  const appUrl = resolveConfiguredOrigins('APP_URL');
+  if (appUrl !== undefined) {
+    return appUrl;
   }
 
-  const nodeEnv = getEnv('NODE_ENV');
+  const nodeEnv = getEnvValue(configService, 'NODE_ENV');
   if (nodeEnv === 'production') {
-    Logger.warn(
-      'No CORS allowed origins configured in production. Defaulting to https://app.konstrukt.io',
-      'CorsConfig',
-    );
-    return ['https://app.konstrukt.io'];
+    throw new Error('No CORS allowed origins configured in production');
   }
 
-  return ['http://localhost:5173', 'http://localhost:3000'];
+  return DEFAULT_LOCAL_ORIGINS;
 }
 
 /**
  * Builds the CorsOptions object for NestJS application enableCors().
  */
 export function getCorsOptions(configService?: ConfigService): CorsOptions {
-  const getEnv = (key: string): string | undefined => {
-    return configService?.get<string>(key) ?? process.env[key];
-  };
-
   const allowedOrigins = resolveAllowedOrigins(configService);
 
-  const credentialsEnv = getEnv('CORS_CREDENTIALS');
+  const credentialsEnv = getEnvValue(configService, 'CORS_CREDENTIALS');
   const credentials =
     credentialsEnv !== undefined
       ? credentialsEnv.toLowerCase() === 'true'
       : allowedOrigins !== '*' && allowedOrigins !== false;
 
-  const methodsEnv = getEnv('CORS_METHODS');
+  const methodsEnv = getEnvValue(configService, 'CORS_METHODS');
   const methods = methodsEnv
-    ? methodsEnv
-        .split(',')
-        .map((m) => m.trim())
-        .filter((m) => m.length > 0)
+    ? parseCommaSeparatedList(methodsEnv)
     : ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'];
 
-  const allowedHeadersEnv = getEnv('CORS_ALLOWED_HEADERS');
+  const allowedHeadersEnv = getEnvValue(configService, 'CORS_ALLOWED_HEADERS');
   const allowedHeaders = allowedHeadersEnv
-    ? allowedHeadersEnv
-        .split(',')
-        .map((h) => h.trim())
-        .filter((h) => h.length > 0)
+    ? parseCommaSeparatedList(allowedHeadersEnv)
     : undefined;
 
-  const exposedHeadersEnv = getEnv('CORS_EXPOSED_HEADERS');
+  const exposedHeadersEnv = getEnvValue(configService, 'CORS_EXPOSED_HEADERS');
   const exposedHeaders = exposedHeadersEnv
-    ? exposedHeadersEnv
-        .split(',')
-        .map((h) => h.trim())
-        .filter((h) => h.length > 0)
+    ? parseCommaSeparatedList(exposedHeadersEnv)
     : undefined;
 
-  const maxAgeEnv = getEnv('CORS_MAX_AGE');
+  const maxAgeEnv = getEnvValue(configService, 'CORS_MAX_AGE');
   const maxAge = maxAgeEnv ? Number(maxAgeEnv) : undefined;
 
   return {
@@ -139,4 +181,3 @@ export function getCorsOptions(configService?: ConfigService): CorsOptions {
     ...(maxAge !== undefined ? { maxAge } : {}),
   };
 }
-
