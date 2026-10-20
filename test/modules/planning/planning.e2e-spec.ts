@@ -127,7 +127,9 @@ describe('Planning (e2e)', () => {
       .overrideGuard(JwtAuthGuard)
       .useValue({
         canActivate: jest.fn((context: any) => {
-          context.switchToHttp().getRequest().user = { organizationId: 'org-a' };
+          context.switchToHttp().getRequest().user = {
+            organizationId: 'org-a',
+          };
           return true;
         }),
       })

@@ -80,12 +80,7 @@ describe('SiteMembershipService', () => {
     });
 
     await expect(
-      service.update(
-        'site-1',
-        'membership-1',
-        { isActive: false },
-        'org-1',
-      ),
+      service.update('site-1', 'membership-1', { isActive: false }, 'org-1'),
     ).resolves.toMatchObject({ isActive: false });
     expect(prisma.siteMembership.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'membership-1' } }),
