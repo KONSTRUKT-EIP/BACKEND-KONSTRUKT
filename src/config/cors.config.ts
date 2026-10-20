@@ -68,7 +68,7 @@ export function parseCorsOrigins(rawOrigins?: string): CorsOriginValue {
 
   return origins.map((origin) => {
     if (origin.includes('*')) {
-      if (!/^https?:\/\/\*\.[^/*]+(?:\.[^/*]+)*(?::\d+)?$/.test(origin)) {
+      if (!/^https?:\/\/\*\.[^/*.:]+(?:\.[^/*.:]+)*(?::\d+)?$/.test(origin)) {
         throw new Error(
           `Invalid wildcard CORS origin: ${origin}. Use a subdomain wildcard such as https://*.example.com`,
         );
