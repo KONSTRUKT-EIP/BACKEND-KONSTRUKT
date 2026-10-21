@@ -10,6 +10,7 @@ import {
   Query,
   Request,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,6 +32,18 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
 import type { requestWithUser } from '../auth/jwt.strategy';
+
+function getSingleQueryParam(value: unknown, name: string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new BadRequestException(`${name} doit être une valeur unique`);
+  }
+
+  return value;
+}
 
 @ApiTags('Attendance')
 @ApiBearerAuth()
@@ -57,17 +70,19 @@ export class AttendanceController {
   @ApiResponse({ status: 200, description: 'Liste des pointages' })
   findAll(
     @Request() request: requestWithUser,
-    @Query('teamId') teamId?: string,
-    @Query('userId') userId?: string,
-    @Query('date') date?: string,
-    @Query('status') status?: AttendanceStatus,
+    @Query('teamId') teamId?: unknown,
+    @Query('userId') userId?: unknown,
+    @Query('date') date?: unknown,
+    @Query('status') status?: unknown,
   ) {
     return this.service.findAll({
-      teamId,
-      userId,
-      date,
-      status,
+      teamId: getSingleQueryParam(teamId, 'teamId'),
+      userId: getSingleQueryParam(userId, 'userId'),
+      date: getSingleQueryParam(date, 'date'),
+      status: getSingleQueryParam(status, 'status') as
+        AttendanceStatus | undefined,
       organizationId: request.user.organizationId,
+      userIdRequest: request.user.userId,
     });
   }
 
@@ -80,14 +95,22 @@ export class AttendanceController {
   @ApiQuery({ name: 'date', required: true, description: 'YYYY-MM-DD' })
   @ApiResponse({ status: 200, description: 'Résumé journalier' })
   getDailySummary(
-    @Query('teamId') teamId: string,
-    @Query('date') date: string,
+    @Query('teamId') teamId: unknown,
+    @Query('date') date: unknown,
     @Request() request: requestWithUser,
   ) {
+    const singleTeamId = getSingleQueryParam(teamId, 'teamId');
+    const singleDate = getSingleQueryParam(date, 'date');
+
+    if (!singleTeamId || !singleDate) {
+      throw new BadRequestException('teamId et date sont requis');
+    }
+
     return this.service.getDailySummary(
-      teamId,
-      date,
+      singleTeamId,
+      singleDate,
       request.user.organizationId,
+      request.user.userId,
     );
   }
 
@@ -103,7 +126,11 @@ export class AttendanceController {
   @ApiResponse({ status: 200, description: 'Pointage trouvé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   findOne(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.findOne(id, request.user.organizationId);
+    return this.service.findOne(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Post()
@@ -125,7 +152,11 @@ export class AttendanceController {
     @Body() dto: CreateAttendanceDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.create(dto, request.user.organizationId);
+    return this.service.create(
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Put(':id')
@@ -144,7 +175,12 @@ export class AttendanceController {
     @Body() dto: UpdateAttendanceDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.update(id, dto, request.user.organizationId);
+    return this.service.update(
+      id,
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Delete(':id')
@@ -154,7 +190,11 @@ export class AttendanceController {
   @ApiResponse({ status: 200, description: 'Pointage supprimé' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   remove(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.remove(id, request.user.organizationId);
+    return this.service.remove(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Patch('upsert')
@@ -170,6 +210,10 @@ export class AttendanceController {
     @Body() dto: UpsertAttendanceDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.upsert(dto, request.user.organizationId);
+    return this.service.upsert(
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 }
