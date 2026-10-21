@@ -22,6 +22,8 @@ import { DeliveriesService } from '../deliveries/deliveries.service';
 
 @Injectable()
 export class DashboardService {
+  private summaryState: DashboardSummaryResponseDto | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly deliveriesService: DeliveriesService,
@@ -32,6 +34,9 @@ export class DashboardService {
     organizationId?: string | null,
   ): Promise<DashboardSummaryResponseDto> {
     try {
+      if (this.summaryState) {
+        return this.summaryState;
+      }
       if (!organizationId)
         return { globalProgress: 0, globalSpent: 0, categories: [] };
       const resources = await this.prisma.resource.findMany({
@@ -85,15 +90,25 @@ export class DashboardService {
       );
       const globalSpent = categoryKpis.reduce((acc, c) => acc + c.spent, 0);
 
-      return {
+      const summary = {
         globalProgress,
         globalSpent,
         categories: categoryKpis,
       };
+      this.summaryState = summary;
+      return summary;
     } catch (error) {
       console.error('Error in getSummary:', error);
       throw error;
     }
+  }
+
+  createSummary(summary: DashboardSummaryResponseDto): DashboardSummaryResponseDto {
+    this.summaryState = {
+      ...summary,
+      categories: summary.categories.map((category) => ({ ...category })),
+    };
+    return this.summaryState;
   }
 
   async getRecentOrders(
@@ -112,17 +127,14 @@ export class DashboardService {
     return this.deliveriesService.getAllOrders(siteId, organizationId);
   }
 
-  async createOrder(
-    data: {
-      siteId: string;
-      productName: string;
-      productIcon?: string;
-      price: number;
-      totalOrder: number;
-      total: number;
-    },
-    organizationId?: string | null,
-  ): Promise<RecentOrdersResponseDto> {
+  async createOrder(data: {
+    siteId: string;
+    productName: string;
+    productIcon?: string;
+    price: number;
+    totalOrder: number;
+    total: number;
+  }, organizationId?: string | null): Promise<RecentOrdersResponseDto> {
     return this.deliveriesService.createOrder(data, organizationId);
   }
 

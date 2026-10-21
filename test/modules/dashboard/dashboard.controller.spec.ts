@@ -146,6 +146,7 @@ describe('DashboardController', () => {
   describe('createOrder()', () => {
     it('should create and return an order when input is valid', async () => {
       const dto = {
+        siteId: '00000000-0000-0000-0000-000000000000',
         productName: 'Armature 12mm',
         productIcon: '',
         price: 120,

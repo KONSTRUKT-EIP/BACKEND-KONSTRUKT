@@ -8,8 +8,7 @@ import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto, TeamMemberRole } from './dto/add-member.dto';
-import { AttendanceStatus, UserRole } from '@prisma/client';
-import type { userPayload } from '../auth/jwt.strategy';
+import { AttendanceStatus } from '@prisma/client';
 import { UpsertWorkforceHoursDto } from './dto/upsert-workforce-hours.dto';
 
 interface TeamMemberDetail {
@@ -70,37 +69,18 @@ export class TeamService {
   async findAll(
     siteId?: string,
     organizationId?: string | null,
-    user?: userPayload,
+    userId?: string,
   ) {
-    if (!organizationId) return [];
-    const accessibleSite =
-      !user || user.role === UserRole.ADMIN
-        ? { organizationId }
-        : {
-            organizationId,
-            memberships: {
-              some: { userId: user?.userId, isActive: true },
-            },
-          };
+    const resolvedOrganizationId = await this.resolveOrganizationId(
+      organizationId,
+      userId,
+    );
+
+    if (!resolvedOrganizationId) return [];
     return this.prisma.team.findMany({
       where: siteId
-        ? { siteId, site: { organizationId } }
-        : { site: accessibleSite },
-  ) {
-    if (!organizationId) return [];
-    const accessibleSite =
-      !user || user.role === UserRole.ADMIN
-        ? { organizationId }
-        : {
-            organizationId,
-            memberships: {
-              some: { userId: user.userId, isActive: true },
-            },
-          };
-    return this.prisma.team.findMany({
-      where: siteId
-        ? { siteId, site: { organizationId } }
-        : { site: accessibleSite },
+        ? { siteId, site: { organizationId: resolvedOrganizationId } }
+        : { site: { organizationId: resolvedOrganizationId } },
       orderBy: { createdAt: 'desc' },
       include: {
         site: { select: { id: true, name: true } },

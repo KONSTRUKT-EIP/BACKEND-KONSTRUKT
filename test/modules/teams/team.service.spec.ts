@@ -4,6 +4,7 @@ import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 describe('TeamService', () => {
   let service: TeamService;
   let teamFindMany: jest.Mock;
+  let teamMemberFindMany: jest.Mock;
   let teamMemberFindFirst: jest.Mock;
   let siteFindFirst: jest.Mock;
   let attendanceFindMany: jest.Mock;
@@ -11,18 +12,18 @@ describe('TeamService', () => {
 
   beforeEach(() => {
     teamFindMany = jest.fn().mockResolvedValue([{ id: 'team-1' }]);
+    teamMemberFindMany = jest.fn().mockResolvedValue([]);
     teamMemberFindFirst = jest.fn();
     siteFindFirst = jest.fn();
     attendanceFindMany = jest.fn();
-    siteFindFirst = jest.fn().mockResolvedValue({
-      id: 'site-1',
-      organizationId: 'org-a',
-    });
     attendanceUpsert = jest.fn();
 
     service = new TeamService({
       team: { findMany: teamFindMany },
-      teamMember: { findFirst: teamMemberFindFirst },
+      teamMember: {
+        findMany: teamMemberFindMany,
+        findFirst: teamMemberFindFirst,
+      },
       site: { findFirst: siteFindFirst },
       attendance: {
         findMany: attendanceFindMany,
@@ -64,7 +65,7 @@ describe('TeamService', () => {
       },
     ]);
 
-    const result = await service.getTeamStats('site-1', 'org-a');
+    const result = await service.getTeamStats('site-1', 'org-1');
 
     expect(result.enCours).toBe(2);
     expect(result.retards).toBe(1);
@@ -75,7 +76,7 @@ describe('TeamService', () => {
     siteFindFirst.mockResolvedValue({ id: 'site-1' });
     attendanceFindMany.mockResolvedValue([]);
 
-    const result = await service.getTeamStats('site-1', 'org-a');
+    const result = await service.getTeamStats('site-1', 'org-1');
 
     expect(result.enCours).toBe(0);
     expect(result.pctEnCours).toBe(0);

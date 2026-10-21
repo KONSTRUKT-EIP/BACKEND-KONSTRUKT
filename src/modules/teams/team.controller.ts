@@ -58,7 +58,7 @@ export class TeamController {
     return this.service.findAll(
       siteId,
       request.user.organizationId,
-      request.user,
+      request.user.userId,
     );
   }
 
