@@ -103,7 +103,9 @@ export class DashboardService {
     }
   }
 
-  createSummary(summary: DashboardSummaryResponseDto): DashboardSummaryResponseDto {
+  createSummary(
+    summary: DashboardSummaryResponseDto,
+  ): DashboardSummaryResponseDto {
     this.summaryState = {
       ...summary,
       categories: summary.categories.map((category) => ({ ...category })),
@@ -127,14 +129,17 @@ export class DashboardService {
     return this.deliveriesService.getAllOrders(siteId, organizationId);
   }
 
-  async createOrder(data: {
-    siteId: string;
-    productName: string;
-    productIcon?: string;
-    price: number;
-    totalOrder: number;
-    total: number;
-  }, organizationId?: string | null): Promise<RecentOrdersResponseDto> {
+  async createOrder(
+    data: {
+      siteId: string;
+      productName: string;
+      productIcon?: string;
+      price: number;
+      totalOrder: number;
+      total: number;
+    },
+    organizationId?: string | null,
+  ): Promise<RecentOrdersResponseDto> {
     return this.deliveriesService.createOrder(data, organizationId);
   }
 

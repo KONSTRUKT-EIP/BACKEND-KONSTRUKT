@@ -114,7 +114,9 @@ export class AttendanceService {
     const record = await this.prisma.attendance.findFirst({
       where: {
         id,
-        team: { site: { organizationId: resolvedOrganizationId ?? '__no_org__' } },
+        team: {
+          site: { organizationId: resolvedOrganizationId ?? '__no_org__' },
+        },
       },
       include: {
         team: { select: { id: true, name: true } },

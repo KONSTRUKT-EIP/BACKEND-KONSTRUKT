@@ -230,14 +230,17 @@ export class DeliveriesService {
     return { orders: deliveries.map((delivery) => this.mapOrder(delivery)) };
   }
 
-  async createOrder(data: {
-    siteId: string;
-    productName: string;
-    productIcon?: string;
-    price: number;
-    totalOrder: number;
-    total: number;
-  }, organizationId?: string | null) {
+  async createOrder(
+    data: {
+      siteId: string;
+      productName: string;
+      productIcon?: string;
+      price: number;
+      totalOrder: number;
+      total: number;
+    },
+    organizationId?: string | null,
+  ) {
     const resource = await this.prisma.resource.findFirst({
       where: {
         siteId: data.siteId,

@@ -163,7 +163,7 @@ export class UserService {
       data.password = await bcrypt.hash(password, 10);
     }
     return this.prisma.user.update({
-      where: { id },
+      where: { id, organizationId: resolvedOrganizationId },
       data,
       select: this.userSelect,
     });

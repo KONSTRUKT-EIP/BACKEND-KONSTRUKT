@@ -74,7 +74,11 @@ export class TeamController {
   @ApiResponse({ status: 200, description: 'Équipe trouvée' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   findOne(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.findOne(id, request.user.organizationId, request.user.userId);
+    return this.service.findOne(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Post()
@@ -82,7 +86,11 @@ export class TeamController {
   @ApiOperation({ summary: 'Créer une équipe' })
   @ApiResponse({ status: 201, description: 'Équipe créée' })
   create(@Body() dto: CreateTeamDto, @Request() request: requestWithUser) {
-    return this.service.create(dto, request.user.organizationId, request.user.userId);
+    return this.service.create(
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Put(':id')
@@ -96,7 +104,12 @@ export class TeamController {
     @Body() dto: UpdateTeamDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.update(id, dto, request.user.organizationId, request.user.userId);
+    return this.service.update(
+      id,
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Delete(':id')
@@ -106,7 +119,11 @@ export class TeamController {
   @ApiResponse({ status: 200, description: 'Équipe supprimée' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   remove(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.remove(id, request.user.organizationId, request.user.userId);
+    return this.service.remove(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   // ─── Membres ────────────────────────────────────────────────────────────────
@@ -122,7 +139,11 @@ export class TeamController {
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Liste des membres' })
   getMembers(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.getMembers(id, request.user.organizationId, request.user.userId);
+    return this.service.getMembers(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Post(':id/members')
@@ -136,7 +157,12 @@ export class TeamController {
     @Body() dto: AddMemberDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.addMember(id, dto, request.user.organizationId, request.user.userId);
+    return this.service.addMember(
+      id,
+      dto,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Delete(':id/members/:userId')
@@ -151,7 +177,12 @@ export class TeamController {
     @Param('userId') userId: string,
     @Request() request: requestWithUser,
   ) {
-    return this.service.removeMember(id, userId, request.user.organizationId, request.user.userId);
+    return this.service.removeMember(
+      id,
+      userId,
+      request.user.organizationId,
+      request.user.userId,
+    );
   }
 
   @Get('site/:siteId/stats')
