@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardService } from '../../../src/modules/dashboard/dashboard.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { DashboardSummaryQueryDto } from '../../../src/modules/dashboard/dto/dashboard-summary.dto';
+import { DeliveriesService } from '../../../src/modules/deliveries/deliveries.service';
 
 describe('DashboardService Integration', () => {
   let service: DashboardService;
@@ -66,6 +67,10 @@ describe('DashboardService Integration', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: DeliveriesService,
+          useValue: {},
         },
       ],
     }).compile();

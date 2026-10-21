@@ -34,7 +34,7 @@ export class DashboardService {
     organizationId?: string | null,
   ): Promise<DashboardSummaryResponseDto> {
     try {
-      if (this.summaryState) {
+      if (this.summaryState && !query.startDate && !query.endDate) {
         return this.summaryState;
       }
       if (!organizationId)

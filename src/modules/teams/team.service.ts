@@ -90,18 +90,17 @@ export class TeamService {
     });
   }
 
-  async findOne(
-    id: string,
-    organizationId?: string | null,
-    userId?: string,
-  ) {
+  async findOne(id: string, organizationId?: string | null, userId?: string) {
     const resolvedOrganizationId = await this.resolveOrganizationId(
       organizationId,
       userId,
     );
 
     const team = await this.prisma.team.findFirst({
-      where: { id, site: { organizationId: resolvedOrganizationId ?? '__no_org__' } },
+      where: {
+        id,
+        site: { organizationId: resolvedOrganizationId ?? '__no_org__' },
+      },
       include: {
         site: { select: { id: true, name: true } },
         leader: { select: { id: true, firstName: true, lastName: true } },
@@ -204,7 +203,8 @@ export class TeamService {
       where: {
         id: dto.userId,
         organizationId:
-          (await this.resolveOrganizationId(organizationId, userId)) ?? '__no_org__',
+          (await this.resolveOrganizationId(organizationId, userId)) ??
+          '__no_org__',
       },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
@@ -250,7 +250,8 @@ export class TeamService {
       where: {
         id: userId,
         organizationId:
-          (await this.resolveOrganizationId(organizationId, requesterId)) ?? '__no_org__',
+          (await this.resolveOrganizationId(organizationId, requesterId)) ??
+          '__no_org__',
       },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
@@ -321,7 +322,9 @@ export class TeamService {
         (a) => a.date.getTime() === selectedDate.getTime(),
       );
     }
-    const presentUserIds = new Set(dayAttendances.map((attendance) => attendance.userId));
+    const presentUserIds = new Set(
+      dayAttendances.map((attendance) => attendance.userId),
+    );
     const total = dayAttendances.length;
     const presents = dayAttendances.filter(
       (a) => a.status === AttendanceStatus.PRESENT,

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardService } from '../../../src/modules/dashboard/dashboard.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { ArmatureReportsQueryDto } from '../../../src/modules/dashboard/dto/armature-reports.dto';
+import { DeliveriesService } from '../../../src/modules/deliveries/deliveries.service';
 
 describe('DashboardService Integration - getArmatureAnalytics', () => {
   let service: DashboardService;
@@ -38,6 +39,7 @@ describe('DashboardService Integration - getArmatureAnalytics', () => {
       providers: [
         DashboardService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: DeliveriesService, useValue: {} },
       ],
     }).compile();
 
