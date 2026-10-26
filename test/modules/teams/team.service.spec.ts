@@ -6,6 +6,7 @@ describe('TeamService', () => {
   let teamFindMany: jest.Mock;
   let attendanceFindMany: jest.Mock;
   let siteFindFirst: jest.Mock;
+  let teamMemberFindMany: jest.Mock;
 
   beforeEach(() => {
     teamFindMany = jest.fn().mockResolvedValue([{ id: 'team-1' }]);
@@ -15,8 +16,11 @@ describe('TeamService', () => {
       organizationId: 'org-a',
     });
 
+    teamMemberFindMany = jest.fn().mockResolvedValue([]);
+
     service = new TeamService({
       team: { findMany: teamFindMany },
+      teamMember: { findMany: teamMemberFindMany },
       attendance: { findMany: attendanceFindMany },
       site: { findFirst: siteFindFirst },
     } as unknown as PrismaService);
@@ -68,5 +72,42 @@ describe('TeamService', () => {
 
     expect(result.enCours).toBe(0);
     expect(result.pctEnCours).toBe(0);
+  });
+
+  it('counts every worker without attendance as pending', async () => {
+    teamMemberFindMany.mockResolvedValue([
+      { userId: 'u1' },
+      { userId: 'u2' },
+      { userId: 'u3' },
+      { userId: 'u4' },
+    ]);
+    attendanceFindMany.mockResolvedValue([]);
+
+    const result = await service.getTeamStats('site-1', 'org-a');
+
+    expect(result.totalEmployees).toBe(4);
+    expect(result.enAttente).toBe(4);
+    expect(result.complete).toBe(0);
+  });
+
+  it('excludes workers who already have an attendance from pending', async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    teamMemberFindMany.mockResolvedValue([
+      { userId: 'u1' },
+      { userId: 'u2' },
+      { userId: 'u2' },
+      { userId: 'u3' },
+    ]);
+    attendanceFindMany.mockResolvedValue([
+      { userId: 'u1', date: today, status: 'PRESENT', checkOut: null },
+    ]);
+
+    const result = await service.getTeamStats('site-1', 'org-a');
+
+    expect(result.totalEmployees).toBe(3);
+    expect(result.enAttente).toBe(2);
+    expect(result.complete).toBe(1);
   });
 });

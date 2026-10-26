@@ -268,12 +268,23 @@ export class TeamService {
       (a) => a.status === AttendanceStatus.PRESENT && a.checkOut === null,
     ).length;
     const totalNonPresents = absents + conges;
+
+    // Un employé peut être dans plusieurs équipes du chantier : on compte les utilisateurs uniques
+    const members = await this.prisma.teamMember.findMany({
+      where: { teamId: { in: teams.map((t) => t.id) } },
+      select: { userId: true },
+    });
+    const memberIds = new Set(members.map((m) => m.userId));
+    const pointedIds = new Set(dayAttendances.map((a) => a.userId));
+    const enAttente = [...memberIds].filter((id) => !pointedIds.has(id)).length;
+
     return {
       total: total,
+      totalEmployees: memberIds.size,
       complete: presents,
       enCours: surSite,
       retards,
-      enAttente: 0,
+      enAttente,
       annule: absents,
       pctPresents: total > 0 ? Math.round((presents / total) * 100) : 0,
       pctAbsents: total > 0 ? Math.round((totalNonPresents / total) * 100) : 0,

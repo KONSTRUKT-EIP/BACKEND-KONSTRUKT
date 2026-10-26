@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -6,6 +7,15 @@ import {
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateSiteDto, SiteStatus } from './dto/create-site.dto';
 import { UpdateSiteDto } from './dto/update-site.dto';
+
+export const SITE_PHOTO_MAX_SIZE = 5 * 1024 * 1024;
+const SITE_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export interface UploadedPhoto {
+  buffer: Buffer;
+  mimetype: string;
+  size: number;
+}
 
 @Injectable()
 export class SiteService {
@@ -19,6 +29,7 @@ export class SiteService {
       include: {
         organization: { select: { id: true, name: true } },
         _count: { select: { resources: true, deliveries: true } },
+        photo: { select: { updatedAt: true } },
       },
     });
   }
@@ -79,5 +90,46 @@ export class SiteService {
     await this.findOne(id, organizationId);
     await this.prisma.site.delete({ where: { id } });
     return { message: 'Site supprimé' };
+  }
+
+  async getPhoto(id: string, organizationId?: string | null) {
+    await this.findOne(id, organizationId);
+    const photo = await this.prisma.sitePhoto.findUnique({
+      where: { siteId: id },
+    });
+    if (!photo) throw new NotFoundException(`Aucune photo pour le site ${id}`);
+    return photo;
+  }
+
+  async setPhoto(
+    id: string,
+    file: UploadedPhoto | undefined,
+    organizationId?: string | null,
+  ) {
+    await this.findOne(id, organizationId);
+    if (!file) throw new BadRequestException('Aucune image reçue');
+    if (!SITE_PHOTO_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Format non supporté (JPEG, PNG ou WebP uniquement)',
+      );
+    }
+    if (file.size > SITE_PHOTO_MAX_SIZE) {
+      throw new BadRequestException('Image trop lourde (5 Mo maximum)');
+    }
+
+    const data = new Uint8Array(file.buffer);
+    const photo = await this.prisma.sitePhoto.upsert({
+      where: { siteId: id },
+      update: { data, mimeType: file.mimetype, size: file.size },
+      create: { siteId: id, data, mimeType: file.mimetype, size: file.size },
+      select: { updatedAt: true },
+    });
+    return { updatedAt: photo.updatedAt };
+  }
+
+  async removePhoto(id: string, organizationId?: string | null) {
+    await this.findOne(id, organizationId);
+    await this.prisma.sitePhoto.deleteMany({ where: { siteId: id } });
+    return { message: 'Photo supprimée' };
   }
 }

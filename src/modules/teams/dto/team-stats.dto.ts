@@ -4,6 +4,9 @@ export class TeamStatsDto {
   @ApiProperty({ description: 'Nombre total de travailleurs' })
   total: number;
 
+  @ApiProperty({ description: "Nombre d'employés uniques du chantier" })
+  totalEmployees: number;
+
   @ApiProperty({ description: 'Nombre de tâches complètes' })
   complete: number;
 
@@ -13,7 +16,7 @@ export class TeamStatsDto {
   @ApiProperty({ description: 'Nombre de retards' })
   retards: number;
 
-  @ApiProperty({ description: 'Nombre de tâches en attente' })
+  @ApiProperty({ description: "Nombre d'employés sans pointage ce jour-là" })
   enAttente: number;
 
   @ApiProperty({ description: 'Nombre de tâches annulées' })

@@ -172,6 +172,7 @@ export class TeamController {
     @Request() request: requestWithUser,
   ): Promise<{
     total: number;
+    totalEmployees: number;
     complete: number;
     enCours: number;
     retards: number;

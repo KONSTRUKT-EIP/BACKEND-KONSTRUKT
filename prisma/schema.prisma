@@ -175,8 +175,20 @@ model Site {
 	workforceDays WorkforceDay[]
 	genericTables GenericTable[]
 	teams        Team[]
+	photo        SitePhoto?
 
 	@@index([organizationId])
+}
+
+// Photo de couverture d'un chantier, stockée directement en base
+model SitePhoto {
+	siteId    String   @id @db.Uuid
+	data      Bytes
+	mimeType  String
+	size      Int
+	updatedAt DateTime @updatedAt
+
+	site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {
