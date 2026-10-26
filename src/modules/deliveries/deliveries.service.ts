@@ -241,29 +241,32 @@ export class DeliveriesService {
     },
     organizationId?: string | null,
   ) {
-    const resource = await this.prisma.resource.findFirst({
+    const site = await this.prisma.site.findFirst({
       where: {
-        siteId: data.siteId,
-        name: data.productName,
-        ...(organizationId ? { site: { organizationId } } : {}),
+        id: data.siteId,
+        ...(organizationId ? { organizationId } : {}),
       },
+    });
+    if (!site) {
+      throw new NotFoundException(`Site ${data.siteId} introuvable`);
+    }
+
+    // Le produit peut correspondre à une ressource du chantier, mais ce n'est pas obligatoire
+    const resource = await this.prisma.resource.findFirst({
+      where: { siteId: data.siteId, name: data.productName },
       orderBy: { createdAt: 'desc' },
     });
-
-    if (!resource) {
-      throw new NotFoundException(
-        `Resource "${data.productName}" introuvable pour le site ${data.siteId}`,
-      );
-    }
 
     const delivery = await this.prisma.delivery.create({
       data: {
         siteId: data.siteId,
-        resourceId: resource.id,
+        resourceId: resource?.id ?? null,
+        productName: data.productName,
+        price: data.price,
         expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         quantity: data.totalOrder,
         status: DeliveryStatus.PLANIFIEE,
-        supplier: resource.supplier,
+        supplier: resource?.supplier ?? '',
       },
       include: { resource: true },
     });
@@ -349,21 +352,23 @@ export class DeliveriesService {
     return transitions[from].includes(to);
   }
 
+  // Une commande libre n'a pas de ressource : on prend alors le nom et le prix saisis
+  private getProductInfo(delivery: DeliveryWithResource) {
+    return {
+      name: delivery.productName ?? delivery.resource?.name ?? '',
+      unitPrice: Number(delivery.price ?? delivery.resource?.unitPrice ?? 0),
+    };
+  }
+
   private mapDelivery(delivery: DeliveryWithResource) {
-    const resource = delivery.resource;
-
-    if (!resource) {
-      throw new Error(`Delivery ${delivery.id} is missing associated resource`);
-    }
-
-    const unitPrice = Number(resource.unitPrice);
+    const { name, unitPrice } = this.getProductInfo(delivery);
     const quantity = Number(delivery.quantity);
 
     return {
       id: delivery.id,
       siteId: delivery.siteId,
       resourceId: delivery.resourceId,
-      resourceName: resource.name,
+      resourceName: name,
       expectedDate: delivery.expectedDate,
       receivedDate: delivery.receivedDate,
       quantity,
@@ -376,17 +381,11 @@ export class DeliveriesService {
   }
 
   private mapOrder(delivery: DeliveryWithResource): OrderProjection {
-    const resource = delivery.resource;
-
-    if (!resource) {
-      throw new Error(`Delivery ${delivery.id} is missing associated resource`);
-    }
-
-    const price = Number(resource.unitPrice);
+    const { name, unitPrice: price } = this.getProductInfo(delivery);
 
     return {
       id: delivery.id,
-      productName: resource.name,
+      productName: name,
       productIcon: '',
       price,
       totalOrder: Number(delivery.quantity),
