@@ -109,25 +109,31 @@ export class DeliveriesService {
         })
       : current.resource;
 
-    if (!resolvedResource) {
-      throw new NotFoundException(
-        `Ressource ${dto.resourceId ?? current.resourceId} introuvable`,
-      );
+    if (dto.resourceId && !resolvedResource) {
+      throw new NotFoundException(`Ressource ${dto.resourceId} introuvable`);
     }
 
     const resolvedSiteId =
-      dto.siteId ?? (dto.resourceId ? resolvedResource.siteId : current.siteId);
+      dto.siteId ??
+      (dto.resourceId && resolvedResource
+        ? resolvedResource.siteId
+        : current.siteId);
 
-    if (resolvedSiteId !== resolvedResource.siteId) {
+    if (resolvedResource && resolvedSiteId !== resolvedResource.siteId) {
       throw new BadRequestException(
         'Le site doit correspondre au chantier de la ressource',
       );
     }
 
+    // A free order has no resource: the target site must still belong to the organization
+    if (!resolvedResource && dto.siteId && dto.siteId !== current.siteId) {
+      await this.ensureSiteInOrganization(dto.siteId, organizationId);
+    }
+
     const updated = await this.prisma.delivery.update({
       where: { id },
       data: {
-        resourceId: resolvedResource.id,
+        resourceId: resolvedResource?.id ?? null,
         siteId: resolvedSiteId,
         expectedDate: dto.expectedDate ? new Date(dto.expectedDate) : undefined,
         receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : undefined,
@@ -176,9 +182,12 @@ export class DeliveriesService {
     return { message: `Livraison ${id} supprimée` };
   }
 
-  async getAllOrders(organizationId?: string | null) {
+  async getAllOrders(siteId?: string, organizationId?: string | null) {
     const deliveries = await this.prisma.delivery.findMany({
-      where: { site: { organizationId: organizationId ?? '__no_org__' } },
+      where: {
+        ...(siteId ? { siteId } : {}),
+        site: { organizationId: organizationId ?? '__no_org__' },
+      },
       include: { resource: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -228,6 +237,7 @@ export class DeliveriesService {
 
   async createOrder(
     data: {
+      siteId: string;
       productName: string;
       productIcon?: string;
       price: number;
@@ -236,27 +246,24 @@ export class DeliveriesService {
     },
     organizationId?: string | null,
   ) {
-    const resource = await this.prisma.resource.findFirst({
-      where: {
-        name: { contains: data.productName, mode: 'insensitive' },
-        site: { organizationId: organizationId ?? '__no_org__' },
-      },
-    });
+    await this.ensureSiteInOrganization(data.siteId, organizationId);
 
-    if (!resource) {
-      throw new NotFoundException(
-        `Aucune ressource correspondante pour ${data.productName}`,
-      );
-    }
+    // Le produit peut correspondre à une ressource du chantier, mais ce n'est pas obligatoire
+    const resource = await this.prisma.resource.findFirst({
+      where: { siteId: data.siteId, name: data.productName },
+      orderBy: { createdAt: 'desc' },
+    });
 
     const delivery = await this.prisma.delivery.create({
       data: {
-        resourceId: resource.id,
-        siteId: resource.siteId,
-        quantity: data.totalOrder,
+        siteId: data.siteId,
+        resourceId: resource?.id ?? null,
+        productName: data.productName,
+        price: data.price,
         expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        supplier: resource.supplier,
+        quantity: data.totalOrder,
         status: DeliveryStatus.PLANIFIEE,
+        supplier: resource?.supplier ?? '',
       },
       include: { resource: true },
     });
@@ -288,6 +295,21 @@ export class DeliveriesService {
     }
 
     return delivery;
+  }
+
+  private async ensureSiteInOrganization(
+    siteId: string,
+    organizationId?: string | null,
+  ) {
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, organizationId: organizationId ?? '__no_org__' },
+    });
+
+    if (!site) {
+      throw new NotFoundException(`Site ${siteId} introuvable`);
+    }
+
+    return site;
   }
 
   private buildWhereFromQuery(
@@ -385,15 +407,23 @@ export class DeliveriesService {
     return transitions[from].includes(to);
   }
 
+  // Une commande libre n'a pas de ressource : on prend alors le nom et le prix saisis
+  private getProductInfo(delivery: DeliveryWithResource) {
+    return {
+      name: delivery.productName ?? delivery.resource?.name ?? '',
+      unitPrice: Number(delivery.price ?? delivery.resource?.unitPrice ?? 0),
+    };
+  }
+
   private mapDelivery(delivery: DeliveryWithResource) {
-    const unitPrice = Number(delivery.resource.unitPrice);
+    const { name, unitPrice } = this.getProductInfo(delivery);
     const quantity = Number(delivery.quantity);
 
     return {
       id: delivery.id,
       siteId: delivery.siteId,
       resourceId: delivery.resourceId,
-      resourceName: delivery.resource.name,
+      resourceName: name,
       expectedDate: delivery.expectedDate,
       receivedDate: delivery.receivedDate,
       quantity,
@@ -406,13 +436,15 @@ export class DeliveriesService {
   }
 
   private mapOrder(delivery: DeliveryWithResource): OrderProjection {
+    const { name, unitPrice: price } = this.getProductInfo(delivery);
+
     return {
       id: delivery.id,
-      productName: delivery.resource.name,
+      productName: name,
       productIcon: '',
-      price: Number(delivery.resource.unitPrice),
+      price,
       totalOrder: Number(delivery.quantity),
-      total: Number(delivery.quantity) * Number(delivery.resource.unitPrice),
+      total: Number(delivery.quantity) * price,
     };
   }
 }

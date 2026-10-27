@@ -83,6 +83,7 @@ describe('UserController', () => {
           organizationId: createUserInput.organizationId,
         },
         'org-1',
+        'user-1',
       );
     });
 
@@ -166,7 +167,12 @@ describe('UserController', () => {
       const result = await controller.findAll(request);
 
       expect(result).toEqual(expectedUsers);
-      expect(mockUserService.findAll).toHaveBeenCalledWith(1, 20, 'org-1');
+      expect(mockUserService.findAll).toHaveBeenCalledWith(
+        1,
+        20,
+        'org-1',
+        'user-1',
+      );
     });
   });
 
@@ -189,7 +195,11 @@ describe('UserController', () => {
       const result = await controller.findOne(userId, request);
 
       expect(result).toEqual(expectedUser);
-      expect(mockUserService.findOne).toHaveBeenCalledWith(userId, 'org-1');
+      expect(mockUserService.findOne).toHaveBeenCalledWith(
+        userId,
+        'org-1',
+        'user-1',
+      );
     });
   });
 
@@ -232,6 +242,7 @@ describe('UserController', () => {
           password: 'updatedHash',
         },
         'org-1',
+        'user-1',
       );
     });
   });
@@ -255,7 +266,11 @@ describe('UserController', () => {
       const result = await controller.remove(userId, request);
 
       expect(result).toEqual(expectedUser);
-      expect(mockUserService.remove).toHaveBeenCalledWith(userId, 'org-1');
+      expect(mockUserService.remove).toHaveBeenCalledWith(
+        userId,
+        'org-1',
+        'user-1',
+      );
     });
   });
 });
