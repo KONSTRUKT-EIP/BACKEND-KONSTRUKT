@@ -7,12 +7,8 @@ describe('TeamService', () => {
   let teamMemberFindMany: jest.Mock;
   let teamMemberFindFirst: jest.Mock;
   let siteFindFirst: jest.Mock;
-<<<<<<< HEAD
-  let teamMemberFindMany: jest.Mock;
-=======
   let attendanceFindMany: jest.Mock;
   let attendanceUpsert: jest.Mock;
->>>>>>> 887fadf3004f67ec14cbd1fd655303e4af476714
 
   beforeEach(() => {
     teamFindMany = jest.fn().mockResolvedValue([{ id: 'team-1' }]);
@@ -22,19 +18,12 @@ describe('TeamService', () => {
     attendanceFindMany = jest.fn();
     attendanceUpsert = jest.fn();
 
-    teamMemberFindMany = jest.fn().mockResolvedValue([]);
-
     service = new TeamService({
       team: { findMany: teamFindMany },
-<<<<<<< HEAD
-      teamMember: { findMany: teamMemberFindMany },
-      attendance: { findMany: attendanceFindMany },
-=======
       teamMember: {
         findMany: teamMemberFindMany,
         findFirst: teamMemberFindFirst,
       },
->>>>>>> 887fadf3004f67ec14cbd1fd655303e4af476714
       site: { findFirst: siteFindFirst },
       attendance: {
         findMany: attendanceFindMany,
@@ -93,8 +82,8 @@ describe('TeamService', () => {
     expect(result.pctEnCours).toBe(0);
   });
 
-<<<<<<< HEAD
   it('counts every worker without attendance as pending', async () => {
+    siteFindFirst.mockResolvedValue({ id: 'site-1' });
     teamMemberFindMany.mockResolvedValue([
       { userId: 'u1' },
       { userId: 'u2' },
@@ -111,6 +100,7 @@ describe('TeamService', () => {
   });
 
   it('excludes workers who already have an attendance from pending', async () => {
+    siteFindFirst.mockResolvedValue({ id: 'site-1' });
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -129,7 +119,8 @@ describe('TeamService', () => {
     expect(result.totalEmployees).toBe(3);
     expect(result.enAttente).toBe(2);
     expect(result.complete).toBe(1);
-=======
+  });
+
   it('persists normal and overtime hours for a site team member', async () => {
     siteFindFirst.mockResolvedValue({ id: 'site-1' });
     teamMemberFindFirst.mockResolvedValue({ teamId: 'team-1' });
@@ -167,6 +158,5 @@ describe('TeamService', () => {
         }),
       }),
     );
->>>>>>> 887fadf3004f67ec14cbd1fd655303e4af476714
   });
 });
