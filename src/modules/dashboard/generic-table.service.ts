@@ -7,10 +7,14 @@ import { UpdateGenericTableRowDto } from './dto/update-generic-table-row.dto';
 import { Prisma } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import type { userPayload } from '../auth/jwt.strategy';
+import { SiteAccessService } from '../../shared/authorization/site-access.service';
 
 @Injectable()
 export class GenericTableService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly siteAccess: SiteAccessService,
+  ) {}
 
   private async assertSiteAccess(
     siteId: string,
@@ -32,7 +36,11 @@ export class GenericTableService {
     return await this.prisma.genericTable.create({ data: dto });
   }
 
-  async getTable(id: string, organizationId?: string | null) {
+  async getTable(
+    id: string,
+    organizationId?: string | null,
+    user?: userPayload,
+  ) {
     const table = await this.prisma.genericTable.findFirst({
       where: { id, site: { organizationId: organizationId ?? '__no_org__' } },
       include: { rows: true },
@@ -41,6 +49,8 @@ export class GenericTableService {
     if (!table) {
       throw new NotFoundException(`Table with ID ${id} not found`);
     }
+
+    if (user) await this.siteAccess.assertAccess(table.siteId, user);
 
     return table;
   }
@@ -106,8 +116,12 @@ export class GenericTableService {
     });
   }
 
-  async addRow(dto: CreateGenericTableRowDto, organizationId?: string | null) {
-    await this.getTable(dto.tableId, organizationId);
+  async addRow(
+    dto: CreateGenericTableRowDto,
+    organizationId?: string | null,
+    user?: userPayload,
+  ) {
+    await this.getTable(dto.tableId, organizationId, user);
     try {
       return await this.prisma.genericTableRow.create({ data: dto });
     } catch (error) {
@@ -125,8 +139,9 @@ export class GenericTableService {
     id: string,
     dto: UpdateGenericTableRowDto,
     organizationId?: string | null,
+    user?: userPayload,
   ) {
-    await this.getRow(id, organizationId);
+    await this.getRow(id, organizationId, user);
     try {
       return await this.prisma.genericTableRow.update({
         where: { id },
@@ -143,8 +158,12 @@ export class GenericTableService {
     }
   }
 
-  async deleteRow(id: string, organizationId?: string | null) {
-    await this.getRow(id, organizationId);
+  async deleteRow(
+    id: string,
+    organizationId?: string | null,
+    user?: userPayload,
+  ) {
+    await this.getRow(id, organizationId, user);
     try {
       return await this.prisma.genericTableRow.delete({ where: { id } });
     } catch (error) {
@@ -158,23 +177,39 @@ export class GenericTableService {
     }
   }
 
-  async getRow(id: string, organizationId?: string | null) {
+  async getRow(
+    id: string,
+    organizationId?: string | null,
+    user?: userPayload,
+  ) {
     const row = await this.prisma.genericTableRow.findFirst({
       where: {
         id,
         table: { site: { organizationId: organizationId ?? '__no_org__' } },
       },
+      include: { table: { select: { siteId: true } } },
     });
 
     if (!row) {
       throw new NotFoundException(`Row with ID ${id} not found`);
     }
 
-    return row;
+    if (user) await this.siteAccess.assertAccess(row.table.siteId, user);
+    return {
+      id: row.id,
+      tableId: row.tableId,
+      data: row.data,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
   }
 
-  async listRows(tableId: string, organizationId?: string | null) {
-    const table = await this.getTable(tableId, organizationId);
+  async listRows(
+    tableId: string,
+    organizationId?: string | null,
+    user?: userPayload,
+  ) {
+    const table = await this.getTable(tableId, organizationId, user);
 
     if (!table) {
       throw new NotFoundException(`Table with ID ${tableId} not found`);

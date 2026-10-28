@@ -7,6 +7,7 @@ import { UpdateGenericTableDto } from '../../../src/modules/dashboard/dto/update
 import { CreateGenericTableRowDto } from '../../../src/modules/dashboard/dto/create-generic-table-row.dto';
 import { UpdateGenericTableRowDto } from '../../../src/modules/dashboard/dto/update-generic-table-row.dto';
 import { Prisma } from '@prisma/client';
+import { SiteAccessService } from '../../../src/shared/authorization/site-access.service';
 
 describe('GenericTableService', () => {
   let service: GenericTableService;
@@ -58,6 +59,10 @@ describe('GenericTableService', () => {
               delete: jest.fn().mockResolvedValue(mockRow),
             },
           },
+        },
+        {
+          provide: SiteAccessService,
+          useValue: { assertAccess: jest.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();
@@ -308,6 +313,7 @@ describe('GenericTableService', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.genericTableRow.findFirst).toHaveBeenCalledWith({
         where: { id: rowId, table: { site: { organizationId } } },
+        include: { table: { select: { siteId: true } } },
       });
     });
 

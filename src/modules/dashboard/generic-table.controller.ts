@@ -127,6 +127,7 @@ export class GenericTableController {
     return this.service.addRow(
       { tableId, data: dto.data },
       request.user.organizationId,
+      request.user,
     );
   }
 
@@ -141,7 +142,11 @@ export class GenericTableController {
     @Param('tableId') tableId: string,
     @Request() request: requestWithUser,
   ) {
-    return this.service.listRows(tableId, request.user.organizationId);
+    return this.service.listRows(
+      tableId,
+      request.user.organizationId,
+      request.user,
+    );
   }
 
   @Get('rows/:id')
@@ -152,7 +157,7 @@ export class GenericTableController {
   @ApiResponse({ status: 200, description: 'Row found.' })
   @ApiResponse({ status: 404, description: 'Row not found.' })
   getRow(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.getRow(id, request.user.organizationId);
+    return this.service.getRow(id, request.user.organizationId, request.user);
   }
 
   @Put('rows/:id')
@@ -168,7 +173,12 @@ export class GenericTableController {
     @Body() dto: UpdateGenericTableRowDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.updateRow(id, dto, request.user.organizationId);
+    return this.service.updateRow(
+      id,
+      dto,
+      request.user.organizationId,
+      request.user,
+    );
   }
 
   @Delete('rows/:id')
@@ -179,6 +189,6 @@ export class GenericTableController {
   @ApiResponse({ status: 200, description: 'Row deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Row not found.' })
   deleteRow(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.deleteRow(id, request.user.organizationId);
+    return this.service.deleteRow(id, request.user.organizationId, request.user);
   }
 }
