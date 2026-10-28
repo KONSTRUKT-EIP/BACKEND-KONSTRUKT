@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { WeatherController } from './weather.controller';
 import { WeatherService } from './weather.service';
+import { WeatherAlertService } from './weather-alert.service';
 import { SiteModule } from '../sites/site.module';
 import { SiteAccessModule } from '../../shared/authorization/site-access.module';
 
@@ -15,7 +16,7 @@ import { SiteAccessModule } from '../../shared/authorization/site-access.module'
     SiteAccessModule,
   ],
   controllers: [WeatherController],
-  providers: [WeatherService],
+  providers: [WeatherService, WeatherAlertService],
   exports: [WeatherService],
 })
 export class WeatherModule {}
