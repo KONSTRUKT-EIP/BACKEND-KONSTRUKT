@@ -50,9 +50,10 @@ describe('CORS Configuration', () => {
       expect(parseCorsOrigins('NONE')).toBe(false);
     });
 
-    it('parses comma-separated origins and trims spaces and trailing slashes', () => {
+    it('parses comma-separated origins and trims spaces and slashes', () => {
       const result = parseCorsOrigins(
-        'https://app.konstrukt.io/, http://localhost:5173/ , https://admin.konstrukt.io',
+        'https://app.konstrukt.io/, http://localhost:5173/ ,' +
+          ' https://admin.konstrukt.io',
       );
       expect(result).toEqual([
         'https://app.konstrukt.io',
@@ -86,7 +87,18 @@ describe('CORS Configuration', () => {
 
     it('rejects unsafe wildcard host patterns', () => {
       expect(() => parseCorsOrigins('https://*konstrukt.io')).toThrow(
-        'Invalid wildcard CORS origin: https://*konstrukt.io. Use a subdomain wildcard such as https://*.example.com',
+        'Invalid wildcard CORS origin: https://*konstrukt.io.',
+      );
+    });
+
+    it('rejects origins without an http(s) scheme', () => {
+      for (const origin of ['localhost:5173', 'app.konstrukt.io:443']) {
+        expect(() => parseCorsOrigins(origin)).toThrow(
+          `Invalid CORS origin: ${origin}.`,
+        );
+      }
+      expect(() => parseCorsOrigins('ftp://files.konstrukt.io')).toThrow(
+        'Invalid CORS origin',
       );
     });
   });
@@ -139,7 +151,7 @@ describe('CORS Configuration', () => {
       );
     });
 
-    it('defaults to localhost origins in development when no variables are set', () => {
+    it('defaults to localhost origins in development without variables', () => {
       delete process.env.CORS_ALLOWED_ORIGINS;
       delete process.env.CORS_ORIGIN;
       delete process.env.APP_URL;
@@ -210,7 +222,8 @@ describe('CORS Configuration', () => {
 
     beforeEach(async () => {
       process.env.CORS_ALLOWED_ORIGINS =
-        'http://localhost:5173, https://app.konstrukt.io, https://*.preview.konstrukt.io';
+        'http://localhost:5173, https://app.konstrukt.io,' +
+        ' https://*.preview.konstrukt.io';
 
       const moduleRef = await Test.createTestingModule({
         controllers: [CorsTestController],
@@ -225,7 +238,7 @@ describe('CORS Configuration', () => {
       await app.close();
     });
 
-    it('allows request from configured origin and sends CORS headers', async () => {
+    it('allows configured origin and sends CORS headers', async () => {
       const response = await request(app.getHttpServer())
         .get('/cors-test/hello')
         .set('Origin', 'http://localhost:5173')
@@ -248,7 +261,7 @@ describe('CORS Configuration', () => {
       );
     });
 
-    it('does not send Access-Control-Allow-Origin header for unauthorized origin', async () => {
+    it('omits Allow-Origin header for unauthorized origin', async () => {
       const response = await request(app.getHttpServer())
         .get('/cors-test/hello')
         .set('Origin', 'http://malicious-website.com')
@@ -257,7 +270,7 @@ describe('CORS Configuration', () => {
       expect(response.headers['access-control-allow-origin']).toBeUndefined();
     });
 
-    it('responds to OPTIONS preflight from allowed origin with 204 and CORS headers', async () => {
+    it('answers allowed preflight with 204 and CORS headers', async () => {
       const response = await request(app.getHttpServer())
         .options('/cors-test/hello')
         .set('Origin', 'https://app.konstrukt.io')
@@ -271,7 +284,7 @@ describe('CORS Configuration', () => {
       expect(response.headers['access-control-allow-methods']).toBeDefined();
     });
 
-    it('does not send Access-Control-Allow-Origin for OPTIONS preflight from unauthorized origin', async () => {
+    it('omits Allow-Origin header for unauthorized preflight', async () => {
       const response = await request(app.getHttpServer())
         .options('/cors-test/hello')
         .set('Origin', 'http://malicious-website.com')

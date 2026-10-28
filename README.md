@@ -54,7 +54,7 @@ MAIL_PROVIDER=brevo
 BREVO_API_KEY=xkeysib-...
 MAIL_FROM_EMAIL=konstrukt.compagnie@gmail.com
 MAIL_FROM_NAME=Konstrukt
-APP_URL=httphttp://localhost:8081
+APP_URL=http://localhost:8081
 BREVO_INVITATION_TEMPLATE_ID=2
 ```
 

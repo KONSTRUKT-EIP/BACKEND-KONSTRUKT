@@ -1,5 +1,7 @@
 import { Logger } from '@nestjs/common';
-import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+// prettier-ignore
+import type { CorsOptions } from
+  '@nestjs/common/interfaces/external/cors-options.interface';
 import { ConfigService } from '@nestjs/config';
 
 type CorsOrigin = string | RegExp;
@@ -9,6 +11,9 @@ const DEFAULT_LOCAL_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
 ];
+
+const WILDCARD_ORIGIN_PATTERN =
+  /^https?:\/\/\*\.[^/*.:]+(?:\.[^/*.:]+)*(?::\d+)?$/;
 
 function getEnvValue(
   configService: ConfigService | undefined,
@@ -24,6 +29,11 @@ function parseCommaSeparatedList(value?: string): string[] {
     .filter((item) => item.length > 0);
 }
 
+/**
+ * Reduces an origin to scheme://host[:port]. Wildcard origins are kept
+ * as-is. Throws when the value is not an absolute http(s) URL: a value
+ * such as "localhost:5173" would otherwise become the origin "null".
+ */
 function normalizeOrigin(origin: string): string {
   const trimmed = origin.trim().replace(/\/+$/, '');
 
@@ -31,16 +41,44 @@ function normalizeOrigin(origin: string): string {
     return trimmed;
   }
 
+  let url: URL | undefined;
   try {
-    return new URL(trimmed).origin;
+    url = new URL(trimmed);
   } catch {
-    return trimmed;
+    url = undefined;
   }
+
+  if (!url || (url.protocol !== 'http:' && url.protocol !== 'https:')) {
+    throw new Error(
+      `Invalid CORS origin: ${trimmed}. ` +
+        'Use a full origin such as https://app.example.com',
+    );
+  }
+
+  return url.origin;
 }
 
 /**
- * Parses raw CORS origins string into an array of allowed origins (strings or RegExps),
- * a wildcard string '*', or boolean false (CORS disabled/denied).
+ * Converts a subdomain wildcard origin (https://*.example.com) into a
+ * RegExp matching exactly one subdomain level.
+ */
+function toWildcardRegExp(origin: string): RegExp {
+  if (!WILDCARD_ORIGIN_PATTERN.test(origin)) {
+    throw new Error(
+      `Invalid wildcard CORS origin: ${origin}. ` +
+        'Use a subdomain wildcard such as https://*.example.com',
+    );
+  }
+
+  const escaped = origin.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = escaped.replace(/\*/g, '[a-z0-9-]+');
+  return new RegExp(`^${pattern}$`);
+}
+
+/**
+ * Parses raw CORS origins string into an array of allowed origins
+ * (strings or RegExps), a wildcard string '*', or boolean false
+ * (CORS disabled/denied).
  */
 export function parseCorsOrigins(rawOrigins?: string): CorsOriginValue {
   if (rawOrigins === undefined || rawOrigins === null) {
@@ -60,78 +98,64 @@ export function parseCorsOrigins(rawOrigins?: string): CorsOriginValue {
     return false;
   }
 
-  const origins = parseCommaSeparatedList(trimmed).map(normalizeOrigin);
+  const rawList = parseCommaSeparatedList(trimmed);
 
-  if (origins.includes('*')) {
+  if (rawList.includes('*')) {
     return '*';
   }
 
-  return origins.map((origin) => {
-    if (origin.includes('*')) {
-      if (!/^https?:\/\/\*\.[^/*.:]+(?:\.[^/*.:]+)*(?::\d+)?$/.test(origin)) {
-        throw new Error(
-          `Invalid wildcard CORS origin: ${origin}. Use a subdomain wildcard such as https://*.example.com`,
-        );
-      }
-
-      const escaped = origin.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-      const pattern = escaped.replace(/\*/g, '[a-z0-9-]+');
-      return new RegExp(`^${pattern}$`);
-    }
-    return origin;
-  });
+  return rawList
+    .map(normalizeOrigin)
+    .map((origin) =>
+      origin.includes('*') ? toWildcardRegExp(origin) : origin,
+    );
 }
 
 /**
- * Resolves allowed CORS origins based on configuration service or environment variables.
+ * Reads and parses one CORS source variable. Returns undefined when the
+ * variable is missing or empty, so the caller falls back to the next one.
+ */
+function resolveConfiguredOrigins(
+  configService: ConfigService | undefined,
+  key: string,
+): CorsOriginValue | undefined {
+  const rawValue = getEnvValue(configService, key);
+
+  if (rawValue === undefined) {
+    return undefined;
+  }
+
+  if (rawValue.trim() === '') {
+    Logger.warn(
+      `${key} is defined but empty. Falling back to the next CORS source.`,
+      'CorsConfig',
+    );
+    return undefined;
+  }
+
+  return parseCorsOrigins(rawValue);
+}
+
+/**
+ * Resolves allowed CORS origins based on configuration service or
+ * environment variables.
  * Priority:
  * 1. CORS_ALLOWED_ORIGINS
  * 2. CORS_ORIGIN
  * 3. APP_URL
- * 4. Fallback based on NODE_ENV (production: https://app.konstrukt.io, non-production: localhost:5173, localhost:3000)
+ * 4. Fallback based on NODE_ENV (production: throws, non-production:
+ *    localhost:5173, localhost:3000)
  */
 export function resolveAllowedOrigins(
   configService?: ConfigService,
 ): CorsOriginValue {
-  const resolveConfiguredOrigins = (
-    key: string,
-  ): CorsOriginValue | undefined => {
-    const rawValue = getEnvValue(configService, key);
+  const sources = ['CORS_ALLOWED_ORIGINS', 'CORS_ORIGIN', 'APP_URL'];
 
-    if (rawValue === undefined) {
-      return undefined;
+  for (const key of sources) {
+    const origins = resolveConfiguredOrigins(configService, key);
+    if (origins !== undefined) {
+      return origins;
     }
-
-    const parsed = parseCorsOrigins(rawValue);
-
-    if (
-      Array.isArray(parsed) &&
-      parsed.length === 0 &&
-      rawValue.trim() === ''
-    ) {
-      Logger.warn(
-        `${key} is defined but empty. Falling back to the next CORS source.`,
-        'CorsConfig',
-      );
-      return undefined;
-    }
-
-    return parsed;
-  };
-
-  const corsAllowedOrigins = resolveConfiguredOrigins('CORS_ALLOWED_ORIGINS');
-  if (corsAllowedOrigins !== undefined) {
-    return corsAllowedOrigins;
-  }
-
-  const corsOrigin = resolveConfiguredOrigins('CORS_ORIGIN');
-  if (corsOrigin !== undefined) {
-    return corsOrigin;
-  }
-
-  const appUrl = resolveConfiguredOrigins('APP_URL');
-  if (appUrl !== undefined) {
-    return appUrl;
   }
 
   const nodeEnv = getEnvValue(configService, 'NODE_ENV');

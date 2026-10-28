@@ -6,8 +6,8 @@ import {
 import { DeliveryStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
-import { QueryDeliveriesDto } from './dto/query-deliveries.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
+import { QueryDeliveriesDto } from './dto/query-deliveries.dto';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 
 type DeliveryWithResource = Prisma.DeliveryGetPayload<{
@@ -27,10 +27,10 @@ interface OrderProjection {
 export class DeliveriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: QueryDeliveriesDto, organizationId?: string | null) {
+  async findAll(query: QueryDeliveriesDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where = this.buildWhereFromQuery(query, organizationId);
+    const where = this.buildWhereFromQuery(query);
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.delivery.findMany({
@@ -51,27 +51,30 @@ export class DeliveriesService {
     };
   }
 
-  async findOne(id: string, organizationId?: string | null) {
-    const delivery = await this.findDeliveryInOrganization(id, organizationId);
+  async findOne(id: string) {
+    const delivery = await this.prisma.delivery.findUnique({
+      where: { id },
+      include: { resource: true },
+    });
+    if (!delivery) {
+      throw new NotFoundException(`Delivery ${id} introuvable`);
+    }
     return this.mapDelivery(delivery);
   }
 
-  async create(dto: CreateDeliveryDto, organizationId?: string | null) {
-    const resource = await this.prisma.resource.findFirst({
-      where: {
-        id: dto.resourceId,
-        site: { organizationId: organizationId ?? '__no_org__' },
-      },
+  async create(dto: CreateDeliveryDto) {
+    const resource = await this.prisma.resource.findUnique({
+      where: { id: dto.resourceId },
     });
 
     if (!resource) {
-      throw new NotFoundException(`Ressource ${dto.resourceId} introuvable`);
+      throw new NotFoundException(`Resource ${dto.resourceId} introuvable`);
     }
 
     const siteId = dto.siteId ?? resource.siteId;
     if (siteId !== resource.siteId) {
       throw new BadRequestException(
-        'Le site doit correspondre au chantier de la ressource',
+        'siteId doit correspondre au chantier de la ressource',
       );
     }
 
@@ -93,47 +96,34 @@ export class DeliveriesService {
     return this.mapDelivery(created);
   }
 
-  async update(
-    id: string,
-    dto: UpdateDeliveryDto,
-    organizationId?: string | null,
-  ) {
-    const current = await this.findDeliveryInOrganization(id, organizationId);
+  async update(id: string, dto: UpdateDeliveryDto) {
+    await this.ensureDeliveryExists(id);
 
-    const resolvedResource = dto.resourceId
-      ? await this.prisma.resource.findFirst({
-          where: {
-            id: dto.resourceId,
-            site: { organizationId: organizationId ?? '__no_org__' },
-          },
-        })
-      : current.resource;
+    let resolvedResourceId = dto.resourceId;
+    let resolvedSiteId = dto.siteId;
 
-    if (dto.resourceId && !resolvedResource) {
-      throw new NotFoundException(`Ressource ${dto.resourceId} introuvable`);
-    }
+    if (dto.resourceId) {
+      const nextResource = await this.prisma.resource.findUnique({
+        where: { id: dto.resourceId },
+      });
+      if (!nextResource) {
+        throw new NotFoundException(`Resource ${dto.resourceId} introuvable`);
+      }
 
-    const resolvedSiteId =
-      dto.siteId ??
-      (dto.resourceId && resolvedResource
-        ? resolvedResource.siteId
-        : current.siteId);
+      if (dto.siteId && dto.siteId !== nextResource.siteId) {
+        throw new BadRequestException(
+          'siteId doit correspondre au chantier de la ressource',
+        );
+      }
 
-    if (resolvedResource && resolvedSiteId !== resolvedResource.siteId) {
-      throw new BadRequestException(
-        'Le site doit correspondre au chantier de la ressource',
-      );
-    }
-
-    // A free order has no resource: the target site must still belong to the organization
-    if (!resolvedResource && dto.siteId && dto.siteId !== current.siteId) {
-      await this.ensureSiteInOrganization(dto.siteId, organizationId);
+      resolvedSiteId = dto.siteId ?? nextResource.siteId;
+      resolvedResourceId = nextResource.id;
     }
 
     const updated = await this.prisma.delivery.update({
       where: { id },
       data: {
-        resourceId: resolvedResource?.id ?? null,
+        resourceId: resolvedResourceId,
         siteId: resolvedSiteId,
         expectedDate: dto.expectedDate ? new Date(dto.expectedDate) : undefined,
         receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : undefined,
@@ -147,16 +137,19 @@ export class DeliveriesService {
     return this.mapDelivery(updated);
   }
 
-  async updateStatus(
-    id: string,
-    dto: UpdateDeliveryStatusDto,
-    organizationId?: string | null,
-  ) {
-    const current = await this.findDeliveryInOrganization(id, organizationId);
+  async updateStatus(id: string, dto: UpdateDeliveryStatusDto) {
+    const current = await this.prisma.delivery.findUnique({
+      where: { id },
+      include: { resource: true },
+    });
+
+    if (!current) {
+      throw new NotFoundException(`Delivery ${id} introuvable`);
+    }
 
     if (!this.isStatusTransitionAllowed(current.status, dto.status)) {
       throw new BadRequestException(
-        `Transition de ${current.status} vers ${dto.status} non autorisée`,
+        `Transition ${current.status} -> ${dto.status} non autorisee`,
       );
     }
 
@@ -164,11 +157,13 @@ export class DeliveriesService {
       where: { id },
       data: {
         status: dto.status,
-        receivedDate: this.resolveReceivedDate(
-          current.receivedDate,
-          dto.status,
-          dto.receivedDate,
-        ),
+        receivedDate:
+          dto.status === DeliveryStatus.LIVREE ||
+          dto.status === DeliveryStatus.PARTIELLE
+            ? dto.receivedDate
+              ? new Date(dto.receivedDate)
+              : new Date()
+            : current.receivedDate,
       },
       include: { resource: true },
     });
@@ -176,17 +171,17 @@ export class DeliveriesService {
     return this.mapDelivery(updated);
   }
 
-  async remove(id: string, organizationId?: string | null) {
-    await this.findDeliveryInOrganization(id, organizationId);
+  async remove(id: string) {
+    await this.ensureDeliveryExists(id);
     await this.prisma.delivery.delete({ where: { id } });
-    return { message: `Livraison ${id} supprimée` };
+    return { message: `Delivery ${id} supprimee` };
   }
 
   async getAllOrders(siteId?: string, organizationId?: string | null) {
     const deliveries = await this.prisma.delivery.findMany({
       where: {
         ...(siteId ? { siteId } : {}),
-        site: { organizationId: organizationId ?? '__no_org__' },
+        ...(organizationId ? { site: { organizationId } } : {}),
       },
       include: { resource: true },
       orderBy: { createdAt: 'desc' },
@@ -207,10 +202,7 @@ export class DeliveriesService {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
 
-    const where: Prisma.DeliveryWhereInput = {
-      site: { organizationId: organizationId ?? '__no_org__' },
-    };
-
+    const where: Prisma.DeliveryWhereInput = {};
     if (query.startDate || query.endDate) {
       const createdAt: Prisma.DateTimeFilter = {};
       if (query.startDate) {
@@ -222,6 +214,9 @@ export class DeliveriesService {
         createdAt.lte = endDate;
       }
       where.createdAt = createdAt;
+    }
+    if (organizationId) {
+      where.site = { organizationId };
     }
 
     const deliveries = await this.prisma.delivery.findMany({
@@ -246,7 +241,15 @@ export class DeliveriesService {
     },
     organizationId?: string | null,
   ) {
-    await this.ensureSiteInOrganization(data.siteId, organizationId);
+    const site = await this.prisma.site.findFirst({
+      where: {
+        id: data.siteId,
+        ...(organizationId ? { organizationId } : {}),
+      },
+    });
+    if (!site) {
+      throw new NotFoundException(`Site ${data.siteId} introuvable`);
+    }
 
     // Le produit peut correspondre à une ressource du chantier, mais ce n'est pas obligatoire
     const resource = await this.prisma.resource.findFirst({
@@ -278,47 +281,18 @@ export class DeliveriesService {
     };
   }
 
-  private async findDeliveryInOrganization(
-    id: string,
-    organizationId?: string | null,
-  ) {
-    const delivery = await this.prisma.delivery.findFirst({
-      where: {
-        id,
-        site: { organizationId: organizationId ?? '__no_org__' },
-      },
-      include: { resource: true },
-    });
-
-    if (!delivery) {
-      throw new NotFoundException(`Livraison ${id} introuvable`);
+  private async ensureDeliveryExists(id: string) {
+    const existing = await this.prisma.delivery.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Delivery ${id} introuvable`);
     }
-
-    return delivery;
-  }
-
-  private async ensureSiteInOrganization(
-    siteId: string,
-    organizationId?: string | null,
-  ) {
-    const site = await this.prisma.site.findFirst({
-      where: { id: siteId, organizationId: organizationId ?? '__no_org__' },
-    });
-
-    if (!site) {
-      throw new NotFoundException(`Site ${siteId} introuvable`);
-    }
-
-    return site;
+    return existing;
   }
 
   private buildWhereFromQuery(
     query: QueryDeliveriesDto,
-    organizationId?: string | null,
   ): Prisma.DeliveryWhereInput {
-    const where: Prisma.DeliveryWhereInput = {
-      site: { organizationId: organizationId ?? '__no_org__' },
-    };
+    const where: Prisma.DeliveryWhereInput = {};
 
     if (query.siteId) {
       where.siteId = query.siteId;
@@ -342,39 +316,10 @@ export class DeliveriesService {
         dateFilter.lte = endDate;
       }
 
-      switch (dateField) {
-        case 'createdAt':
-          where.createdAt = dateFilter;
-          break;
-        case 'expectedDate':
-          where.expectedDate = dateFilter;
-          break;
-        case 'receivedDate':
-          where.receivedDate = dateFilter;
-          break;
-      }
+      where[dateField] = dateFilter;
     }
 
     return where;
-  }
-
-  private resolveReceivedDate(
-    currentReceivedDate: Date | null,
-    status: DeliveryStatus,
-    receivedDate?: string,
-  ) {
-    if (
-      status !== DeliveryStatus.LIVREE &&
-      status !== DeliveryStatus.PARTIELLE
-    ) {
-      return currentReceivedDate;
-    }
-
-    if (receivedDate) {
-      return new Date(receivedDate);
-    }
-
-    return currentReceivedDate ?? new Date();
   }
 
   private isStatusTransitionAllowed(
