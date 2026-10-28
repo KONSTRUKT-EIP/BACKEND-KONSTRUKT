@@ -234,12 +234,12 @@ describe('WeatherController', () => {
 
       mockSiteService.findOne.mockResolvedValue(mockSiteWithoutCity);
 
-      await expect(controller.getWeatherBySite('site-123', mockRequest)).rejects.toThrow(
-        HttpException,
-      );
-      await expect(controller.getWeatherBySite('site-123', mockRequest)).rejects.toThrow(
-        'Le site ne possède pas de ville',
-      );
+      await expect(
+        controller.getWeatherBySite('site-123', mockRequest),
+      ).rejects.toThrow(HttpException);
+      await expect(
+        controller.getWeatherBySite('site-123', mockRequest),
+      ).rejects.toThrow('Le site ne possède pas de ville');
     });
 
     it("devrait propager l'exception NotFoundException si le site n'existe pas", async () => {
@@ -247,9 +247,9 @@ describe('WeatherController', () => {
         new HttpException('Site site-999 introuvable', 404),
       );
 
-      await expect(controller.getWeatherBySite('site-999', mockRequest)).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        controller.getWeatherBySite('site-999', mockRequest),
+      ).rejects.toThrow(HttpException);
       expect(mockSiteService.findOne).toHaveBeenCalledWith('site-999', 'org-a');
     });
   });

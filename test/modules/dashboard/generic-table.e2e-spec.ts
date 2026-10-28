@@ -41,7 +41,9 @@ describe('GenericTableController (e2e)', () => {
       .overrideProvider(PrismaService)
       .useValue({
         site: {
-          findFirst: jest.fn().mockResolvedValue({ id: mockSiteId, organizationId: 'org-a' }),
+          findFirst: jest
+            .fn()
+            .mockResolvedValue({ id: mockSiteId, organizationId: 'org-a' }),
         },
         genericTable: {
           create: jest.fn().mockResolvedValue(mockTable),

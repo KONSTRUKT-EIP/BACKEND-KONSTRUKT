@@ -57,7 +57,9 @@ describe('DashboardController - getArmatureAnalytics', () => {
     const query: ArmatureReportsQueryDto = {
       startDate: 'invalid-date',
     };
-    await expect(controller.getArmatureAnalytics(query, mockRequest)).rejects.toThrow();
+    await expect(
+      controller.getArmatureAnalytics(query, mockRequest),
+    ).rejects.toThrow();
   });
 
   it('should accept valid date format', async () => {
