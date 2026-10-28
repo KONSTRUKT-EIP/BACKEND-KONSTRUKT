@@ -196,6 +196,14 @@ describe('UserController (e2e)', () => {
           );
         });
     });
+
+    it('should return 404 when the user does not exist', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      return request(app.getHttpServer())
+        .get('/users/123e4567-e89b-12d3-a456-426614174999')
+        .expect(404);
+    });
   });
 
   describe('/users/:id (PUT)', () => {
@@ -234,6 +242,15 @@ describe('UserController (e2e)', () => {
           );
         });
     });
+
+    it('should return 404 when the user does not exist', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      return request(app.getHttpServer())
+        .put('/users/123e4567-e89b-12d3-a456-426614174999')
+        .send({ firstName: 'Updated' })
+        .expect(404);
+    });
   });
 
   describe('/users/:id (DELETE)', () => {
@@ -261,6 +278,14 @@ describe('UserController (e2e)', () => {
             `User ${userId} deleted`,
           );
         });
+    });
+
+    it('should return 404 when the user does not exist', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      return request(app.getHttpServer())
+        .delete('/users/123e4567-e89b-12d3-a456-426614174999')
+        .expect(404);
     });
   });
 });
