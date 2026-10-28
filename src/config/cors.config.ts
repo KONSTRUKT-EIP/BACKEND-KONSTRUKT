@@ -29,11 +29,6 @@ function parseCommaSeparatedList(value?: string): string[] {
     .filter((item) => item.length > 0);
 }
 
-/**
- * Reduces an origin to scheme://host[:port]. Wildcard origins are kept
- * as-is. Throws when the value is not an absolute http(s) URL: a value
- * such as "localhost:5173" would otherwise become the origin "null".
- */
 function normalizeOrigin(origin: string): string {
   const trimmed = origin.trim().replace(/\/+$/, '');
 
@@ -58,10 +53,6 @@ function normalizeOrigin(origin: string): string {
   return url.origin;
 }
 
-/**
- * Converts a subdomain wildcard origin (https://*.example.com) into a
- * RegExp matching exactly one subdomain level.
- */
 function toWildcardRegExp(origin: string): RegExp {
   if (!WILDCARD_ORIGIN_PATTERN.test(origin)) {
     throw new Error(
@@ -75,11 +66,6 @@ function toWildcardRegExp(origin: string): RegExp {
   return new RegExp(`^${pattern}$`);
 }
 
-/**
- * Parses raw CORS origins string into an array of allowed origins
- * (strings or RegExps), a wildcard string '*', or boolean false
- * (CORS disabled/denied).
- */
 export function parseCorsOrigins(rawOrigins?: string): CorsOriginValue {
   if (rawOrigins === undefined || rawOrigins === null) {
     return [];
@@ -111,10 +97,6 @@ export function parseCorsOrigins(rawOrigins?: string): CorsOriginValue {
     );
 }
 
-/**
- * Reads and parses one CORS source variable. Returns undefined when the
- * variable is missing or empty, so the caller falls back to the next one.
- */
 function resolveConfiguredOrigins(
   configService: ConfigService | undefined,
   key: string,
@@ -136,16 +118,6 @@ function resolveConfiguredOrigins(
   return parseCorsOrigins(rawValue);
 }
 
-/**
- * Resolves allowed CORS origins based on configuration service or
- * environment variables.
- * Priority:
- * 1. CORS_ALLOWED_ORIGINS
- * 2. CORS_ORIGIN
- * 3. APP_URL
- * 4. Fallback based on NODE_ENV (production: throws, non-production:
- *    localhost:5173, localhost:3000)
- */
 export function resolveAllowedOrigins(
   configService?: ConfigService,
 ): CorsOriginValue {
@@ -166,9 +138,6 @@ export function resolveAllowedOrigins(
   return DEFAULT_LOCAL_ORIGINS;
 }
 
-/**
- * Builds the CorsOptions object for NestJS application enableCors().
- */
 export function getCorsOptions(configService?: ConfigService): CorsOptions {
   const allowedOrigins = resolveAllowedOrigins(configService);
 
