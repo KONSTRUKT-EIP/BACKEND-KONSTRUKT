@@ -91,6 +91,14 @@ describe('CORS Configuration', () => {
       );
     });
 
+    it('rejects http wildcards and matches uppercase wildcards', () => {
+      expect(() => parseCorsOrigins('http://*.konstrukt.io')).toThrow(
+        'Invalid wildcard CORS origin',
+      );
+      const [regex] = parseCorsOrigins('https://*.Konstrukt.IO') as RegExp[];
+      expect(regex.test('https://app.konstrukt.io')).toBe(true);
+    });
+
     it('rejects origins without an http(s) scheme', () => {
       for (const origin of ['localhost:5173', 'app.konstrukt.io:443']) {
         expect(() => parseCorsOrigins(origin)).toThrow(
@@ -214,6 +222,35 @@ describe('CORS Configuration', () => {
       expect(options.allowedHeaders).toEqual(['Content-Type', 'Authorization']);
       expect(options.exposedHeaders).toEqual(['X-Total-Count']);
       expect(options.maxAge).toBe(3600);
+    });
+
+    it('throws when "*" is used in production', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.CORS_ALLOWED_ORIGINS = '*';
+
+      expect(() => getCorsOptions()).toThrow(
+        'CORS wildcard origin "*" is not allowed in production',
+      );
+    });
+
+    it('throws when credentials are forced with "*"', () => {
+      process.env.CORS_ALLOWED_ORIGINS = '*';
+      process.env.CORS_CREDENTIALS = 'true';
+
+      expect(() => getCorsOptions()).toThrow(
+        'CORS_CREDENTIALS=true cannot be used with origin "*"',
+      );
+    });
+
+    it('throws when CORS_MAX_AGE is not a positive integer', () => {
+      process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
+
+      for (const value of ['abc', '-1', '1.5']) {
+        process.env.CORS_MAX_AGE = value;
+        expect(() => getCorsOptions()).toThrow(
+          `Invalid CORS_MAX_AGE: ${value}`,
+        );
+      }
     });
   });
 

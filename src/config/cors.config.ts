@@ -13,7 +13,7 @@ const DEFAULT_LOCAL_ORIGINS = [
 ];
 
 const WILDCARD_ORIGIN_PATTERN =
-  /^https?:\/\/\*\.[^/*.:]+(?:\.[^/*.:]+)*(?::\d+)?$/;
+  /^https:\/\/\*\.[^/*.:]+(?:\.[^/*.:]+)*(?::\d+)?$/;
 
 function getEnvValue(
   configService: ConfigService | undefined,
@@ -30,7 +30,7 @@ function parseCommaSeparatedList(value?: string): string[] {
 }
 
 function normalizeOrigin(origin: string): string {
-  const trimmed = origin.trim().replace(/\/+$/, '');
+  const trimmed = origin.trim().replace(/\/+$/, '').toLowerCase();
 
   if (trimmed.includes('*')) {
     return trimmed;
@@ -57,7 +57,7 @@ function toWildcardRegExp(origin: string): RegExp {
   if (!WILDCARD_ORIGIN_PATTERN.test(origin)) {
     throw new Error(
       `Invalid wildcard CORS origin: ${origin}. ` +
-        'Use a subdomain wildcard such as https://*.example.com',
+        'Use an https subdomain wildcard such as https://*.example.com',
     );
   }
 
@@ -118,6 +118,23 @@ function resolveConfiguredOrigins(
   return parseCorsOrigins(rawValue);
 }
 
+function isProduction(configService: ConfigService | undefined): boolean {
+  return getEnvValue(configService, 'NODE_ENV') === 'production';
+}
+
+function parseMaxAge(value?: string): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const maxAge = Number(value);
+  if (!Number.isInteger(maxAge) || maxAge < 0) {
+    throw new Error(
+      `Invalid CORS_MAX_AGE: ${value}. Use a positive number of seconds`,
+    );
+  }
+  return maxAge;
+}
+
 export function resolveAllowedOrigins(
   configService?: ConfigService,
 ): CorsOriginValue {
@@ -130,8 +147,7 @@ export function resolveAllowedOrigins(
     }
   }
 
-  const nodeEnv = getEnvValue(configService, 'NODE_ENV');
-  if (nodeEnv === 'production') {
+  if (isProduction(configService)) {
     throw new Error('No CORS allowed origins configured in production');
   }
 
@@ -140,12 +156,18 @@ export function resolveAllowedOrigins(
 
 export function getCorsOptions(configService?: ConfigService): CorsOptions {
   const allowedOrigins = resolveAllowedOrigins(configService);
+  if (allowedOrigins === '*' && isProduction(configService)) {
+    throw new Error('CORS wildcard origin "*" is not allowed in production');
+  }
 
   const credentialsEnv = getEnvValue(configService, 'CORS_CREDENTIALS');
   const credentials =
     credentialsEnv !== undefined
       ? credentialsEnv.toLowerCase() === 'true'
       : allowedOrigins !== '*' && allowedOrigins !== false;
+  if (credentials && allowedOrigins === '*') {
+    throw new Error('CORS_CREDENTIALS=true cannot be used with origin "*"');
+  }
 
   const methodsEnv = getEnvValue(configService, 'CORS_METHODS');
   const methods = methodsEnv
@@ -163,7 +185,7 @@ export function getCorsOptions(configService?: ConfigService): CorsOptions {
     : undefined;
 
   const maxAgeEnv = getEnvValue(configService, 'CORS_MAX_AGE');
-  const maxAge = maxAgeEnv ? Number(maxAgeEnv) : undefined;
+  const maxAge = parseMaxAge(maxAgeEnv);
 
   return {
     origin: allowedOrigins,
