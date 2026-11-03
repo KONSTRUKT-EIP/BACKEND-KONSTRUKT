@@ -1,7 +1,8 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserRole } from '../../shared/types/roles.enum';
+import { PrismaService } from '../../lib/prisma/prisma.service';
 
 export type userPayload = {
   userId: string;
@@ -12,7 +13,7 @@ export type requestWithUser = { user: userPayload };
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -20,11 +21,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: userPayload): userPayload {
+  async validate(payload: userPayload): Promise<userPayload> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { organizationId: true, role: true, isActive: true },
+    });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User access is disabled');
+    }
+
     return {
       userId: payload.userId,
-      organizationId: payload.organizationId,
-      role: payload.role,
+      organizationId: user.organizationId,
+      role: user.role,
     };
   }
 }

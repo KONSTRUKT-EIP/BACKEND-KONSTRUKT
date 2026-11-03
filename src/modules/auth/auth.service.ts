@@ -34,6 +34,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (existingUser.isActive === false) {
+      throw new UnauthorizedException('User access is disabled');
+    }
+
     const isPasswordValid = await compare(dto.password, existingUser.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -119,6 +123,10 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Refresh token invalid or expired');
+    }
+
+    if (user.isActive === false) {
+      throw new UnauthorizedException('User access is disabled');
     }
 
     return this.authenticateUser({
