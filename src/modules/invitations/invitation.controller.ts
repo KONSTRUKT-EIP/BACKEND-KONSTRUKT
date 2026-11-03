@@ -40,6 +40,19 @@ export class InvitationController {
     return this.invitationService.getByToken(token);
   }
 
+  @Get()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'List organization invitations' })
+  @ApiResponse({ status: 200, description: 'Organization invitations.' })
+  findAll(@Request() request: requestWithUser) {
+    return this.invitationService.findAll(
+      request.user.organizationId,
+      request.user.role,
+    );
+  }
+
   @Post(':id/resend')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
