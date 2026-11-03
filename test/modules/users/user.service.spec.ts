@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../../../src/modules/users/user.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
@@ -147,9 +148,9 @@ describe('UserService', () => {
     it('should not return a user from another organization', async () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
-      const result = await service.findOne('user-from-other-org', 'org-a');
-
-      expect(result).toBeNull();
+      await expect(
+        service.findOne('user-from-other-org', 'org-a'),
+      ).rejects.toThrow(NotFoundException);
       expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
         where: { id: 'user-from-other-org', organizationId: 'org-a' },
         select: userSelect,
@@ -229,9 +230,26 @@ describe('UserService', () => {
         }),
       );
     });
+    it('should throw NotFoundException when the user does not exist', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.update('unknown-user', { firstName: 'X' }, 'org-a'),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {
+    it('should throw NotFoundException when the user does not exist', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(service.remove('unknown-user', 'org-a')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.user.delete).not.toHaveBeenCalled();
+    });
+
     it('should delete a user', async () => {
       const userId = '123e4567-e89b-12d3-a456-426614174001';
       const expectedUser = {

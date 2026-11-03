@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -130,10 +134,12 @@ export class UserService {
     );
 
     if (!resolvedOrganizationId) return null;
-    return this.prisma.user.findFirst({
+    const user = await this.prisma.user.findFirst({
       where: { id, organizationId: resolvedOrganizationId },
       select: this.userSelect,
     });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+    return user;
   }
 
   async findByEmail(email: string) {
@@ -156,7 +162,7 @@ export class UserService {
     const existingUser = await this.prisma.user.findFirst({
       where: { id, organizationId: resolvedOrganizationId },
     });
-    if (!existingUser) return null;
+    if (!existingUser) throw new NotFoundException(`User ${id} not found`);
     const data: Record<string, unknown> = { ...rest };
     delete data.organizationId;
     if (password) {
@@ -179,7 +185,7 @@ export class UserService {
     const existingUser = await this.prisma.user.findFirst({
       where: { id, organizationId: resolvedOrganizationId },
     });
-    if (!existingUser) return { message: `User ${id} deleted` };
+    if (!existingUser) throw new NotFoundException(`User ${id} not found`);
     await this.prisma.user.delete({ where: { id } });
     return { message: `User ${id} deleted` };
   }
