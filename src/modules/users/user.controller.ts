@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Patch,
   Post,
   Put,
   Delete,
@@ -19,6 +20,8 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserAccessDto } from './dto/update-user-access.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -98,6 +101,38 @@ export class UserController {
       request.user.organizationId,
       request.user.userId,
     );
+  }
+
+  @Patch(':id/role')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Change a user role' })
+  updateRole(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserRoleDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.userService.updateRole(id, dto, request.user.organizationId);
+  }
+
+  @Patch(':id/access')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Enable or disable a user access' })
+  updateAccess(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserAccessDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.userService.updateAccess(id, dto, request.user.organizationId);
+  }
+
+  @Get(':id/assignments')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'List a user site assignments' })
+  findAssignments(
+    @Param('id') id: string,
+    @Request() request: requestWithUser,
+  ) {
+    return this.userService.findAssignments(id, request.user.organizationId);
   }
 
   @Delete(':id')
