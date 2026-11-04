@@ -9,6 +9,7 @@ type CorsOriginValue = CorsOrigin[] | string | boolean;
 
 const DEFAULT_LOCAL_ORIGINS = [
   'http://localhost:5173',
+  'http://localhost:8081',
   'http://localhost:3000',
 ];
 
