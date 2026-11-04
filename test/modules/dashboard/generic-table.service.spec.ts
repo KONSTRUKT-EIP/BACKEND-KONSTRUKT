@@ -39,7 +39,9 @@ describe('GenericTableService', () => {
           provide: PrismaService,
           useValue: {
             site: {
-              findFirst: jest.fn().mockResolvedValue({ id: mockTable.siteId, organizationId }),
+              findFirst: jest
+                .fn()
+                .mockResolvedValue({ id: mockTable.siteId, organizationId }),
             },
             genericTable: {
               create: jest.fn().mockResolvedValue(mockTable),
@@ -139,9 +141,9 @@ describe('GenericTableService', () => {
       );
       jest.spyOn(prisma.genericTable, 'update').mockRejectedValueOnce(error);
 
-      await expect(service.updateTable(tableId, dto, organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.updateTable(tableId, dto, organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -169,9 +171,9 @@ describe('GenericTableService', () => {
       );
       jest.spyOn(prisma.genericTable, 'delete').mockRejectedValueOnce(error);
 
-      await expect(service.deleteTable(tableId, organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.deleteTable(tableId, organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -231,7 +233,9 @@ describe('GenericTableService', () => {
       );
       jest.spyOn(prisma.genericTableRow, 'create').mockRejectedValueOnce(error);
 
-      await expect(service.addRow(dto, organizationId)).rejects.toThrow(NotFoundException);
+      await expect(service.addRow(dto, organizationId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -264,9 +268,9 @@ describe('GenericTableService', () => {
       );
       jest.spyOn(prisma.genericTableRow, 'update').mockRejectedValueOnce(error);
 
-      await expect(service.updateRow(rowId, dto, organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.updateRow(rowId, dto, organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -294,7 +298,9 @@ describe('GenericTableService', () => {
       );
       jest.spyOn(prisma.genericTableRow, 'delete').mockRejectedValueOnce(error);
 
-      await expect(service.deleteRow(rowId, organizationId)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteRow(rowId, organizationId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -317,7 +323,9 @@ describe('GenericTableService', () => {
         .spyOn(prisma.genericTableRow, 'findFirst')
         .mockResolvedValueOnce(null);
 
-      await expect(service.getRow(rowId, organizationId)).rejects.toThrow(NotFoundException);
+      await expect(service.getRow(rowId, organizationId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

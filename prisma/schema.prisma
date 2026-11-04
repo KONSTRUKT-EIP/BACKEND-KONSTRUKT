@@ -125,6 +125,7 @@ model User {
 	email          String       @unique
 	password   String
 	role           UserRole
+	isActive       Boolean      @default(true)
 	firstName      String
 	lastName       String
 	createdAt      DateTime     @default(now())
@@ -210,6 +211,7 @@ model Invitation {
   expiresAt      DateTime
   invitedById    String                   @db.Uuid
   acceptedAt     DateTime?
+	canceledAt     DateTime?
   createdAt      DateTime                 @default(now())
   deliveryMethod InvitationDeliveryMethod @default(EMAIL)
   sentAt         DateTime?

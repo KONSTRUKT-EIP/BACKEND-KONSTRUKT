@@ -126,7 +126,13 @@ describe('PlanningService', () => {
     it('should return all planning tasks', async () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
 
-      const result: any[] = await service.findAll(undefined, undefined, undefined, undefined, organizationId);
+      const result: any[] = await service.findAll(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        organizationId,
+      );
 
       expect(result).toBeDefined();
       expect(result).toHaveLength(1);
@@ -139,7 +145,13 @@ describe('PlanningService', () => {
     it('should filter tasks by date range', async () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
 
-      const result = await service.findAll('2026-03-10', '2026-03-16', undefined, undefined, organizationId);
+      const result = await service.findAll(
+        '2026-03-10',
+        '2026-03-16',
+        undefined,
+        undefined,
+        organizationId,
+      );
 
       const expectedEndDate = new Date('2026-03-16');
       expectedEndDate.setHours(23, 59, 59, 999);
@@ -161,7 +173,13 @@ describe('PlanningService', () => {
     it('should filter tasks by siteZoneId', async () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
 
-      await service.findAll(undefined, undefined, 'zone-uuid-1', undefined, organizationId);
+      await service.findAll(
+        undefined,
+        undefined,
+        'zone-uuid-1',
+        undefined,
+        organizationId,
+      );
 
       expect(prisma.task.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -218,9 +236,9 @@ describe('PlanningService', () => {
     it('should throw NotFoundException when task does not exist', async () => {
       prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne('invalid-uuid', organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.findOne('invalid-uuid', organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -279,7 +297,11 @@ describe('PlanningService', () => {
       prisma.task.update.mockResolvedValue({ ...mockTask, ...updateDto });
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await service.update('task-uuid-1', updateDto, organizationId);
+      const result = await service.update(
+        'task-uuid-1',
+        updateDto,
+        organizationId,
+      );
 
       expect(result).toBeDefined();
       expect(prisma.task.update).toHaveBeenCalledWith(
@@ -294,9 +316,9 @@ describe('PlanningService', () => {
     it('should throw NotFoundException when task does not exist', async () => {
       prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.update('invalid-uuid', updateDto, organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.update('invalid-uuid', updateDto, organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -317,9 +339,9 @@ describe('PlanningService', () => {
     it('should throw NotFoundException when task does not exist', async () => {
       prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove('invalid-uuid', organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.remove('invalid-uuid', organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -361,7 +383,11 @@ describe('PlanningService', () => {
       prisma.task.findMany.mockResolvedValue([mockTask]);
       prisma.taskAlert.findMany.mockResolvedValue([mockAlert]);
 
-      const result = await service.getWeekPlanning('2026-03-10', '2026-03-16', organizationId);
+      const result = await service.getWeekPlanning(
+        '2026-03-10',
+        '2026-03-16',
+        organizationId,
+      );
 
       expect(result).toBeDefined();
       expect(result).toHaveProperty('tasks');
@@ -378,7 +404,10 @@ describe('PlanningService', () => {
       prisma.task.findFirst.mockResolvedValue(mockTask);
       prisma.taskAlert.findMany.mockResolvedValue([mockAlert]);
 
-      const result = await service.findTaskActions('task-uuid-1', organizationId);
+      const result = await service.findTaskActions(
+        'task-uuid-1',
+        organizationId,
+      );
 
       expect(result).toBeDefined();
       expect(result).toHaveLength(1);
@@ -395,9 +424,9 @@ describe('PlanningService', () => {
     it('should throw NotFoundException when task does not exist', async () => {
       prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.findTaskActions('invalid-uuid', organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.findTaskActions('invalid-uuid', organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -422,9 +451,9 @@ describe('PlanningService', () => {
     it('should throw NotFoundException when alert does not exist', async () => {
       prisma.taskAlert.findFirst.mockResolvedValue(null);
 
-      await expect(service.removeAction('invalid-uuid', organizationId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.removeAction('invalid-uuid', organizationId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

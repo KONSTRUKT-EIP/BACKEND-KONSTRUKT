@@ -1,7 +1,13 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserAccessDto } from './dto/update-user-access.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -61,8 +67,10 @@ export class UserService {
     firstName: true,
     lastName: true,
     role: true,
+    isActive: true,
     organizationId: true,
     createdAt: true,
+    _count: { select: { siteMemberships: true } },
     password: false,
   } as const;
 
@@ -130,14 +138,95 @@ export class UserService {
     );
 
     if (!resolvedOrganizationId) return null;
-    return this.prisma.user.findFirst({
+    const user = await this.prisma.user.findFirst({
       where: { id, organizationId: resolvedOrganizationId },
       select: this.userSelect,
     });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+    return user;
   }
 
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  async updateRole(
+    id: string,
+    dto: UpdateUserRoleDto,
+    organizationId?: string | null,
+  ) {
+    return this.updateManagedUser(id, { role: dto.role }, organizationId);
+  }
+
+  async updateAccess(
+    id: string,
+    dto: UpdateUserAccessDto,
+    organizationId?: string | null,
+  ) {
+    const user = await this.findManagedUser(id, organizationId);
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { isActive: dto.isActive },
+      select: this.userSelect,
+    });
+
+    if (!dto.isActive) {
+      await this.prisma.refreshToken.deleteMany({ where: { userId: id } });
+    }
+
+    return updatedUser;
+  }
+
+  async findAssignments(id: string, organizationId?: string | null) {
+    await this.findManagedUser(id, organizationId);
+
+    return this.prisma.siteMembership.findMany({
+      where: {
+        userId: id,
+        site: { organizationId: organizationId ?? undefined },
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        site: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private async findManagedUser(id: string, organizationId?: string | null) {
+    if (!organizationId) {
+      throw new ForbiddenException('Organization context is required');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { id, organizationId },
+      select: { id: true },
+    });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+    return user;
+  }
+
+  private async updateManagedUser(
+    id: string,
+    data: Record<string, unknown>,
+    organizationId?: string | null,
+  ) {
+    await this.findManagedUser(id, organizationId);
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: this.userSelect,
+    });
   }
 
   async update(
@@ -156,7 +245,7 @@ export class UserService {
     const existingUser = await this.prisma.user.findFirst({
       where: { id, organizationId: resolvedOrganizationId },
     });
-    if (!existingUser) return null;
+    if (!existingUser) throw new NotFoundException(`User ${id} not found`);
     const data: Record<string, unknown> = { ...rest };
     delete data.organizationId;
     if (password) {
@@ -179,7 +268,7 @@ export class UserService {
     const existingUser = await this.prisma.user.findFirst({
       where: { id, organizationId: resolvedOrganizationId },
     });
-    if (!existingUser) return { message: `User ${id} deleted` };
+    if (!existingUser) throw new NotFoundException(`User ${id} not found`);
     await this.prisma.user.delete({ where: { id } });
     return { message: `User ${id} deleted` };
   }

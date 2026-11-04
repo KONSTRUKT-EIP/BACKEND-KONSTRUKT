@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../../../src/modules/users/user.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
@@ -14,8 +15,10 @@ describe('UserService', () => {
     firstName: true,
     lastName: true,
     role: true,
+    isActive: true,
     organizationId: true,
     createdAt: true,
+    _count: { select: { siteMemberships: true } },
     password: false,
   };
 
@@ -29,6 +32,8 @@ describe('UserService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    refreshToken: { deleteMany: jest.fn() },
+    siteMembership: { findMany: jest.fn() },
     $transaction: jest.fn(),
   };
 
@@ -147,9 +152,9 @@ describe('UserService', () => {
     it('should not return a user from another organization', async () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
-      const result = await service.findOne('user-from-other-org', 'org-a');
-
-      expect(result).toBeNull();
+      await expect(
+        service.findOne('user-from-other-org', 'org-a'),
+      ).rejects.toThrow(NotFoundException);
       expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
         where: { id: 'user-from-other-org', organizationId: 'org-a' },
         select: userSelect,
@@ -229,9 +234,26 @@ describe('UserService', () => {
         }),
       );
     });
+    it('should throw NotFoundException when the user does not exist', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.update('unknown-user', { firstName: 'X' }, 'org-a'),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {
+    it('should throw NotFoundException when the user does not exist', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(service.remove('unknown-user', 'org-a')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.user.delete).not.toHaveBeenCalled();
+    });
+
     it('should delete a user', async () => {
       const userId = '123e4567-e89b-12d3-a456-426614174001';
       const expectedUser = {
@@ -368,6 +390,53 @@ describe('UserService', () => {
       const callData = mockPrismaService.user.update.mock.calls[0][0].data;
       expect(callData).not.toHaveProperty('password');
       expect(callData.firstName).toBe('Changed');
+    });
+  });
+
+  describe('organization administration', () => {
+    it('updates a role only for a user in the organization', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'user-1' });
+      mockPrismaService.user.update.mockResolvedValue({
+        id: 'user-1',
+        role: UserRole.CHEF_PROJET,
+      });
+
+      await expect(
+        service.updateRole('user-1', { role: UserRole.CHEF_PROJET }, 'org-1'),
+      ).resolves.toMatchObject({ role: UserRole.CHEF_PROJET });
+      expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
+        where: { id: 'user-1', organizationId: 'org-1' },
+        select: { id: true },
+      });
+    });
+
+    it('revokes sessions without deleting site assignments when access is disabled', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'user-1' });
+      mockPrismaService.user.update.mockResolvedValue({
+        id: 'user-1',
+        isActive: false,
+      });
+
+      await service.updateAccess('user-1', { isActive: false }, 'org-1');
+
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
+      expect(mockPrismaService.siteMembership.findMany).not.toHaveBeenCalled();
+    });
+
+    it('lists assignments after checking the organization boundary', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'user-1' });
+      mockPrismaService.siteMembership.findMany.mockResolvedValue([]);
+
+      await expect(service.findAssignments('user-1', 'org-1')).resolves.toEqual(
+        [],
+      );
+      expect(mockPrismaService.siteMembership.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-1', site: { organizationId: 'org-1' } },
+        }),
+      );
     });
   });
 });
