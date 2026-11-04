@@ -7,6 +7,7 @@ describe('SiteService photos', () => {
   let siteFindFirst: jest.Mock;
   let photoUpsert: jest.Mock;
   let photoFindUnique: jest.Mock;
+  let photoFindImage: jest.Mock;
 
   const jpeg = (size = 1024) => ({
     buffer: Buffer.alloc(size),
@@ -18,10 +19,15 @@ describe('SiteService photos', () => {
     siteFindFirst = jest.fn().mockResolvedValue({ id: 'site-1' });
     photoUpsert = jest.fn().mockResolvedValue({ updatedAt: new Date(0) });
     photoFindUnique = jest.fn();
+    photoFindImage = jest.fn();
 
     service = new SiteService({
       site: { findFirst: siteFindFirst },
-      sitePhoto: { upsert: photoUpsert, findUnique: photoFindUnique },
+      sitePhoto: {
+        upsert: photoUpsert,
+        findFirst: photoFindUnique,
+        findUnique: photoFindImage,
+      },
     } as unknown as PrismaService);
   });
 
@@ -72,5 +78,88 @@ describe('SiteService photos', () => {
     await expect(service.getPhoto('site-1', 'org-a')).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  it('serves a photo from memory while it has not changed', async () => {
+    const updatedAt = new Date('2026-11-01T10:00:00.000Z');
+    photoFindUnique.mockResolvedValue({ updatedAt });
+    photoFindImage.mockResolvedValue({
+      updatedAt,
+      mimeType: 'image/jpeg',
+      size: 3,
+      data: new Uint8Array([1, 2, 3]),
+    });
+
+    await service.getPhoto('site-1', 'org-a');
+    const second = await service.getPhoto('site-1', 'org-a');
+
+    expect(photoFindImage).toHaveBeenCalledTimes(1);
+    expect(second.data).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('downloads the photo again once it has been replaced', async () => {
+    photoFindUnique.mockResolvedValueOnce({ updatedAt: new Date(1) });
+    photoFindImage.mockResolvedValueOnce({
+      updatedAt: new Date(1),
+      mimeType: 'image/jpeg',
+      size: 1,
+      data: new Uint8Array([1]),
+    });
+    await service.getPhoto('site-1', 'org-a');
+
+    photoFindUnique.mockResolvedValueOnce({ updatedAt: new Date(2) });
+    photoFindImage.mockResolvedValueOnce({
+      updatedAt: new Date(2),
+      mimeType: 'image/jpeg',
+      size: 1,
+      data: new Uint8Array([2]),
+    });
+    const result = await service.getPhoto('site-1', 'org-a');
+
+    expect(photoFindImage).toHaveBeenCalledTimes(2);
+    expect(result.data).toEqual(new Uint8Array([2]));
+  });
+});
+
+describe('SiteService work progress', () => {
+  let service: SiteService;
+  let siteFindMany: jest.Mock;
+
+  const task = (status: string, progressPercent?: number) => ({
+    status,
+    progress: progressPercent === undefined ? [] : [{ progressPercent }],
+  });
+
+  beforeEach(() => {
+    siteFindMany = jest.fn();
+    service = new SiteService({
+      site: { findMany: siteFindMany },
+    } as unknown as PrismaService);
+  });
+
+  it('averages the latest progress of each task', async () => {
+    siteFindMany.mockResolvedValue([
+      {
+        id: 'site-1',
+        zones: [
+          { tasks: [task('EN_COURS', 40), task('TERMINEE', 70)] },
+          { tasks: [task('EN_ATTENTE'), task('ANNULEE', 90)] },
+        ],
+      },
+    ]);
+
+    const [site] = await service.findAll('org-a');
+
+    // (40 + 100 + 0) / 3, la tâche annulée est ignorée
+    expect(site.progressPct).toBe(47);
+    expect(site).not.toHaveProperty('zones');
+  });
+
+  it('returns null when the site has no task', async () => {
+    siteFindMany.mockResolvedValue([{ id: 'site-1', zones: [] }]);
+
+    const [site] = await service.findAll('org-a');
+
+    expect(site.progressPct).toBeNull();
   });
 });

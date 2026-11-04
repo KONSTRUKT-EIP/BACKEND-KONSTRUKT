@@ -1,5 +1,7 @@
 generator client {
-	provider = "prisma-client-js"
+	provider        = "prisma-client-js"
+	// Charge les relations (include) en une seule requête SQL au lieu d'une requête par niveau
+	previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -92,6 +94,12 @@ enum ReportType {
 	OTHER
 }
 
+enum LotPlanStatus {
+	RECEPTIONNE
+	RELIQUAT
+	TRANSMIS
+}
+
 enum AttendanceStatus {
 	PRESENT
 	ABSENT
@@ -176,6 +184,7 @@ model Site {
 	genericTables GenericTable[]
 	teams        Team[]
 	photo        SitePhoto?
+	lots         Lot[]
 
 	@@index([organizationId])
 }
@@ -517,4 +526,68 @@ model Attendance {
 	@@index([teamId])
 	@@index([userId])
 	@@index([date])
+}
+
+// Lot d'un chantier (armature, béton...) : suivi prévisionnel vs réel par plan
+model Lot {
+	id                     String   @id @default(uuid()) @db.Uuid
+	siteId                 String   @db.Uuid
+	key                    String
+	label                  String
+	description            String
+	title                  String
+	subcontractor          String
+	marketLabel            String
+	marketAmount           Decimal  @db.Decimal(14, 2)
+	marketQuantity         Decimal  @db.Decimal(14, 3)
+	unit                   String
+	quantityLabel          String
+	deliveredLabel         String
+	unitPrice              Decimal  @db.Decimal(14, 2)
+	remainingShipmentsNote String?
+	position               Int      @default(0)
+	createdAt              DateTime @default(now())
+	updatedAt              DateTime @updatedAt
+
+	site      Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+	plans     LotPlan[]
+	shipments LotShipment[]
+
+	@@unique([siteId, key])
+	@@index([siteId])
+}
+
+model LotPlan {
+	id           String        @id @default(uuid()) @db.Uuid
+	lotId        String        @db.Uuid
+	name         String
+	level        String
+	number       String
+	index        String
+	planned      Decimal       @db.Decimal(14, 3)
+	actual       Decimal?      @db.Decimal(14, 3)
+	sentDate     DateTime      @db.Date
+	deliveryFrom DateTime      @db.Date
+	deliveryTo   DateTime?     @db.Date
+	status       LotPlanStatus
+	position     Int           @default(0)
+	createdAt    DateTime      @default(now())
+	updatedAt    DateTime      @updatedAt
+
+	lot Lot @relation(fields: [lotId], references: [id], onDelete: Cascade)
+
+	@@index([lotId])
+}
+
+model LotShipment {
+	id          String    @id @default(uuid()) @db.Uuid
+	lotId       String    @db.Uuid
+	name        String
+	plannedDate DateTime  @db.Date
+	sentAt      DateTime?
+	createdAt   DateTime  @default(now())
+
+	lot Lot @relation(fields: [lotId], references: [id], onDelete: Cascade)
+
+	@@index([lotId])
 }

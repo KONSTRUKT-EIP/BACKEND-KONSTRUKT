@@ -277,21 +277,6 @@ export class TeamService {
     organizationId?: string | null,
     userId?: string,
   ) {
-    await this.assertSiteAccess(siteId, organizationId, userId);
-    const teams = await this.prisma.team.findMany({
-      where: { siteId },
-    });
-
-    const members = await this.prisma.teamMember.findMany({
-      where: {
-        teamId: { in: teams.map((team) => team.id) },
-      },
-      select: {
-        userId: true,
-      },
-    });
-
-    const totalEmployees = new Set(members.map((member) => member.userId)).size;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfWeek = new Date(today);
@@ -302,16 +287,23 @@ export class TeamService {
     endOfWeek.setDate(startOfWeek.getDate() + 4);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    const allAttendances = await this.prisma.attendance.findMany({
-      where: {
-        teamId: { in: teams.map((t) => t.id) },
-        date: {
-          gte: startOfWeek,
-          lte: endOfWeek,
+    // Requêtes lancées en parallèle : chaque aller-retour vers la base coûte cher
+    const [, members, allAttendances] = await Promise.all([
+      this.assertSiteAccess(siteId, organizationId, userId),
+      this.prisma.teamMember.findMany({
+        where: { team: { siteId } },
+        select: { userId: true },
+      }),
+      this.prisma.attendance.findMany({
+        where: {
+          team: { siteId },
+          date: { gte: startOfWeek, lte: endOfWeek },
         },
-      },
-      orderBy: { date: 'desc' },
-    });
+        orderBy: { date: 'desc' },
+      }),
+    ]);
+
+    const totalEmployees = new Set(members.map((member) => member.userId)).size;
     let selectedDate = today;
     let dayAttendances = allAttendances.filter(
       (a) => a.date.getTime() === today.getTime(),
@@ -363,39 +355,38 @@ export class TeamService {
     organizationId?: string | null,
     userId?: string,
   ): Promise<TeamMemberDetail[]> {
-    await this.assertSiteAccess(siteId, organizationId, userId);
-    const teams = await this.prisma.team.findMany({
-      where: { siteId },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                role: true,
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Requêtes lancées en parallèle : chaque aller-retour vers la base coûte cher
+    const [, teams, attendances] = await Promise.all([
+      this.assertSiteAccess(siteId, organizationId, userId),
+      this.prisma.team.findMany({
+        where: { siteId },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      }),
+      this.prisma.attendance.findMany({
+        where: { team: { siteId }, date: today },
+      }),
+    ]);
 
     if (teams.length === 0) {
       return [];
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const attendances = await this.prisma.attendance.findMany({
-      where: {
-        teamId: { in: teams.map((t) => t.id) },
-        date: today,
-      },
-    });
 
     const attendanceMap = new Map(attendances.map((a) => [a.userId, a.status]));
 
@@ -462,15 +453,6 @@ export class TeamService {
     organizationId?: string | null,
     userId?: string,
   ) {
-    await this.assertSiteAccess(siteId, organizationId, userId);
-    const teams = await this.prisma.team.findMany({
-      where: { siteId },
-    });
-
-    if (teams.length === 0) {
-      return { days: [], dates: [], attendances: {}, workforceHours: {} };
-    }
-
     const start = startDate ? new Date(startDate) : new Date();
     start.setHours(0, 0, 0, 0);
 
@@ -496,31 +478,32 @@ export class TeamService {
     const endDate = new Date(dates[4]);
     endDate.setHours(23, 59, 59, 999);
 
-    const attendances = await this.prisma.attendance.findMany({
-      where: {
-        teamId: { in: teams.map((t) => t.id) },
-        date: {
-          gte: dates[0],
-          lte: endDate,
+    // Requêtes lancées en parallèle : chaque aller-retour vers la base coûte cher
+    const [, teamsCount, attendances, members] = await Promise.all([
+      this.assertSiteAccess(siteId, organizationId, userId),
+      this.prisma.team.count({ where: { siteId } }),
+      this.prisma.attendance.findMany({
+        where: {
+          team: { siteId },
+          date: { gte: dates[0], lte: endDate },
         },
-      },
-      orderBy: { date: 'asc' },
-    });
+        orderBy: { date: 'asc' },
+      }),
+      this.prisma.teamMember.findMany({
+        where: { team: { siteId } },
+        select: { userId: true },
+      }),
+    ]);
+
+    if (teamsCount === 0) {
+      return { days: [], dates: [], attendances: {}, workforceHours: {} };
+    }
 
     const attendanceMap: Record<string, string[]> = {};
     const workforceHours: Record<
       string,
       { normalHours: number; overtimeHours: number }[]
     > = {};
-
-    const members = await this.prisma.teamMember.findMany({
-      where: {
-        teamId: { in: teams.map((t) => t.id) },
-      },
-      select: {
-        userId: true,
-      },
-    });
 
     const uniqueUserIds = [...new Set(members.map((m) => m.userId))];
 
