@@ -177,11 +177,7 @@ export class GenericTableService {
     }
   }
 
-  async getRow(
-    id: string,
-    organizationId?: string | null,
-    user?: userPayload,
-  ) {
+  async getRow(id: string, organizationId?: string | null, user?: userPayload) {
     const row = await this.prisma.genericTableRow.findFirst({
       where: {
         id,

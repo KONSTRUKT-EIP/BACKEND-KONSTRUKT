@@ -189,6 +189,10 @@ export class GenericTableController {
   @ApiResponse({ status: 200, description: 'Row deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Row not found.' })
   deleteRow(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.service.deleteRow(id, request.user.organizationId, request.user);
+    return this.service.deleteRow(
+      id,
+      request.user.organizationId,
+      request.user,
+    );
   }
 }
