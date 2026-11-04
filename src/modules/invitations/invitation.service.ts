@@ -23,6 +23,7 @@ const invitationPublicSelect = {
   role: true,
   expiresAt: true,
   acceptedAt: true,
+  canceledAt: true,
   createdAt: true,
   sentAt: true,
   deliveryMethod: true,
@@ -33,6 +34,9 @@ const invitationPublicSelect = {
 type PublicInvitation = Prisma.InvitationGetPayload<{
   select: typeof invitationPublicSelect;
 }>;
+
+export type InvitationStatus =
+  'PENDING' | 'SENT' | 'EXPIRED' | 'ACCEPTED' | 'CANCELLED';
 
 @Injectable()
 export class InvitationService {
@@ -90,6 +94,22 @@ export class InvitationService {
   async getByToken(token: string) {
     const invitation = await this.findValidInvitation(token);
     return this.toOnboardingView(invitation);
+  }
+
+  async findAll(organizationId?: string | null, role?: UserRole) {
+    this.assertAdmin(role);
+    if (!organizationId) {
+      throw new ForbiddenException('Organization context is required');
+    }
+
+    const invitations: PublicInvitation[] =
+      await this.prisma.invitation.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        select: invitationPublicSelect,
+      });
+
+    return invitations.map((invitation) => this.toAdminView(invitation));
   }
 
   async accept(token: string, dto: AcceptInvitationDto) {
@@ -182,6 +202,9 @@ export class InvitationService {
     if (invitation.acceptedAt) {
       throw new BadRequestException('Invitation has already been accepted');
     }
+    if (invitation.canceledAt) {
+      throw new BadRequestException('Invitation has been cancelled');
+    }
 
     const token = this.generateToken();
     const now = new Date();
@@ -225,8 +248,15 @@ export class InvitationService {
     if (invitation.acceptedAt) {
       throw new BadRequestException('Invitation has already been accepted');
     }
+    if (invitation.canceledAt) {
+      throw new BadRequestException('Invitation has already been cancelled');
+    }
 
-    await this.prisma.invitation.delete({ where: { id: invitation.id } });
+    await this.prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { canceledAt: new Date() },
+      select: invitationPublicSelect,
+    });
     return { message: 'Invitation cancelled' };
   }
 
@@ -239,7 +269,11 @@ export class InvitationService {
     if (!invitation) {
       throw new NotFoundException('Invitation not found');
     }
-    if (invitation.acceptedAt || invitation.expiresAt <= new Date()) {
+    if (
+      invitation.acceptedAt ||
+      invitation.canceledAt ||
+      invitation.expiresAt <= new Date()
+    ) {
       throw new BadRequestException('Invitation is expired or already used');
     }
     return invitation;
@@ -339,6 +373,20 @@ export class InvitationService {
       organization: invitation.organization,
       site: invitation.site,
     };
+  }
+
+  private toAdminView(invitation: PublicInvitation) {
+    return {
+      ...invitation,
+      status: this.getStatus(invitation),
+    };
+  }
+
+  private getStatus(invitation: PublicInvitation): InvitationStatus {
+    if (invitation.canceledAt) return 'CANCELLED';
+    if (invitation.acceptedAt) return 'ACCEPTED';
+    if (invitation.expiresAt <= new Date()) return 'EXPIRED';
+    return invitation.sentAt ? 'SENT' : 'PENDING';
   }
 
   private getInvitationLifetimeMs() {

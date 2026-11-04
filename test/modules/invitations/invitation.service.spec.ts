@@ -18,6 +18,7 @@ function createService() {
       create: jest.fn(),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
       delete: jest.fn(),
@@ -36,6 +37,87 @@ function createService() {
 }
 
 describe('InvitationService', () => {
+  it('lists organization invitations with their computed status', async () => {
+    const { service, prisma } = createService();
+    const now = Date.now();
+    prisma.invitation.findMany.mockResolvedValue([
+      {
+        id: 'cancelled',
+        email: 'cancelled@example.com',
+        role: UserRole.COLLABORATEUR,
+        expiresAt: new Date(now + 60_000),
+        acceptedAt: null,
+        canceledAt: new Date(now - 60_000),
+        createdAt: new Date(now),
+        sentAt: new Date(now),
+        deliveryMethod: 'EMAIL',
+        organization: { id: organizationId, name: 'Konstrukt' },
+        site: { id: siteId, name: 'Site A', city: 'Paris' },
+      },
+      {
+        id: 'accepted',
+        email: 'accepted@example.com',
+        role: UserRole.COLLABORATEUR,
+        expiresAt: new Date(now + 60_000),
+        acceptedAt: new Date(now - 60_000),
+        canceledAt: null,
+        createdAt: new Date(now - 1),
+        sentAt: new Date(now - 60_000),
+        deliveryMethod: 'EMAIL',
+        organization: { id: organizationId, name: 'Konstrukt' },
+        site: { id: siteId, name: 'Site A', city: 'Paris' },
+      },
+      {
+        id: 'pending',
+        email: 'pending@example.com',
+        role: UserRole.COLLABORATEUR,
+        expiresAt: new Date(now + 60_000),
+        acceptedAt: null,
+        canceledAt: null,
+        createdAt: new Date(now - 2),
+        sentAt: null,
+        deliveryMethod: 'EMAIL',
+        organization: { id: organizationId, name: 'Konstrukt' },
+        site: { id: siteId, name: 'Site A', city: 'Paris' },
+      },
+      {
+        id: 'expired',
+        email: 'expired@example.com',
+        role: UserRole.COLLABORATEUR,
+        expiresAt: new Date(now - 60_000),
+        acceptedAt: null,
+        canceledAt: null,
+        createdAt: new Date(now - 3),
+        sentAt: new Date(now - 120_000),
+        deliveryMethod: 'EMAIL',
+        organization: { id: organizationId, name: 'Konstrukt' },
+        site: { id: siteId, name: 'Site A', city: 'Paris' },
+      },
+    ]);
+
+    const result = await service.findAll(organizationId, UserRole.ADMIN);
+
+    expect(prisma.invitation.findMany).toHaveBeenCalledWith({
+      where: { organizationId },
+      orderBy: { createdAt: 'desc' },
+      select: expect.any(Object),
+    });
+    expect(result.map((invitation) => invitation.status)).toEqual([
+      'CANCELLED',
+      'ACCEPTED',
+      'PENDING',
+      'EXPIRED',
+    ]);
+  });
+
+  it('requires an organization context to list invitations', async () => {
+    const { service } = createService();
+
+    await expect(service.findAll(null, UserRole.ADMIN)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
   it('rejects invitation creation outside an organization context', async () => {
     const { service } = createService();
 
@@ -233,5 +315,34 @@ describe('InvitationService', () => {
         password: 'Password1!',
       }),
     ).rejects.toThrow(ConflictException);
+  });
+
+  it('keeps cancelled invitations and blocks resending them', async () => {
+    const { service, prisma } = createService();
+    prisma.invitation.findFirst.mockResolvedValue({
+      id: 'invitation-1',
+      acceptedAt: null,
+      canceledAt: null,
+      siteId,
+    });
+    prisma.invitation.update.mockResolvedValue({});
+
+    await service.remove('invitation-1', organizationId, UserRole.ADMIN);
+
+    expect(prisma.invitation.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'invitation-1' },
+        data: { canceledAt: expect.any(Date) },
+      }),
+    );
+
+    prisma.invitation.findFirst.mockResolvedValue({
+      id: 'invitation-1',
+      acceptedAt: null,
+      canceledAt: new Date(),
+    });
+    await expect(
+      service.resend('invitation-1', adminId, organizationId, UserRole.ADMIN),
+    ).rejects.toThrow('Invitation has been cancelled');
   });
 });
