@@ -56,7 +56,10 @@ describe('GenericTableController (e2e)', () => {
         genericTableRow: {
           create: jest.fn().mockResolvedValue(mockRow),
           findUnique: jest.fn().mockResolvedValue(mockRow),
-          findFirst: jest.fn().mockResolvedValue(mockRow),
+          findFirst: jest.fn().mockResolvedValue({
+            ...mockRow,
+            table: { siteId: mockSiteId },
+          }),
           findMany: jest.fn().mockResolvedValue([mockRow]),
           update: jest.fn().mockResolvedValue(mockRow),
           delete: jest.fn().mockResolvedValue(mockRow),
@@ -355,6 +358,7 @@ describe('GenericTableController (e2e)', () => {
           id: mockRowId,
           table: { site: { organizationId: 'org-a' } },
         },
+        include: { table: { select: { siteId: true } } },
       });
     });
   });
