@@ -168,6 +168,7 @@ describe('CORS Configuration', () => {
       const origins = resolveAllowedOrigins();
       expect(origins).toEqual([
         'http://localhost:5173',
+        'http://localhost:8081',
         'http://localhost:3000',
       ]);
     });
