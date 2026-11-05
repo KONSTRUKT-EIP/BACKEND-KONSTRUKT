@@ -15,6 +15,7 @@ import {
 } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { createHash } from 'node:crypto';
+import { seedDemoLots } from './demo/lots';
 
 const prisma = new PrismaClient();
 
@@ -469,6 +470,8 @@ async function seedSite(
       budget: dec(siteSeed.budget),
     },
   });
+
+  await seedDemoLots(prisma, site.id);
 
   const zones: Array<{ id: string; name: string }> = [];
   for (let zoneIndex = 0; zoneIndex < zoneTemplates.length; zoneIndex += 1) {

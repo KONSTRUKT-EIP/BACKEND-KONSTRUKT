@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -146,6 +147,17 @@ export class UserService {
     return user;
   }
 
+  // Utilisateur connecté : lu par son identifiant, sans filtre d'organisation
+  // (findOne renvoie null quand aucune organisation n'est passée)
+  async findMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: this.userSelect,
+    });
+    if (!user) throw new NotFoundException(`User ${userId} not found`);
+    return user;
+  }
+
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
@@ -254,6 +266,39 @@ export class UserService {
     return this.prisma.user.update({
       where: { id, organizationId: resolvedOrganizationId },
       data,
+      select: this.userSelect,
+    });
+  }
+
+  // Modification de son propre profil : uniquement le prénom, le nom et l'e-mail
+  async updateProfile(
+    userId: string,
+    dto: { firstName?: string; lastName?: string; email?: string },
+  ) {
+    const email = dto.email?.trim();
+    if (email) {
+      const emailTaken = await this.prisma.user.findFirst({
+        where: { email, NOT: { id: userId } },
+        select: { id: true },
+      });
+      if (emailTaken) {
+        throw new ConflictException('Cette adresse e-mail est déjà utilisée');
+      }
+    }
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!existingUser) throw new NotFoundException(`User ${userId} not found`);
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName: dto.firstName?.trim(),
+        lastName: dto.lastName?.trim(),
+        email,
+      },
       select: this.userSelect,
     });
   }

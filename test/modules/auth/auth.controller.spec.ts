@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
@@ -35,7 +36,8 @@ describe('AuthController', () => {
   };
 
   const mockUserService = {
-    findOne: jest.fn(),
+    findMe: jest.fn(),
+    updateProfile: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -50,7 +52,8 @@ describe('AuthController', () => {
     mockAuthService.changePassword.mockResolvedValue({
       message: 'Password changed successfully',
     });
-    mockUserService.findOne.mockResolvedValue(mockUser);
+    mockUserService.findMe.mockResolvedValue(mockUser);
+    mockUserService.updateProfile.mockResolvedValue(mockUser);
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -162,22 +165,40 @@ describe('AuthController', () => {
 
   // ─── GET ME (authenticateUser) ────────────────────────────────────────────
   describe('authenticateUser()', () => {
-    it('should return the user from userService.findOne', async () => {
+    it('should return the user from userService.findMe', async () => {
       const req = { user: { userId: 'user-uuid-1' } } as any;
 
       const result = await controller.authenticateUser(req);
 
-      expect(mockUserService.findOne).toHaveBeenCalledWith('user-uuid-1');
+      expect(mockUserService.findMe).toHaveBeenCalledWith('user-uuid-1');
       expect(result).toEqual(mockUser);
     });
 
-    it('should return null when user is not found', async () => {
-      mockUserService.findOne.mockResolvedValue(null);
+    it('should propagate the error when user is not found', async () => {
+      mockUserService.findMe.mockRejectedValue(
+        new NotFoundException('User unknown-id not found'),
+      );
       const req = { user: { userId: 'unknown-id' } } as any;
 
-      const result = await controller.authenticateUser(req);
+      await expect(controller.authenticateUser(req)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 
-      expect(result).toBeNull();
+  // ─── PATCH ME (updateProfile) ─────────────────────────────────────────────
+  describe('updateProfile()', () => {
+    it('should update the profile of the authenticated user only', async () => {
+      const req = { user: { userId: 'user-uuid-1' } } as any;
+      const dto = { firstName: 'Jean' };
+
+      const result = await controller.updateProfile(req, dto);
+
+      expect(mockUserService.updateProfile).toHaveBeenCalledWith(
+        'user-uuid-1',
+        dto,
+      );
+      expect(result).toEqual(mockUser);
     });
   });
 

@@ -22,6 +22,7 @@ import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -112,7 +113,22 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Returns the authenticated user.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async authenticateUser(@Request() request: requestWithUser) {
-    return await this.userService.findOne(request.user.userId);
+    return await this.userService.findMe(request.user.userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  @ApiOperation({ summary: 'Update the authenticated user profile' })
+  @ApiBody({ type: UpdateProfileDto })
+  @ApiResponse({ status: 200, description: 'Returns the updated user.' })
+  @ApiResponse({ status: 400, description: 'Validation error.' })
+  @ApiResponse({ status: 409, description: 'Email already used.' })
+  async updateProfile(
+    @Request() request: requestWithUser,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return await this.userService.updateProfile(request.user.userId, dto);
   }
 
   @ApiBearerAuth()

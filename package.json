@@ -25,7 +25,8 @@
     "test:integration": "jest --testMatch \"<rootDir>/test/**/*.integration-spec.ts\"",
     "test:all": "npm run test && npm run test:integration && npm run test:e2e",
     "clean": "rm -rf dist",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:seed-lots": "ts-node prisma/seed-lots.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../../../src/modules/users/user.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
@@ -437,6 +437,84 @@ describe('UserService', () => {
           where: { userId: 'user-1', site: { organizationId: 'org-1' } },
         }),
       );
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('updates the name and email of the authenticated user', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'user-1' });
+      mockPrismaService.user.update.mockResolvedValue({ id: 'user-1' });
+
+      await service.updateProfile('user-1', {
+        firstName: ' Jean ',
+        lastName: 'Martin',
+        email: ' jean@konstrukt.fr ',
+      });
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: {
+          firstName: 'Jean',
+          lastName: 'Martin',
+          email: 'jean@konstrukt.fr',
+        },
+        select: userSelect,
+      });
+    });
+
+    it('refuses an email already used by another account', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'user-2' });
+
+      await expect(
+        service.updateProfile('user-1', { email: 'pris@konstrukt.fr' }),
+      ).rejects.toThrow(ConflictException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('never updates the role or the organization', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'user-1' });
+      mockPrismaService.user.update.mockResolvedValue({ id: 'user-1' });
+
+      await service.updateProfile('user-1', {
+        firstName: 'Jean',
+        role: UserRole.ADMIN,
+        organizationId: 'org-b',
+      } as never);
+
+      const [[call]] = mockPrismaService.user.update.mock.calls as [
+        [{ data: Record<string, unknown> }],
+      ];
+      expect(call.data).not.toHaveProperty('role');
+      expect(call.data).not.toHaveProperty('organizationId');
+    });
+
+    it('throws 404 when the user no longer exists', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateProfile('user-1', { firstName: 'Jean' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findMe', () => {
+    it('returns the authenticated user without filtering by organization', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'user-1' });
+
+      const result = await service.findMe('user-1');
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        select: userSelect,
+      });
+      expect(result).toEqual({ id: 'user-1' });
+    });
+
+    it('throws 404 when the user no longer exists', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.findMe('user-1')).rejects.toThrow(NotFoundException);
     });
   });
 });

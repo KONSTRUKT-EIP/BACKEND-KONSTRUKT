@@ -82,6 +82,45 @@ describe('TeamService', () => {
     expect(result.pctEnCours).toBe(0);
   });
 
+  it('counts every worker without attendance as pending', async () => {
+    siteFindFirst.mockResolvedValue({ id: 'site-1' });
+    teamMemberFindMany.mockResolvedValue([
+      { userId: 'u1' },
+      { userId: 'u2' },
+      { userId: 'u3' },
+      { userId: 'u4' },
+    ]);
+    attendanceFindMany.mockResolvedValue([]);
+
+    const result = await service.getTeamStats('site-1', 'org-a');
+
+    expect(result.totalEmployees).toBe(4);
+    expect(result.enAttente).toBe(4);
+    expect(result.complete).toBe(0);
+  });
+
+  it('excludes workers who already have an attendance from pending', async () => {
+    siteFindFirst.mockResolvedValue({ id: 'site-1' });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    teamMemberFindMany.mockResolvedValue([
+      { userId: 'u1' },
+      { userId: 'u2' },
+      { userId: 'u2' },
+      { userId: 'u3' },
+    ]);
+    attendanceFindMany.mockResolvedValue([
+      { userId: 'u1', date: today, status: 'PRESENT', checkOut: null },
+    ]);
+
+    const result = await service.getTeamStats('site-1', 'org-a');
+
+    expect(result.totalEmployees).toBe(3);
+    expect(result.enAttente).toBe(2);
+    expect(result.complete).toBe(1);
+  });
+
   it('persists normal and overtime hours for a site team member', async () => {
     siteFindFirst.mockResolvedValue({ id: 'site-1' });
     teamMemberFindFirst.mockResolvedValue({ teamId: 'team-1' });
