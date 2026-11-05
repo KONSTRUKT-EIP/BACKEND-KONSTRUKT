@@ -7,8 +7,6 @@ import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateSiteZoneDto } from './dto/create-site-zone.dto';
 import { UpdateSiteZoneDto } from './dto/update-site-zone.dto';
 
-// L'appartenance du chantier a l'organisation et l'acces de l'utilisateur
-// sont verifies en amont par SiteAccessGuard.
 @Injectable()
 export class SiteZoneService {
   constructor(private readonly prisma: PrismaService) {}
