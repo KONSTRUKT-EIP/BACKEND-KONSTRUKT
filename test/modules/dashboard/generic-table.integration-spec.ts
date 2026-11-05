@@ -3,6 +3,7 @@ import { GenericTableService } from '../../../src/modules/dashboard/generic-tabl
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
 import { CreateGenericTableDto } from '../../../src/modules/dashboard/dto/create-generic-table.dto';
 import { CreateGenericTableRowDto } from '../../../src/modules/dashboard/dto/create-generic-table-row.dto';
+import { SiteAccessService } from '../../../src/shared/authorization/site-access.service';
 
 describe('GenericTableService Integration', () => {
   let service: GenericTableService;
@@ -40,6 +41,10 @@ describe('GenericTableService Integration', () => {
       providers: [
         GenericTableService,
         { provide: PrismaService, useValue: mockPrismaService },
+        {
+          provide: SiteAccessService,
+          useValue: { assertAccess: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 

@@ -161,6 +161,7 @@ describe('GenericTableController', () => {
       expect(service.addRow).toHaveBeenCalledWith(
         { tableId, data: dto.data },
         'org-a',
+        mockRequest.user,
       );
     });
   });
@@ -173,7 +174,7 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual([mockRow]);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.listRows).toHaveBeenCalledWith(tableId, 'org-a');
+      expect(service.listRows).toHaveBeenCalledWith(tableId, 'org-a', mockRequest.user);
     });
   });
 
@@ -185,7 +186,7 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual(mockRow);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.getRow).toHaveBeenCalledWith(rowId, 'org-a');
+      expect(service.getRow).toHaveBeenCalledWith(rowId, 'org-a', mockRequest.user);
     });
   });
 
@@ -200,7 +201,7 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual(mockRow);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.updateRow).toHaveBeenCalledWith(rowId, dto, 'org-a');
+      expect(service.updateRow).toHaveBeenCalledWith(rowId, dto, 'org-a', mockRequest.user);
     });
   });
 
@@ -212,7 +213,7 @@ describe('GenericTableController', () => {
 
       expect(result).toEqual(mockRow);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(service.deleteRow).toHaveBeenCalledWith(rowId, 'org-a');
+      expect(service.deleteRow).toHaveBeenCalledWith(rowId, 'org-a', mockRequest.user);
     });
   });
 });
