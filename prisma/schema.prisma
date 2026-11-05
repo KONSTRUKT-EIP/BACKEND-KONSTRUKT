@@ -163,6 +163,7 @@ model Site {
 	endDate        DateTime?
 	status         SiteStatus
 	budget         Decimal    @db.Decimal(14, 2)
+	archivedAt     DateTime?
 	createdAt      DateTime   @default(now())
 	updatedAt      DateTime   @updatedAt
 

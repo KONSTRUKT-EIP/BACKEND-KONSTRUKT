@@ -151,6 +151,7 @@ describe('WeatherAlertService', () => {
       expect(mockPrisma.site.findMany).toHaveBeenCalledWith({
         where: {
           status: { in: [SiteStatus.PLANIFIE, SiteStatus.EN_COURS] },
+          archivedAt: null,
         },
         select: { id: true, city: true },
       });

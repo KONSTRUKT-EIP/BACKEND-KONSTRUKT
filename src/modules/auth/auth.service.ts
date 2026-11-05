@@ -177,7 +177,7 @@ export class AuthService {
     const organizationRole = user.role;
     if (organizationRole && isOrganizationAdmin(organizationRole)) {
       const sites = await this.prisma.site.findMany({
-        where: { organizationId: user.organizationId },
+        where: { organizationId: user.organizationId, archivedAt: null },
         orderBy: { createdAt: 'desc' },
       });
 
@@ -192,7 +192,7 @@ export class AuthService {
       where: {
         userId: user.userId,
         isActive: true,
-        site: { organizationId: user.organizationId },
+        site: { organizationId: user.organizationId, archivedAt: null },
       },
       orderBy: { createdAt: 'desc' },
       select: {

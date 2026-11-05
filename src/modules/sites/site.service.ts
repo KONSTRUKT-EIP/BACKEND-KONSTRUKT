@@ -1,8 +1,10 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { CreateSiteDto, SiteStatus } from './dto/create-site.dto';
 import { UpdateSiteDto } from './dto/update-site.dto';
@@ -31,7 +33,11 @@ export class SiteService {
     return user?.organizationId ?? null;
   }
 
-  async findAll(organizationId?: string | null, userId?: string) {
+  async findAll(
+    organizationId?: string | null,
+    userId?: string,
+    includeArchived = false,
+  ) {
     const resolvedOrganizationId = await this.resolveOrganizationId(
       organizationId,
       userId,
@@ -39,7 +45,10 @@ export class SiteService {
 
     if (!resolvedOrganizationId) return [];
     return this.prisma.site.findMany({
-      where: { organizationId: resolvedOrganizationId },
+      where: {
+        organizationId: resolvedOrganizationId,
+        ...(includeArchived ? {} : { archivedAt: null }),
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         organization: { select: { id: true, name: true } },
@@ -119,9 +128,37 @@ export class SiteService {
     });
   }
 
+  async archive(id: string, organizationId?: string | null, userId?: string) {
+    await this.findOne(id, organizationId, userId);
+    return this.prisma.site.update({
+      where: { id },
+      data: { archivedAt: new Date() },
+    });
+  }
+
+  async unarchive(id: string, organizationId?: string | null, userId?: string) {
+    await this.findOne(id, organizationId, userId);
+    return this.prisma.site.update({
+      where: { id },
+      data: { archivedAt: null },
+    });
+  }
+
   async remove(id: string, organizationId?: string | null, userId?: string) {
     await this.findOne(id, organizationId, userId);
-    await this.prisma.site.delete({ where: { id } });
+    try {
+      await this.prisma.site.delete({ where: { id } });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'Ce chantier contient des données : archivez-le au lieu de le supprimer',
+        );
+      }
+      throw error;
+    }
     return { message: 'Site supprimé' };
   }
 }

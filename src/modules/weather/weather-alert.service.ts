@@ -35,7 +35,7 @@ export class WeatherAlertService {
   @Cron(CronExpression.EVERY_3_HOURS)
   async checkWeatherAlerts(): Promise<number> {
     const sites = await this.prisma.site.findMany({
-      where: { status: { in: WATCHED_SITE_STATUSES } },
+      where: { status: { in: WATCHED_SITE_STATUSES }, archivedAt: null },
       select: { id: true, city: true },
     });
 
