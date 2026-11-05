@@ -139,7 +139,7 @@ describe('AuthService', () => {
         where: {
           userId: 'user-1',
           isActive: true,
-          site: { organizationId: 'org-1' },
+          site: { organizationId: 'org-1', archivedAt: null },
         },
         orderBy: { createdAt: 'desc' },
         select: { role: true, site: true },

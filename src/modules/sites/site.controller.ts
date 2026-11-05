@@ -3,11 +3,12 @@ import {
   Get,
   Post,
   Put,
+  Query,
   Delete,
   Body,
   Headers,
   Param,
-  Query,
+  Patch,
   Request,
   Res,
   StreamableFile,
@@ -62,15 +63,20 @@ export class SiteController {
   )
   @ApiOperation({ summary: 'Lister tous les chantiers' })
   @ApiQuery({
-    name: 'organizationId',
+    name: 'includeArchived',
     required: false,
-    description: 'Filtrer par organisation',
+    type: Boolean,
+    description: 'Inclure les chantiers archivés',
   })
   @ApiResponse({ status: 200, description: 'Liste des chantiers' })
-  findAll(@Request() request: requestWithUser) {
+  findAll(
+    @Request() request: requestWithUser,
+    @Query('includeArchived') includeArchived?: string,
+  ) {
     return this.service.findAll(
       request.user.organizationId,
       request.user.userId,
+      includeArchived === 'true',
     );
   }
 
@@ -123,6 +129,38 @@ export class SiteController {
     );
   }
 
+  @Patch(':id/archive')
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.DELETE_SITE)
+  @ApiOperation({ summary: 'Archiver un chantier' })
+  @ApiParam({ name: 'id', description: 'UUID du chantier' })
+  @ApiResponse({ status: 200, description: 'Chantier archivé' })
+  @ApiResponse({ status: 404, description: 'Introuvable' })
+  archive(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.archive(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
+  }
+
+  @Patch(':id/unarchive')
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.DELETE_SITE)
+  @ApiOperation({ summary: 'Désarchiver un chantier' })
+  @ApiParam({ name: 'id', description: 'UUID du chantier' })
+  @ApiResponse({ status: 200, description: 'Chantier désarchivé' })
+  @ApiResponse({ status: 404, description: 'Introuvable' })
+  unarchive(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.unarchive(
+      id,
+      request.user.organizationId,
+      request.user.userId,
+    );
+  }
+
   @Delete(':id')
   @UseGuards(SiteAccessGuard)
   @RequireSiteAccess('param', 'id')
@@ -130,6 +168,10 @@ export class SiteController {
   @ApiOperation({ summary: 'Supprimer un chantier' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier supprimé' })
+  @ApiResponse({
+    status: 409,
+    description: 'Le chantier contient des données, il faut l archiver',
+  })
   @ApiResponse({ status: 404, description: 'Introuvable' })
   remove(@Param('id') id: string, @Request() request: requestWithUser) {
     return this.service.remove(
