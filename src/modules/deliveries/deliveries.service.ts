@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { DeliveryStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
+import { requireOrganizationId } from '../../shared/authorization/organization-scope';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { QueryDeliveriesDto } from './dto/query-deliveries.dto';
@@ -27,10 +28,14 @@ interface OrderProjection {
 export class DeliveriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: QueryDeliveriesDto) {
+  async findAll(query: QueryDeliveriesDto, organizationId?: string | null) {
+    const orgId = requireOrganizationId(organizationId);
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where = this.buildWhereFromQuery(query);
+    const where: Prisma.DeliveryWhereInput = {
+      ...this.buildWhereFromQuery(query),
+      site: { organizationId: orgId },
+    };
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.delivery.findMany({
@@ -51,25 +56,16 @@ export class DeliveriesService {
     };
   }
 
-  async findOne(id: string) {
-    const delivery = await this.prisma.delivery.findUnique({
-      where: { id },
-      include: { resource: true },
-    });
-    if (!delivery) {
-      throw new NotFoundException(`Delivery ${id} introuvable`);
-    }
+  async findOne(id: string, organizationId?: string | null) {
+    const delivery = await this.ensureDeliveryExists(id, organizationId);
     return this.mapDelivery(delivery);
   }
 
-  async create(dto: CreateDeliveryDto) {
-    const resource = await this.prisma.resource.findUnique({
-      where: { id: dto.resourceId },
-    });
-
-    if (!resource) {
-      throw new NotFoundException(`Resource ${dto.resourceId} introuvable`);
-    }
+  async create(dto: CreateDeliveryDto, organizationId?: string | null) {
+    const resource = await this.findResourceInOrganization(
+      dto.resourceId,
+      organizationId,
+    );
 
     const siteId = dto.siteId ?? resource.siteId;
     if (siteId !== resource.siteId) {
@@ -96,19 +92,21 @@ export class DeliveriesService {
     return this.mapDelivery(created);
   }
 
-  async update(id: string, dto: UpdateDeliveryDto) {
-    await this.ensureDeliveryExists(id);
+  async update(
+    id: string,
+    dto: UpdateDeliveryDto,
+    organizationId?: string | null,
+  ) {
+    const current = await this.ensureDeliveryExists(id, organizationId);
 
     let resolvedResourceId = dto.resourceId;
     let resolvedSiteId = dto.siteId;
 
     if (dto.resourceId) {
-      const nextResource = await this.prisma.resource.findUnique({
-        where: { id: dto.resourceId },
-      });
-      if (!nextResource) {
-        throw new NotFoundException(`Resource ${dto.resourceId} introuvable`);
-      }
+      const nextResource = await this.findResourceInOrganization(
+        dto.resourceId,
+        organizationId,
+      );
 
       if (dto.siteId && dto.siteId !== nextResource.siteId) {
         throw new BadRequestException(
@@ -118,6 +116,10 @@ export class DeliveriesService {
 
       resolvedSiteId = dto.siteId ?? nextResource.siteId;
       resolvedResourceId = nextResource.id;
+    } else if (dto.siteId && dto.siteId !== current.siteId) {
+      throw new BadRequestException(
+        'siteId doit correspondre au chantier de la ressource',
+      );
     }
 
     const updated = await this.prisma.delivery.update({
@@ -137,15 +139,12 @@ export class DeliveriesService {
     return this.mapDelivery(updated);
   }
 
-  async updateStatus(id: string, dto: UpdateDeliveryStatusDto) {
-    const current = await this.prisma.delivery.findUnique({
-      where: { id },
-      include: { resource: true },
-    });
-
-    if (!current) {
-      throw new NotFoundException(`Delivery ${id} introuvable`);
-    }
+  async updateStatus(
+    id: string,
+    dto: UpdateDeliveryStatusDto,
+    organizationId?: string | null,
+  ) {
+    const current = await this.ensureDeliveryExists(id, organizationId);
 
     if (!this.isStatusTransitionAllowed(current.status, dto.status)) {
       throw new BadRequestException(
@@ -171,8 +170,8 @@ export class DeliveriesService {
     return this.mapDelivery(updated);
   }
 
-  async remove(id: string) {
-    await this.ensureDeliveryExists(id);
+  async remove(id: string, organizationId?: string | null) {
+    await this.ensureDeliveryExists(id, organizationId);
     await this.prisma.delivery.delete({ where: { id } });
     return { message: `Delivery ${id} supprimee` };
   }
@@ -281,12 +280,33 @@ export class DeliveriesService {
     };
   }
 
-  private async ensureDeliveryExists(id: string) {
-    const existing = await this.prisma.delivery.findUnique({ where: { id } });
+  private async ensureDeliveryExists(
+    id: string,
+    organizationId?: string | null,
+  ) {
+    const orgId = requireOrganizationId(organizationId);
+    const existing = await this.prisma.delivery.findFirst({
+      where: { id, site: { organizationId: orgId } },
+      include: { resource: true },
+    });
     if (!existing) {
       throw new NotFoundException(`Delivery ${id} introuvable`);
     }
     return existing;
+  }
+
+  private async findResourceInOrganization(
+    resourceId: string,
+    organizationId?: string | null,
+  ) {
+    const orgId = requireOrganizationId(organizationId);
+    const resource = await this.prisma.resource.findFirst({
+      where: { id: resourceId, site: { organizationId: orgId } },
+    });
+    if (!resource) {
+      throw new NotFoundException(`Resource ${resourceId} introuvable`);
+    }
+    return resource;
   }
 
   private buildWhereFromQuery(
