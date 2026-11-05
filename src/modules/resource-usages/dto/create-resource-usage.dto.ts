@@ -18,10 +18,6 @@ export class CreateResourceUsageDto {
   @IsUUID()
   taskId: string;
 
-  @ApiProperty({ format: 'uuid', description: 'UUID utilisateur createur' })
-  @IsUUID()
-  createdById: string;
-
   @ApiProperty({
     example: '2026-09-01',
     description: 'Date de consommation (ISO date)',

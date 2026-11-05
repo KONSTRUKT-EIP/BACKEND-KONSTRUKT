@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { DeliveriesService } from './deliveries.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { requestWithUser } from '../auth/jwt.strategy';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
@@ -53,8 +55,11 @@ export class DeliveriesController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'pageSize', required: false })
   @ApiResponse({ status: 200, description: 'Liste paginee des livraisons' })
-  findAll(@Query() query: QueryDeliveriesDto) {
-    return this.service.findAll(query);
+  findAll(
+    @Query() query: QueryDeliveriesDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.findAll(query, request.user.organizationId);
   }
 
   @Get(':id')
@@ -68,16 +73,16 @@ export class DeliveriesController {
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Livraison trouvee' })
   @ApiResponse({ status: 404, description: 'Introuvable' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.findOne(id, request.user.organizationId);
   }
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Creer une livraison' })
   @ApiResponse({ status: 201, description: 'Livraison creee' })
-  create(@Body() dto: CreateDeliveryDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateDeliveryDto, @Request() request: requestWithUser) {
+    return this.service.create(dto, request.user.organizationId);
   }
 
   @Put(':id')
@@ -85,8 +90,12 @@ export class DeliveriesController {
   @ApiOperation({ summary: 'Mettre a jour une livraison' })
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Livraison mise a jour' })
-  update(@Param('id') id: string, @Body() dto: UpdateDeliveryDto) {
-    return this.service.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateDeliveryDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.update(id, dto, request.user.organizationId);
   }
 
   @Patch(':id/status')
@@ -99,8 +108,12 @@ export class DeliveriesController {
   @ApiOperation({ summary: 'Mettre a jour le statut d une livraison' })
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Statut mis a jour' })
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateDeliveryStatusDto) {
-    return this.service.updateStatus(id, dto);
+  updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateDeliveryStatusDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.updateStatus(id, dto, request.user.organizationId);
   }
 
   @Delete(':id')
@@ -108,7 +121,7 @@ export class DeliveriesController {
   @ApiOperation({ summary: 'Supprimer une livraison' })
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Livraison supprimee' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.remove(id, request.user.organizationId);
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
+import { requireOrganizationId } from '../../shared/authorization/organization-scope';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 import { QueryResourcesDto } from './dto/query-resources.dto';
@@ -9,10 +10,12 @@ import { QueryResourcesDto } from './dto/query-resources.dto';
 export class ResourcesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: QueryResourcesDto) {
+  async findAll(query: QueryResourcesDto, organizationId?: string | null) {
+    const orgId = requireOrganizationId(organizationId);
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const where: Prisma.ResourceWhereInput = {
+      site: { organizationId: orgId },
       ...(query.siteId ? { siteId: query.siteId } : {}),
       ...(query.type ? { type: query.type } : {}),
       ...(query.supplier ? { supplier: query.supplier } : {}),
@@ -48,9 +51,10 @@ export class ResourcesService {
     };
   }
 
-  async findOne(id: string) {
-    const resource = await this.prisma.resource.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId?: string | null) {
+    const orgId = requireOrganizationId(organizationId);
+    const resource = await this.prisma.resource.findFirst({
+      where: { id, site: { organizationId: orgId } },
       include: {
         site: { select: { id: true, name: true, budget: true } },
         deliveries: {
@@ -127,7 +131,8 @@ export class ResourcesService {
     };
   }
 
-  async create(dto: CreateResourceDto) {
+  async create(dto: CreateResourceDto, organizationId?: string | null) {
+    await this.ensureSiteInOrganization(dto.siteId, organizationId);
     const created = await this.prisma.resource.create({
       data: dto,
     });
@@ -139,8 +144,15 @@ export class ResourcesService {
     };
   }
 
-  async update(id: string, dto: UpdateResourceDto) {
-    await this.ensureExists(id);
+  async update(
+    id: string,
+    dto: UpdateResourceDto,
+    organizationId?: string | null,
+  ) {
+    await this.ensureExists(id, organizationId);
+    if (dto.siteId) {
+      await this.ensureSiteInOrganization(dto.siteId, organizationId);
+    }
 
     const updated = await this.prisma.resource.update({
       where: { id },
@@ -154,16 +166,33 @@ export class ResourcesService {
     };
   }
 
-  async remove(id: string) {
-    await this.ensureExists(id);
+  async remove(id: string, organizationId?: string | null) {
+    await this.ensureExists(id, organizationId);
     await this.prisma.resource.delete({ where: { id } });
     return { message: `Resource ${id} supprimee` };
   }
 
-  private async ensureExists(id: string) {
-    const resource = await this.prisma.resource.findUnique({ where: { id } });
+  private async ensureExists(id: string, organizationId?: string | null) {
+    const orgId = requireOrganizationId(organizationId);
+    const resource = await this.prisma.resource.findFirst({
+      where: { id, site: { organizationId: orgId } },
+    });
     if (!resource) {
       throw new NotFoundException(`Resource ${id} introuvable`);
+    }
+  }
+
+  private async ensureSiteInOrganization(
+    siteId: string,
+    organizationId?: string | null,
+  ) {
+    const orgId = requireOrganizationId(organizationId);
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, organizationId: orgId },
+      select: { id: true },
+    });
+    if (!site) {
+      throw new NotFoundException(`Site ${siteId} introuvable`);
     }
   }
 }

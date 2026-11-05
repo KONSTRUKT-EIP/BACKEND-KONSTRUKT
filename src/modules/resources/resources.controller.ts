@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { requestWithUser } from '../auth/jwt.strategy';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
@@ -48,8 +50,11 @@ export class ResourcesController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'pageSize', required: false })
   @ApiResponse({ status: 200, description: 'Liste paginee des ressources' })
-  findAll(@Query() query: QueryResourcesDto) {
-    return this.service.findAll(query);
+  findAll(
+    @Query() query: QueryResourcesDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.findAll(query, request.user.organizationId);
   }
 
   @Get(':id')
@@ -62,16 +67,16 @@ export class ResourcesController {
   @ApiOperation({ summary: 'Recuperer le detail d une ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la ressource' })
   @ApiResponse({ status: 200, description: 'Detail ressource' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.findOne(id, request.user.organizationId);
   }
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Creer une ressource' })
   @ApiResponse({ status: 201, description: 'Ressource creee' })
-  create(@Body() dto: CreateResourceDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateResourceDto, @Request() request: requestWithUser) {
+    return this.service.create(dto, request.user.organizationId);
   }
 
   @Put(':id')
@@ -79,8 +84,12 @@ export class ResourcesController {
   @ApiOperation({ summary: 'Mettre a jour une ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la ressource' })
   @ApiResponse({ status: 200, description: 'Ressource mise a jour' })
-  update(@Param('id') id: string, @Body() dto: UpdateResourceDto) {
-    return this.service.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateResourceDto,
+    @Request() request: requestWithUser,
+  ) {
+    return this.service.update(id, dto, request.user.organizationId);
   }
 
   @Delete(':id')
@@ -88,7 +97,7 @@ export class ResourcesController {
   @ApiOperation({ summary: 'Supprimer une ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la ressource' })
   @ApiResponse({ status: 200, description: 'Ressource supprimee' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @Request() request: requestWithUser) {
+    return this.service.remove(id, request.user.organizationId);
   }
 }
