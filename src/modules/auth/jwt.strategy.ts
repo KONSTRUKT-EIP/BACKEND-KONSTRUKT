@@ -9,7 +9,11 @@ export type userPayload = {
   organizationId?: string | null;
   role?: UserRole;
 };
-export type requestWithUser = { user: userPayload };
+export type requestWithUser = {
+  user: userPayload;
+  /** Rôle effectif sur le chantier, renseigné par SiteAccessGuard. */
+  siteRole?: UserRole;
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {

@@ -58,7 +58,7 @@ const userSeeds: SeedUser[] = [
     email: 'admin@konstrukt.demo',
     firstName: 'Alice',
     lastName: 'Martin',
-    role: UserRole.ADMIN,
+    role: UserRole.OWNER,
   },
   {
     key: 'chef-1',

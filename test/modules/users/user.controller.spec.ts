@@ -6,7 +6,9 @@ import { UserRole } from '@prisma/client';
 
 describe('UserController', () => {
   let controller: UserController;
-  const request = { user: { userId: 'user-1', organizationId: 'org-1' } };
+  const request = {
+    user: { userId: 'user-1', organizationId: 'org-1', role: UserRole.OWNER },
+  };
 
   const mockUserService = {
     create: jest.fn(),
@@ -51,7 +53,7 @@ describe('UserController', () => {
       const createUserInput = {
         email: 'test@example.com',
         password: 'password123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -84,6 +86,7 @@ describe('UserController', () => {
         },
         'org-1',
         'user-1',
+        UserRole.OWNER,
       );
     });
 
@@ -96,7 +99,7 @@ describe('UserController', () => {
       const invalidInput = {
         email: 'invalid-email',
         password: 'password123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -114,7 +117,7 @@ describe('UserController', () => {
       const invalidInput = {
         email: 'test@example.com',
         password: '123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -132,7 +135,7 @@ describe('UserController', () => {
       const invalidInput = {
         email: 'test@example.com',
         password: 'password123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: 'not-a-uuid',
@@ -154,7 +157,7 @@ describe('UserController', () => {
           id: '123e4567-e89b-12d3-a456-426614174001',
           email: 'user1@example.com',
           passwordHash: 'hash1',
-          role: UserRole.ADMIN,
+          role: UserRole.OWNER,
           firstName: 'John',
           lastName: 'Doe',
           organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -183,7 +186,7 @@ describe('UserController', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -209,7 +212,7 @@ describe('UserController', () => {
       const updateInput = {
         email: 'updated@example.com',
         password: 'updatedHash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -219,7 +222,7 @@ describe('UserController', () => {
         id: userId,
         email: 'updated@example.com',
         passwordHash: 'updatedHash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -235,7 +238,7 @@ describe('UserController', () => {
         userId,
         {
           email: 'updated@example.com',
-          role: UserRole.ADMIN,
+          role: UserRole.OWNER,
           firstName: 'UpdatedFirst',
           lastName: 'UpdatedLast',
           organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -243,6 +246,7 @@ describe('UserController', () => {
         },
         'org-1',
         'user-1',
+        UserRole.OWNER,
       );
     });
   });
@@ -254,7 +258,7 @@ describe('UserController', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -270,6 +274,7 @@ describe('UserController', () => {
         userId,
         'org-1',
         'user-1',
+        UserRole.OWNER,
       );
     });
   });

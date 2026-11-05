@@ -34,7 +34,12 @@ export class ResourcesController {
   constructor(private readonly service: ResourcesService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Lister les ressources avec filtres chantier' })
   @ApiQuery({ name: 'siteId', required: false })
   @ApiQuery({ name: 'type', required: false })
@@ -48,7 +53,12 @@ export class ResourcesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Recuperer le detail d une ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la ressource' })
   @ApiResponse({ status: 200, description: 'Detail ressource' })
@@ -57,7 +67,7 @@ export class ResourcesController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Creer une ressource' })
   @ApiResponse({ status: 201, description: 'Ressource creee' })
   create(@Body() dto: CreateResourceDto) {
@@ -65,7 +75,7 @@ export class ResourcesController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Mettre a jour une ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la ressource' })
   @ApiResponse({ status: 200, description: 'Ressource mise a jour' })
@@ -74,7 +84,7 @@ export class ResourcesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Supprimer une ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la ressource' })
   @ApiResponse({ status: 200, description: 'Ressource supprimee' })

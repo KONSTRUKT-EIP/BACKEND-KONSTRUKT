@@ -14,6 +14,10 @@ import { UserService } from '../users/user.service';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { randomBytes, createHash } from 'crypto';
 import { UserRole } from '../../shared/types/roles.enum';
+import {
+  getSitePermissions,
+  isOrganizationAdmin,
+} from '../../shared/authorization/site-policies';
 import { CreateOrganizationOnboardingDto } from './dto/create-organization-onboarding.dto';
 
 @Injectable()
@@ -74,7 +78,7 @@ export class AuthService {
             password,
             firstName: dto.firstName,
             lastName: dto.lastName,
-            role: UserRole.ADMIN,
+            role: UserRole.OWNER,
             organizationId: organization.id,
           },
           select: {
@@ -170,7 +174,8 @@ export class AuthService {
   async getAccessibleSites(user: userPayload) {
     if (!user.organizationId) return [];
 
-    if (user.role === UserRole.ADMIN) {
+    const organizationRole = user.role;
+    if (organizationRole && isOrganizationAdmin(organizationRole)) {
       const sites = await this.prisma.site.findMany({
         where: { organizationId: user.organizationId },
         orderBy: { createdAt: 'desc' },
@@ -178,7 +183,8 @@ export class AuthService {
 
       return sites.map((site) => ({
         ...site,
-        membershipRole: UserRole.ADMIN,
+        membershipRole: organizationRole,
+        permissions: getSitePermissions(organizationRole),
       }));
     }
 
@@ -198,6 +204,7 @@ export class AuthService {
     return memberships.map(({ site, role }) => ({
       ...site,
       membershipRole: role,
+      permissions: getSitePermissions(role),
     }));
   }
 

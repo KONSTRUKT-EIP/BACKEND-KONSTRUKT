@@ -36,7 +36,7 @@ describe('UserController (e2e)', () => {
           context.switchToHttp().getRequest().user = {
             userId: '123e4567-e89b-12d3-a456-426614174001',
             organizationId: '123e4567-e89b-12d3-a456-426614174000',
-            role: UserRole.ADMIN,
+            role: UserRole.OWNER,
           };
           return true;
         }),
@@ -60,7 +60,7 @@ describe('UserController (e2e)', () => {
       const createUserDto = {
         email: 'test@example.com',
         password: 'password123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -100,7 +100,7 @@ describe('UserController (e2e)', () => {
       const invalidDto = {
         email: 'invalid-email',
         password: 'password123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -116,7 +116,7 @@ describe('UserController (e2e)', () => {
       const invalidDto = {
         email: 'test@example.com',
         password: '123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -136,7 +136,7 @@ describe('UserController (e2e)', () => {
           id: '123e4567-e89b-12d3-a456-426614174001',
           email: 'user1@example.com',
           passwordHash: 'hash1',
-          role: UserRole.ADMIN,
+          role: UserRole.OWNER,
           firstName: 'John',
           lastName: 'Doe',
           organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -175,7 +175,7 @@ describe('UserController (e2e)', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -212,7 +212,7 @@ describe('UserController (e2e)', () => {
       const updateDto = {
         email: 'updated@example.com',
         password: 'updatedHash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -222,7 +222,7 @@ describe('UserController (e2e)', () => {
         id: userId,
         email: 'updated@example.com',
         passwordHash: 'updatedHash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -260,7 +260,7 @@ describe('UserController (e2e)', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',

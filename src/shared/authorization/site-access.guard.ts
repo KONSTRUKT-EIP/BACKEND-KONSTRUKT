@@ -2,14 +2,17 @@ import {
   BadRequestException,
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
   SITE_ACCESS_KEY,
+  SITE_PERMISSION_KEY,
   type SiteAccessSource,
 } from './site-access.decorator';
 import { SiteAccessService } from './site-access.service';
+import { can, type SiteAction } from './site-policies';
 import type { requestWithUser } from '../../modules/auth/jwt.strategy';
 
 type SiteAccessMetadata = {
@@ -56,15 +59,30 @@ export class SiteAccessGuard implements CanActivate {
       return true;
     }
 
+    const action = this.reflector.getAllAndOverride<SiteAction | undefined>(
+      SITE_PERMISSION_KEY,
+      [context.getHandler(), context.getClass()],
+    );
     const request = context.switchToHttp().getRequest<RequestWithBody>();
     const siteId = getSiteId(request, metadata.source, metadata.name);
 
     if (!siteId) {
-      if (metadata.optional) return true;
-      throw new BadRequestException(`Missing ${metadata.name}`);
+      if (!metadata.optional) {
+        throw new BadRequestException(`Missing ${metadata.name}`);
+      }
+      // Sans chantier ciblé, l'action est évaluée avec le rôle global ;
+      // le service filtre ensuite sur les chantiers accessibles.
+      if (action && !can(request.user.role, action)) {
+        throw new ForbiddenException(`Your role does not allow ${action}`);
+      }
+      return true;
     }
 
-    await this.siteAccess.assertAccess(siteId, request.user);
+    request.siteRole = await this.siteAccess.assertAccess(
+      siteId,
+      request.user,
+      action,
+    );
     return true;
   }
 }

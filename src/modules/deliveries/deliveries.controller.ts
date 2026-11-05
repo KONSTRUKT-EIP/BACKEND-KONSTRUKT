@@ -36,7 +36,12 @@ export class DeliveriesController {
   constructor(private readonly service: DeliveriesService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({
     summary: 'Lister les livraisons avec filtres chantier/date/statut',
   })
@@ -53,7 +58,12 @@ export class DeliveriesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Recuperer une livraison par id' })
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Livraison trouvee' })
@@ -63,7 +73,7 @@ export class DeliveriesController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Creer une livraison' })
   @ApiResponse({ status: 201, description: 'Livraison creee' })
   create(@Body() dto: CreateDeliveryDto) {
@@ -71,7 +81,7 @@ export class DeliveriesController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Mettre a jour une livraison' })
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Livraison mise a jour' })
@@ -80,7 +90,12 @@ export class DeliveriesController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Mettre a jour le statut d une livraison' })
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Statut mis a jour' })
@@ -89,7 +104,7 @@ export class DeliveriesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Supprimer une livraison' })
   @ApiParam({ name: 'id', description: 'UUID de la livraison' })
   @ApiResponse({ status: 200, description: 'Livraison supprimee' })

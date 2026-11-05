@@ -16,7 +16,7 @@ describe('AuthController', () => {
     email: 'test@example.com',
     firstName: 'John',
     lastName: 'Doe',
-    role: UserRole.ADMIN,
+    role: UserRole.OWNER,
     organizationId: null,
     createdAt: new Date('2026-01-01'),
   };

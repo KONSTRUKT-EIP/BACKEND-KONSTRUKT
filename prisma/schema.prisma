@@ -8,7 +8,8 @@ datasource db {
 }
 
 enum UserRole {
-	ADMIN              @map("admin")
+	OWNER              @map("owner")
+	ADMIN_ORGANIZATION @map("admin_organization")
 	CHEF_PROJET        @map("chef_projet")
 	CONDUCTEUR_TRAVAUX @map("conducteur_travaux")
 	COLLABORATEUR      @map("collaborateur")
