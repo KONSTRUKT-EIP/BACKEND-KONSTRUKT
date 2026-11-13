@@ -35,7 +35,7 @@ export class SiteMembershipController {
   constructor(private readonly service: SiteMembershipService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({
     summary: 'Lister les affectations d’un chantier',
   })
@@ -47,7 +47,7 @@ export class SiteMembershipController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({
     summary: 'Créer une affectation chantier',
   })
@@ -60,7 +60,7 @@ export class SiteMembershipController {
   }
 
   @Patch(':membershipId')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiParam({
     name: 'membershipId',
   })
@@ -83,7 +83,7 @@ export class SiteMembershipController {
   }
 
   @Delete(':membershipId')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({
     summary: 'Supprimer une affectation chantier',
   })

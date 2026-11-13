@@ -48,7 +48,12 @@ export class SiteController {
   constructor(private readonly service: SiteService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Lister tous les chantiers' })
   @ApiQuery({
     name: 'organizationId',
@@ -64,7 +69,12 @@ export class SiteController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Récupérer un chantier par ID' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier trouvé' })
@@ -78,7 +88,7 @@ export class SiteController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Créer un chantier' })
   @ApiResponse({ status: 201, description: 'Chantier créé' })
   create(@Body() dto: CreateSiteDto, @Request() request: requestWithUser) {
@@ -90,7 +100,7 @@ export class SiteController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Mettre à jour un chantier' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier mis à jour' })
@@ -109,7 +119,7 @@ export class SiteController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Supprimer un chantier' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier supprimé' })
@@ -123,7 +133,12 @@ export class SiteController {
   }
 
   @Get(':id/photo')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: "Récupérer la photo de couverture d'un chantier" })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Image du chantier' })
@@ -163,7 +178,12 @@ export class SiteController {
   }
 
   @Put(':id/photo')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @UseInterceptors(
     FileInterceptor('photo', { limits: { fileSize: SITE_PHOTO_MAX_SIZE } }),
   )
@@ -189,7 +209,12 @@ export class SiteController {
   }
 
   @Delete(':id/photo')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: "Supprimer la photo de couverture d'un chantier" })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Photo supprimée' })

@@ -31,7 +31,7 @@ export class OrganizationController {
   constructor(private readonly service: OrganizationService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Lister toutes les organisations' })
   @ApiResponse({ status: 200, description: 'Liste des organisations' })
   findAll() {
@@ -39,7 +39,7 @@ export class OrganizationController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Récupérer une organisation par ID' })
   @ApiParam({ name: 'id', description: "UUID de l'organisation" })
   @ApiResponse({ status: 200, description: 'Organisation trouvée' })
@@ -49,7 +49,7 @@ export class OrganizationController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Créer une organisation' })
   @ApiResponse({ status: 201, description: 'Organisation créée' })
   create(@Body() dto: CreateOrganizationDto) {
@@ -57,7 +57,7 @@ export class OrganizationController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Mettre à jour une organisation' })
   @ApiParam({ name: 'id', description: "UUID de l'organisation" })
   @ApiResponse({ status: 200, description: 'Organisation mise à jour' })
@@ -67,7 +67,7 @@ export class OrganizationController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Supprimer une organisation' })
   @ApiParam({ name: 'id', description: "UUID de l'organisation" })
   @ApiResponse({ status: 200, description: 'Organisation supprimée' })

@@ -3,9 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import type { userPayload } from '../../modules/auth/jwt.strategy';
+import { isOrganizationAdmin } from './site-policies';
 
 @Injectable()
 export class SiteAccessService {
@@ -25,7 +25,7 @@ export class SiteAccessService {
       throw new NotFoundException(`Site ${siteId} not found`);
     }
 
-    if (user.role === UserRole.ADMIN) {
+    if (isOrganizationAdmin(user.role)) {
       return site;
     }
 

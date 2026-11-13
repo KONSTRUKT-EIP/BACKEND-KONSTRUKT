@@ -29,7 +29,12 @@ export class LotsController {
   constructor(private readonly service: LotsService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({
     summary: "Lister les lots d'un chantier avec leur avancement",
   })
@@ -40,7 +45,12 @@ export class LotsController {
   }
 
   @Get(':key')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({
     summary:
       "Récupérer le suivi prévisionnel vs réel d'un lot (plans et envois)",

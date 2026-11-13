@@ -13,7 +13,7 @@ const mockUser = {
   password: '$2b$10$hashedpassword',
   firstName: 'John',
   lastName: 'Doe',
-  role: UserRole.ADMIN,
+  role: UserRole.OWNER,
   organizationId: null,
   createdAt: new Date(),
 };
@@ -97,10 +97,10 @@ describe('AuthService', () => {
         service.getAccessibleSites({
           userId: 'admin-1',
           organizationId: 'org-1',
-          role: UserRole.ADMIN,
+          role: UserRole.OWNER,
         }),
       ).resolves.toEqual([
-        { id: 'site-1', name: 'Site A', membershipRole: UserRole.ADMIN },
+        { id: 'site-1', name: 'Site A', membershipRole: UserRole.OWNER },
       ]);
 
       expect(prisma.siteMembership.findMany).not.toHaveBeenCalled();
@@ -188,7 +188,7 @@ describe('AuthService', () => {
         ...mockUser,
         id: 'owner-uuid-1',
         email: 'owner@example.com',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         organizationId: organization.id,
       };
       (userService.findByEmail as jest.Mock).mockResolvedValue(null);
@@ -219,7 +219,7 @@ describe('AuthService', () => {
       expect(jwtService.signAsync).toHaveBeenCalledWith({
         userId: user.id,
         organizationId: organization.id,
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
       });
     });
 

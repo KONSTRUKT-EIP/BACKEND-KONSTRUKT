@@ -64,7 +64,7 @@ describe('UserService', () => {
       const createUserDto: CreateUserDto = {
         email: 'test@example.com',
         password: 'hashedPassword123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -111,7 +111,7 @@ describe('UserService', () => {
           id: '123e4567-e89b-12d3-a456-426614174001',
           email: 'user1@example.com',
           passwordHash: 'hash1',
-          role: UserRole.ADMIN,
+          role: UserRole.OWNER,
           firstName: 'John',
           lastName: 'Doe',
           organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -167,7 +167,7 @@ describe('UserService', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -198,7 +198,7 @@ describe('UserService', () => {
       const updateUserDto: UpdateUserDto = {
         email: 'updated@example.com',
         password: 'updatedHash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -207,7 +207,7 @@ describe('UserService', () => {
       const expectedUser = {
         id: userId,
         email: 'updated@example.com',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -260,7 +260,7 @@ describe('UserService', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -296,7 +296,7 @@ describe('UserService', () => {
         email: input.email,
         firstName: input.firstName,
         lastName: input.lastName,
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         organizationId: null,
         createdAt: new Date(),
       };
@@ -353,7 +353,7 @@ describe('UserService', () => {
         id: 'u-3',
         email,
         password: '$2b$hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
       };
       mockPrismaService.user.findUnique.mockResolvedValue(user);
 
@@ -478,7 +478,7 @@ describe('UserService', () => {
 
       await service.updateProfile('user-1', {
         firstName: 'Jean',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         organizationId: 'org-b',
       } as never);
 

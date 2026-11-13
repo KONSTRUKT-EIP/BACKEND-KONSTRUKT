@@ -5,7 +5,7 @@ import { UpdateGenericTableDto } from './dto/update-generic-table.dto';
 import { CreateGenericTableRowDto } from './dto/create-generic-table-row.dto';
 import { UpdateGenericTableRowDto } from './dto/update-generic-table-row.dto';
 import { Prisma } from '@prisma/client';
-import { UserRole } from '@prisma/client';
+import { isOrganizationAdmin } from '../../shared/authorization/site-policies';
 import type { userPayload } from '../auth/jwt.strategy';
 import { SiteAccessService } from '../../shared/authorization/site-access.service';
 
@@ -100,7 +100,7 @@ export class GenericTableService {
     if (!organizationId) return [];
     if (siteId) await this.assertSiteAccess(siteId, organizationId);
     const accessibleSite =
-      !user || user.role === UserRole.ADMIN
+      !user || isOrganizationAdmin(user.role)
         ? { organizationId }
         : {
             organizationId,

@@ -43,7 +43,12 @@ export class TeamController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
   @RequireSiteAccess('query', 'siteId', true)
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Lister les équipes (filtrable par chantier)' })
   @ApiQuery({
     name: 'siteId',
@@ -64,7 +69,8 @@ export class TeamController {
 
   @Get(':id')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -82,7 +88,12 @@ export class TeamController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Créer une équipe' })
   @ApiResponse({ status: 201, description: 'Équipe créée' })
   create(@Body() dto: CreateTeamDto, @Request() request: requestWithUser) {
@@ -94,7 +105,12 @@ export class TeamController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Mettre à jour une équipe' })
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Équipe mise à jour' })
@@ -113,7 +129,7 @@ export class TeamController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Supprimer une équipe' })
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 200, description: 'Équipe supprimée' })
@@ -130,7 +146,8 @@ export class TeamController {
 
   @Get(':id/members')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -147,7 +164,12 @@ export class TeamController {
   }
 
   @Post(':id/members')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: "Ajouter un membre à l'équipe" })
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiResponse({ status: 201, description: 'Membre ajouté' })
@@ -166,7 +188,12 @@ export class TeamController {
   }
 
   @Delete(':id/members/:userId')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: "Retirer un membre de l'équipe" })
   @ApiParam({ name: 'id', description: "UUID de l'équipe" })
   @ApiParam({ name: 'userId', description: "UUID de l'utilisateur" })
@@ -189,7 +216,8 @@ export class TeamController {
   @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
   @RequireSiteAccess()
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -226,7 +254,8 @@ export class TeamController {
   @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
   @RequireSiteAccess()
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -264,7 +293,8 @@ export class TeamController {
   @UseGuards(JwtAuthGuard, RolesGuard, SiteAccessGuard)
   @RequireSiteAccess()
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -301,7 +331,12 @@ export class TeamController {
   }
 
   @Post('site/:siteId/workforce-hours')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Enregistrer les heures travaillées d’un membre' })
   @ApiParam({ name: 'siteId', description: 'UUID du chantier' })
   @ApiResponse({ status: 201, description: 'Heures enregistrées' })

@@ -20,7 +20,7 @@ describe('SiteAccessService', () => {
       service.assertAccess('site-1', {
         userId: 'admin-1',
         organizationId: 'org-1',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
       }),
     ).resolves.toEqual(site);
 
