@@ -341,7 +341,6 @@ export class InvitationService {
     };
   }
 
-  /** Invitation de l'organisation dont l'utilisateur peut gérer le rôle sur le chantier. */
   private async findManageableInvitation(
     invitationId: string,
     user: userPayload,

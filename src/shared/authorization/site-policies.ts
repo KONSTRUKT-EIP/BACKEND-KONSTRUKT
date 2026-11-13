@@ -45,7 +45,6 @@ export const SITE_PERMISSIONS: Record<UserRole, readonly SiteAction[]> = {
   [UserRole.CLIENT]: [SiteAction.VIEW_SITE],
 };
 
-/** Hiérarchie utilisée pour savoir qui peut attribuer / gérer quel rôle. */
 const ROLE_RANK: Record<UserRole, number> = {
   [UserRole.OWNER]: 5,
   [UserRole.ADMIN_ORGANIZATION]: 4,
@@ -71,10 +70,6 @@ export function getSitePermissions(role: UserRole): SiteAction[] {
   return [...SITE_PERMISSIONS[role]];
 }
 
-/**
- * Un OWNER peut tout attribuer ; les autres rôles uniquement un rôle
- * strictement inférieur au leur.
- */
 export function canAssignRole(
   actorRole: UserRole | null | undefined,
   targetRole: UserRole,
