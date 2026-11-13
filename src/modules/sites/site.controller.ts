@@ -140,6 +140,9 @@ export class SiteController {
   }
 
   @Get(':id/photo')
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.VIEW_SITE)
   @Roles(
     UserRole.OWNER,
     UserRole.ADMIN_ORGANIZATION,
@@ -185,6 +188,8 @@ export class SiteController {
   }
 
   @Put(':id/photo')
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
   @Roles(
     UserRole.OWNER,
     UserRole.ADMIN_ORGANIZATION,
@@ -216,6 +221,8 @@ export class SiteController {
   }
 
   @Delete(':id/photo')
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
   @Roles(
     UserRole.OWNER,
     UserRole.ADMIN_ORGANIZATION,
