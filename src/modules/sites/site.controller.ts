@@ -39,6 +39,12 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
 import type { requestWithUser } from '../auth/jwt.strategy';
+import {
+  RequireSiteAccess,
+  SitePermission,
+} from '../../shared/authorization/site-access.decorator';
+import { SiteAccessGuard } from '../../shared/authorization/site-access.guard';
+import { SiteAction } from '../../shared/authorization/site-policies';
 
 @ApiTags('Sites')
 @ApiBearerAuth()
@@ -69,12 +75,9 @@ export class SiteController {
   }
 
   @Get(':id')
-  @Roles(
-    UserRole.OWNER,
-    UserRole.ADMIN_ORGANIZATION,
-    UserRole.CHEF_PROJET,
-    UserRole.CONDUCTEUR_TRAVAUX,
-  )
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.VIEW_SITE)
   @ApiOperation({ summary: 'Récupérer un chantier par ID' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier trouvé' })
@@ -100,7 +103,9 @@ export class SiteController {
   }
 
   @Put(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.UPDATE_SITE)
   @ApiOperation({ summary: 'Mettre à jour un chantier' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier mis à jour' })
@@ -119,7 +124,9 @@ export class SiteController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.DELETE_SITE)
   @ApiOperation({ summary: 'Supprimer un chantier' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier supprimé' })

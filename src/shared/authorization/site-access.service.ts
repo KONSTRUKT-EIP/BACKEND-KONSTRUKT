@@ -3,15 +3,39 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import type { userPayload } from '../../modules/auth/jwt.strategy';
-import { isOrganizationAdmin } from './site-policies';
+import { can, isOrganizationAdmin, SiteAction } from './site-policies';
 
 @Injectable()
 export class SiteAccessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async assertAccess(siteId: string, user: userPayload) {
+  /**
+   * Vérifie l'accès au chantier (et l'action si fournie) et retourne le rôle
+   * effectif de l'utilisateur sur ce chantier.
+   */
+  async assertAccess(
+    siteId: string,
+    user: userPayload,
+    action?: SiteAction,
+  ): Promise<UserRole> {
+    const role = await this.resolveSiteRole(siteId, user);
+
+    if (action && !can(role, action)) {
+      throw new ForbiddenException(
+        `Your role on this site does not allow ${action}`,
+      );
+    }
+
+    return role;
+  }
+
+  private async resolveSiteRole(
+    siteId: string,
+    user: userPayload,
+  ): Promise<UserRole> {
     if (!user.organizationId) {
       throw new NotFoundException(`Site ${siteId} not found`);
     }
@@ -25,8 +49,8 @@ export class SiteAccessService {
       throw new NotFoundException(`Site ${siteId} not found`);
     }
 
-    if (isOrganizationAdmin(user.role)) {
-      return site;
+    if (user.role && isOrganizationAdmin(user.role)) {
+      return user.role;
     }
 
     const membership = await this.prisma.siteMembership.findFirst({
@@ -35,13 +59,13 @@ export class SiteAccessService {
         siteId,
         isActive: true,
       },
-      select: { id: true },
+      select: { role: true },
     });
 
     if (!membership) {
       throw new ForbiddenException('You do not have access to this site');
     }
 
-    return site;
+    return membership.role;
   }
 }

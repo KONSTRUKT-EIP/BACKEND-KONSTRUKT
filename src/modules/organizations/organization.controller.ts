@@ -67,7 +67,7 @@ export class OrganizationController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @Roles(UserRole.OWNER)
   @ApiOperation({ summary: 'Supprimer une organisation' })
   @ApiParam({ name: 'id', description: "UUID de l'organisation" })
   @ApiResponse({ status: 200, description: 'Organisation supprimée' })

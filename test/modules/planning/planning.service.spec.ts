@@ -18,7 +18,7 @@ const mockUser = {
   email: 'test@example.com',
   firstName: 'John',
   lastName: 'Doe',
-  role: 'ADMIN',
+  role: 'OWNER',
   organizationId: null,
   createdAt: new Date(),
 };
