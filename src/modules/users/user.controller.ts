@@ -47,6 +47,7 @@ export class UserController {
       dto,
       request.user.organizationId,
       request.user.userId,
+      request.user.role,
     );
   }
 
@@ -110,6 +111,7 @@ export class UserController {
       dto,
       request.user.organizationId,
       request.user.userId,
+      request.user.role,
     );
   }
 
@@ -121,7 +123,12 @@ export class UserController {
     @Body() dto: UpdateUserRoleDto,
     @Request() request: requestWithUser,
   ) {
-    return this.userService.updateRole(id, dto, request.user.organizationId);
+    return this.userService.updateRole(
+      id,
+      dto,
+      request.user.organizationId,
+      request.user.role,
+    );
   }
 
   @Patch(':id/access')
@@ -132,7 +139,12 @@ export class UserController {
     @Body() dto: UpdateUserAccessDto,
     @Request() request: requestWithUser,
   ) {
-    return this.userService.updateAccess(id, dto, request.user.organizationId);
+    return this.userService.updateAccess(
+      id,
+      dto,
+      request.user.organizationId,
+      request.user.role,
+    );
   }
 
   @Get(':id/assignments')
@@ -158,6 +170,7 @@ export class UserController {
       id,
       request.user.organizationId,
       request.user.userId,
+      request.user.role,
     );
   }
 }

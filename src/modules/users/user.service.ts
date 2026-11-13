@@ -10,6 +10,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserAccessDto } from './dto/update-user-access.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserRole } from '@prisma/client';
+import { canAssignRole } from '../../shared/authorization/site-policies';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -79,7 +80,9 @@ export class UserService {
     data: CreateUserDto,
     organizationId?: string | null,
     userId?: string,
+    actorRole?: UserRole,
   ) {
+    if (actorRole) this.assertCanAssign(actorRole, data.role);
     const resolvedOrganizationId = await this.resolveOrganizationId(
       organizationId,
       userId,
@@ -166,16 +169,28 @@ export class UserService {
     id: string,
     dto: UpdateUserRoleDto,
     organizationId?: string | null,
+    actorRole?: UserRole,
   ) {
-    return this.updateManagedUser(id, { role: dto.role }, organizationId);
+    const user = await this.findManagedUser(id, organizationId);
+    if (actorRole) {
+      this.assertCanAssign(actorRole, user.role);
+      this.assertCanAssign(actorRole, dto.role);
+    }
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: { role: dto.role },
+      select: this.userSelect,
+    });
   }
 
   async updateAccess(
     id: string,
     dto: UpdateUserAccessDto,
     organizationId?: string | null,
+    actorRole?: UserRole,
   ) {
     const user = await this.findManagedUser(id, organizationId);
+    if (actorRole) this.assertCanAssign(actorRole, user.role);
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: { isActive: dto.isActive },
@@ -222,23 +237,10 @@ export class UserService {
 
     const user = await this.prisma.user.findFirst({
       where: { id, organizationId },
-      select: { id: true },
+      select: { id: true, role: true },
     });
     if (!user) throw new NotFoundException(`User ${id} not found`);
     return user;
-  }
-
-  private async updateManagedUser(
-    id: string,
-    data: Record<string, unknown>,
-    organizationId?: string | null,
-  ) {
-    await this.findManagedUser(id, organizationId);
-    return this.prisma.user.update({
-      where: { id },
-      data,
-      select: this.userSelect,
-    });
   }
 
   async update(
@@ -246,6 +248,7 @@ export class UserService {
     dto: UpdateUserDto,
     organizationId?: string | null,
     userId?: string,
+    actorRole?: UserRole,
   ) {
     const resolvedOrganizationId = await this.resolveOrganizationId(
       organizationId,
@@ -258,6 +261,10 @@ export class UserService {
       where: { id, organizationId: resolvedOrganizationId },
     });
     if (!existingUser) throw new NotFoundException(`User ${id} not found`);
+    if (actorRole) {
+      this.assertCanAssign(actorRole, existingUser.role);
+      if (dto.role) this.assertCanAssign(actorRole, dto.role);
+    }
     const data: Record<string, unknown> = { ...rest };
     delete data.organizationId;
     if (password) {
@@ -303,7 +310,12 @@ export class UserService {
     });
   }
 
-  async remove(id: string, organizationId?: string | null, userId?: string) {
+  async remove(
+    id: string,
+    organizationId?: string | null,
+    userId?: string,
+    actorRole?: UserRole,
+  ) {
     const resolvedOrganizationId = await this.resolveOrganizationId(
       organizationId,
       userId,
@@ -314,7 +326,16 @@ export class UserService {
       where: { id, organizationId: resolvedOrganizationId },
     });
     if (!existingUser) throw new NotFoundException(`User ${id} not found`);
+    if (actorRole) this.assertCanAssign(actorRole, existingUser.role);
     await this.prisma.user.delete({ where: { id } });
     return { message: `User ${id} deleted` };
+  }
+
+  private assertCanAssign(actorRole: UserRole, targetRole: UserRole) {
+    if (!canAssignRole(actorRole, targetRole)) {
+      throw new ForbiddenException(
+        `Role ${actorRole} cannot manage a user with role ${targetRole}`,
+      );
+    }
   }
 }

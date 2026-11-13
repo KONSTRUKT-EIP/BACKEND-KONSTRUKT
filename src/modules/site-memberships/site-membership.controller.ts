@@ -18,10 +18,13 @@ import {
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
-import { UserRole } from '../../shared/types/roles.enum';
 import type { requestWithUser } from '../auth/jwt.strategy';
+import {
+  RequireSiteAccess,
+  SitePermission,
+} from '../../shared/authorization/site-access.decorator';
+import { SiteAccessGuard } from '../../shared/authorization/site-access.guard';
+import { SiteAction } from '../../shared/authorization/site-policies';
 
 import { SiteMembershipService } from './site-membership.service';
 import { CreateSiteMembershipDto } from './dto/create-site-membership.dto';
@@ -29,13 +32,14 @@ import { UpdateSiteMembershipDto } from './dto/update-site-membership.dto';
 
 @ApiTags('Site Memberships')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, SiteAccessGuard)
+@RequireSiteAccess()
 @Controller('sites/:siteId/memberships')
 export class SiteMembershipController {
   constructor(private readonly service: SiteMembershipService) {}
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @SitePermission(SiteAction.VIEW_MEMBERS)
   @ApiOperation({
     summary: 'Lister les affectations d’un chantier',
   })
@@ -47,7 +51,7 @@ export class SiteMembershipController {
   }
 
   @Post()
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @SitePermission(SiteAction.MANAGE_MEMBERS)
   @ApiOperation({
     summary: 'Créer une affectation chantier',
   })
@@ -56,11 +60,16 @@ export class SiteMembershipController {
     @Body() dto: CreateSiteMembershipDto,
     @Request() request: requestWithUser,
   ) {
-    return this.service.create(siteId, dto, request.user.organizationId);
+    return this.service.create(
+      siteId,
+      dto,
+      request.user.organizationId,
+      request.siteRole!,
+    );
   }
 
   @Patch(':membershipId')
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @SitePermission(SiteAction.MANAGE_MEMBERS)
   @ApiParam({
     name: 'membershipId',
   })
@@ -79,11 +88,12 @@ export class SiteMembershipController {
       membershipId,
       dto,
       request.user.organizationId,
+      request.siteRole!,
     );
   }
 
   @Delete(':membershipId')
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @SitePermission(SiteAction.MANAGE_MEMBERS)
   @ApiOperation({
     summary: 'Supprimer une affectation chantier',
   })
@@ -97,6 +107,7 @@ export class SiteMembershipController {
       siteId,
       membershipId,
       request.user.organizationId,
+      request.siteRole!,
     );
   }
 }

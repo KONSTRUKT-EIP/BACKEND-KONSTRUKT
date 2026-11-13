@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../../../src/modules/users/user.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
@@ -406,7 +410,7 @@ describe('UserService', () => {
       ).resolves.toMatchObject({ role: UserRole.CHEF_PROJET });
       expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
         where: { id: 'user-1', organizationId: 'org-1' },
-        select: { id: true },
+        select: { id: true, role: true },
       });
     });
 
@@ -515,6 +519,72 @@ describe('UserService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(service.findMe('user-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('role hierarchy', () => {
+    const orgId = '123e4567-e89b-12d3-a456-426614174000';
+
+    it('prevents an ADMIN_ORGANIZATION from creating an OWNER', async () => {
+      await expect(
+        service.create(
+          {
+            email: 'owner@example.com',
+            password: 'password123',
+            firstName: 'New',
+            lastName: 'Owner',
+            role: UserRole.OWNER,
+          },
+          orgId,
+          'admin-1',
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.user.create).not.toHaveBeenCalled();
+    });
+
+    it('prevents an ADMIN_ORGANIZATION from promoting a user to OWNER', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'user-1',
+        role: UserRole.COLLABORATEUR,
+      });
+
+      await expect(
+        service.updateRole(
+          'user-1',
+          { role: UserRole.OWNER },
+          orgId,
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('prevents an ADMIN_ORGANIZATION from editing or deleting an OWNER', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'owner-1',
+        role: UserRole.OWNER,
+      });
+
+      await expect(
+        service.update(
+          'owner-1',
+          { firstName: 'Changed' },
+          orgId,
+          'admin-1',
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.remove(
+          'owner-1',
+          orgId,
+          'admin-1',
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.user.delete).not.toHaveBeenCalled();
     });
   });
 });

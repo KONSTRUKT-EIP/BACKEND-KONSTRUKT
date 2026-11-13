@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { InvitationService } from '../../../src/modules/invitations/invitation.service';
+import { SiteAction } from '../../../src/shared/authorization/site-policies';
 
 const organizationId = 'organization-1';
 const siteId = 'site-1';
@@ -28,12 +29,14 @@ function createService() {
   };
   const authService = { authenticateUser: jest.fn() };
   const mailer = { sendInvitation: jest.fn().mockResolvedValue(undefined) };
+  const siteAccess = { assertAccess: jest.fn() };
   const service = new InvitationService(
     prisma as never,
     authService as never,
     mailer as never,
+    siteAccess as never,
   );
-  return { service, prisma, authService, mailer };
+  return { service, prisma, authService, mailer, siteAccess };
 }
 
 describe('InvitationService', () => {
@@ -318,16 +321,19 @@ describe('InvitationService', () => {
   });
 
   it('keeps cancelled invitations and blocks resending them', async () => {
-    const { service, prisma } = createService();
+    const { service, prisma, siteAccess } = createService();
+    const owner = { userId: adminId, organizationId, role: UserRole.OWNER };
+    siteAccess.assertAccess.mockResolvedValue(UserRole.OWNER);
     prisma.invitation.findFirst.mockResolvedValue({
       id: 'invitation-1',
       acceptedAt: null,
       canceledAt: null,
       siteId,
+      role: UserRole.COLLABORATEUR,
     });
     prisma.invitation.update.mockResolvedValue({});
 
-    await service.remove('invitation-1', organizationId, UserRole.OWNER);
+    await service.remove('invitation-1', owner);
 
     expect(prisma.invitation.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -340,9 +346,86 @@ describe('InvitationService', () => {
       id: 'invitation-1',
       acceptedAt: null,
       canceledAt: new Date(),
+      siteId,
+      role: UserRole.COLLABORATEUR,
     });
-    await expect(
-      service.resend('invitation-1', adminId, organizationId, UserRole.OWNER),
-    ).rejects.toThrow('Invitation has been cancelled');
+    await expect(service.resend('invitation-1', owner)).rejects.toThrow(
+      'Invitation has been cancelled',
+    );
+  });
+
+  describe('per-site role policies', () => {
+    const chef = {
+      userId: 'chef-1',
+      organizationId,
+      role: UserRole.COLLABORATEUR,
+    };
+
+    it('prevents a chef de projet from inviting a peer chef de projet', async () => {
+      const { service, prisma } = createService();
+
+      await expect(
+        service.create(
+          siteId,
+          { email: 'peer@example.com', role: UserRole.CHEF_PROJET },
+          'chef-1',
+          organizationId,
+          UserRole.CHEF_PROJET,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.invitation.create).not.toHaveBeenCalled();
+    });
+
+    it('checks the role on the invitation site before cancelling', async () => {
+      const { service, prisma, siteAccess } = createService();
+      prisma.invitation.findFirst.mockResolvedValue({
+        id: 'invitation-1',
+        siteId,
+        role: UserRole.COLLABORATEUR,
+        acceptedAt: null,
+      });
+      siteAccess.assertAccess.mockResolvedValue(UserRole.CHEF_PROJET);
+
+      await expect(service.remove('invitation-1', chef)).resolves.toEqual({
+        message: 'Invitation cancelled',
+      });
+      expect(siteAccess.assertAccess).toHaveBeenCalledWith(
+        siteId,
+        chef,
+        SiteAction.MANAGE_INVITATIONS,
+      );
+    });
+
+    it('rejects cancelling an invitation for a role above the actor', async () => {
+      const { service, prisma, siteAccess } = createService();
+      prisma.invitation.findFirst.mockResolvedValue({
+        id: 'invitation-1',
+        siteId,
+        role: UserRole.CHEF_PROJET,
+        acceptedAt: null,
+      });
+      siteAccess.assertAccess.mockResolvedValue(UserRole.CHEF_PROJET);
+
+      await expect(service.remove('invitation-1', chef)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.invitation.delete).not.toHaveBeenCalled();
+    });
+
+    it('propagates a site access refusal on resend', async () => {
+      const { service, prisma, siteAccess, mailer } = createService();
+      prisma.invitation.findFirst.mockResolvedValue({
+        id: 'invitation-1',
+        siteId,
+        role: UserRole.COLLABORATEUR,
+        acceptedAt: null,
+      });
+      siteAccess.assertAccess.mockRejectedValue(new ForbiddenException());
+
+      await expect(service.resend('invitation-1', chef)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(mailer.sendInvitation).not.toHaveBeenCalled();
+    });
   });
 });

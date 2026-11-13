@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { IsEmail, IsEnum, IsNotEmpty } from 'class-validator';
+import { SITE_ROLES } from '../../../shared/authorization/site-policies';
+import { IsEmail, IsIn, IsNotEmpty } from 'class-validator';
 
 export class CreateInvitationDto {
   @ApiProperty({ example: 'collaborator@example.com' })
@@ -8,7 +9,7 @@ export class CreateInvitationDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ enum: UserRole, example: UserRole.COLLABORATEUR })
-  @IsEnum(UserRole)
+  @ApiProperty({ enum: SITE_ROLES, example: UserRole.COLLABORATEUR })
+  @IsIn(SITE_ROLES)
   role: UserRole;
 }

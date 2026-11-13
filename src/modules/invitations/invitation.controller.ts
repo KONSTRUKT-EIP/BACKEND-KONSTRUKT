@@ -15,14 +15,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import { InvitationService } from './invitation.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
 import type { requestWithUser } from '../auth/jwt.strategy';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { Public } from '../auth/public.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('invitations')
 @Controller('invitations')
@@ -55,18 +55,12 @@ export class InvitationController {
 
   @Post(':id/resend')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Resend an invitation email' })
   @ApiParam({ name: 'id', description: 'Invitation UUID' })
   @ApiResponse({ status: 200, description: 'Invitation resent.' })
   resend(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.invitationService.resend(
-      id,
-      request.user.userId,
-      request.user.organizationId,
-      request.user.role,
-    );
+    return this.invitationService.resend(id, request.user);
   }
 
   @Post(':token/accept')
@@ -79,16 +73,11 @@ export class InvitationController {
 
   @Delete(':id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Cancel an invitation' })
   @ApiParam({ name: 'id', description: 'Invitation UUID' })
   @ApiResponse({ status: 200, description: 'Invitation cancelled.' })
   remove(@Param('id') id: string, @Request() request: requestWithUser) {
-    return this.invitationService.remove(
-      id,
-      request.user.organizationId,
-      request.user.role,
-    );
+    return this.invitationService.remove(id, request.user);
   }
 }

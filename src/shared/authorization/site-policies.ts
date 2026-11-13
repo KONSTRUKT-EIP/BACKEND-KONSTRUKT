@@ -45,8 +45,21 @@ export const SITE_PERMISSIONS: Record<UserRole, readonly SiteAction[]> = {
   [UserRole.CLIENT]: [SiteAction.VIEW_SITE],
 };
 
+const ROLE_RANK: Record<UserRole, number> = {
+  [UserRole.OWNER]: 5,
+  [UserRole.ADMIN_ORGANIZATION]: 4,
+  [UserRole.CHEF_PROJET]: 3,
+  [UserRole.CONDUCTEUR_TRAVAUX]: 2,
+  [UserRole.COLLABORATEUR]: 1,
+  [UserRole.CLIENT]: 0,
+};
+
 export function isOrganizationAdmin(role?: UserRole | null): boolean {
   return !!role && ORGANIZATION_ADMIN_ROLES.includes(role);
+}
+
+export function isSiteRole(role?: UserRole | null): boolean {
+  return !!role && SITE_ROLES.includes(role);
 }
 
 export function can(role: UserRole | null | undefined, action: SiteAction) {
@@ -55,4 +68,13 @@ export function can(role: UserRole | null | undefined, action: SiteAction) {
 
 export function getSitePermissions(role: UserRole): SiteAction[] {
   return [...SITE_PERMISSIONS[role]];
+}
+
+export function canAssignRole(
+  actorRole: UserRole | null | undefined,
+  targetRole: UserRole,
+): boolean {
+  if (!actorRole) return false;
+  if (actorRole === UserRole.OWNER) return true;
+  return ROLE_RANK[actorRole] > ROLE_RANK[targetRole];
 }
