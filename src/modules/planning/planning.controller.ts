@@ -41,7 +41,8 @@ export class PlanningController {
 
   @Get('tasks')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -97,7 +98,8 @@ export class PlanningController {
 
   @Get('tasks/:id')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -121,7 +123,12 @@ export class PlanningController {
   }
 
   @Post('tasks')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({
     summary: 'Créer une nouvelle tâche planning',
   })
@@ -142,7 +149,12 @@ export class PlanningController {
   }
 
   @Put('tasks/:id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({
     summary: 'Mettre à jour une tâche planning',
   })
@@ -162,7 +174,7 @@ export class PlanningController {
   }
 
   @Delete('tasks/:id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({
     summary: 'Supprimer une tâche planning',
   })
@@ -178,7 +190,8 @@ export class PlanningController {
 
   @Get('actions')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -201,7 +214,8 @@ export class PlanningController {
 
   @Get('tasks/:id/actions')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -224,7 +238,12 @@ export class PlanningController {
   }
 
   @Delete('actions/:id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({
     summary: 'Marquer une action comme lue',
     description: "Marque l'alerte associée comme lue (supprime l'action)",
@@ -241,7 +260,8 @@ export class PlanningController {
 
   @Get('week')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,

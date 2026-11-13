@@ -44,7 +44,12 @@ import type { requestWithUser } from '../auth/jwt.strategy';
 @ApiTags('Dashboard')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+@Roles(
+  UserRole.OWNER,
+  UserRole.ADMIN_ORGANIZATION,
+  UserRole.CHEF_PROJET,
+  UserRole.CONDUCTEUR_TRAVAUX,
+)
 @Controller('dashboard/armature')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}

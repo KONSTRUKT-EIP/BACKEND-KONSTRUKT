@@ -95,7 +95,7 @@ describe('InvitationService', () => {
       },
     ]);
 
-    const result = await service.findAll(organizationId, UserRole.ADMIN);
+    const result = await service.findAll(organizationId, UserRole.OWNER);
 
     expect(prisma.invitation.findMany).toHaveBeenCalledWith({
       where: { organizationId },
@@ -113,7 +113,7 @@ describe('InvitationService', () => {
   it('requires an organization context to list invitations', async () => {
     const { service } = createService();
 
-    await expect(service.findAll(null, UserRole.ADMIN)).rejects.toThrow(
+    await expect(service.findAll(null, UserRole.OWNER)).rejects.toThrow(
       ForbiddenException,
     );
   });
@@ -127,7 +127,7 @@ describe('InvitationService', () => {
         { email: 'person@example.com', role: UserRole.COLLABORATEUR },
         adminId,
         null,
-        UserRole.ADMIN,
+        UserRole.OWNER,
       ),
     ).rejects.toThrow(ForbiddenException);
   });
@@ -156,7 +156,7 @@ describe('InvitationService', () => {
       { email: 'Person@Example.com', role: UserRole.COLLABORATEUR },
       adminId,
       organizationId,
-      UserRole.ADMIN,
+      UserRole.OWNER,
     );
 
     const createData = prisma.invitation.create.mock.calls[0][0].data;
@@ -327,7 +327,7 @@ describe('InvitationService', () => {
     });
     prisma.invitation.update.mockResolvedValue({});
 
-    await service.remove('invitation-1', organizationId, UserRole.ADMIN);
+    await service.remove('invitation-1', organizationId, UserRole.OWNER);
 
     expect(prisma.invitation.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -342,7 +342,7 @@ describe('InvitationService', () => {
       canceledAt: new Date(),
     });
     await expect(
-      service.resend('invitation-1', adminId, organizationId, UserRole.ADMIN),
+      service.resend('invitation-1', adminId, organizationId, UserRole.OWNER),
     ).rejects.toThrow('Invitation has been cancelled');
   });
 });

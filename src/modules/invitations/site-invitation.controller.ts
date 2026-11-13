@@ -32,7 +32,7 @@ export class SiteInvitationController {
 
   @Post()
   @RequireSiteAccess()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Create an invitation for a site' })
   @ApiParam({ name: 'siteId', description: 'Site UUID' })
   @ApiResponse({ status: 201, description: 'Invitation created.' })

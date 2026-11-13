@@ -34,7 +34,12 @@ export class ResourceUsagesController {
   constructor(private readonly service: ResourceUsagesService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Lister les consommations de ressources' })
   @ApiQuery({ name: 'resourceId', required: false })
   @ApiQuery({ name: 'taskId', required: false })
@@ -49,7 +54,12 @@ export class ResourceUsagesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Recuperer une consommation par id' })
   @ApiParam({ name: 'id', description: 'UUID de la consommation' })
   @ApiResponse({ status: 200, description: 'Consommation trouvee' })
@@ -58,7 +68,12 @@ export class ResourceUsagesController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Creer une consommation de ressource' })
   @ApiResponse({ status: 201, description: 'Consommation creee' })
   create(@Body() dto: CreateResourceUsageDto) {
@@ -66,7 +81,7 @@ export class ResourceUsagesController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Mettre a jour une consommation de ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la consommation' })
   @ApiResponse({ status: 200, description: 'Consommation mise a jour' })
@@ -75,7 +90,7 @@ export class ResourceUsagesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION)
   @ApiOperation({ summary: 'Supprimer une consommation de ressource' })
   @ApiParam({ name: 'id', description: 'UUID de la consommation' })
   @ApiResponse({ status: 200, description: 'Consommation supprimee' })

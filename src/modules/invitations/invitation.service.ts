@@ -9,6 +9,7 @@ import { Prisma, UserRole } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { hash } from 'bcrypt';
 import { PrismaService } from '../../lib/prisma/prisma.service';
+import { isOrganizationAdmin } from '../../shared/authorization/site-policies';
 import { AuthService } from '../auth/auth.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
@@ -346,7 +347,7 @@ export class InvitationService {
   }
 
   private assertAdmin(role?: UserRole) {
-    if (role !== UserRole.ADMIN) {
+    if (!isOrganizationAdmin(role)) {
       throw new ForbiddenException(
         'Only organization administrators can manage invitations',
       );

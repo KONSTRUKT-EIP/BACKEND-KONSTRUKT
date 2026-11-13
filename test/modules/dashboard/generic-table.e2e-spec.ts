@@ -73,7 +73,7 @@ describe('GenericTableController (e2e)', () => {
           context.switchToHttp().getRequest().user = {
             userId: 'admin-1',
             organizationId: 'org-a',
-            role: UserRole.ADMIN,
+            role: UserRole.OWNER,
           };
           return true;
         }),
