@@ -1,11 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { SITE_ROLES } from '../../../shared/authorization/site-policies';
+import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 
 export class UpdateSiteMembershipDto {
-  @ApiPropertyOptional({ enum: UserRole, example: UserRole.COLLABORATEUR })
+  @ApiPropertyOptional({ enum: SITE_ROLES, example: UserRole.COLLABORATEUR })
   @IsOptional()
-  @IsEnum(UserRole)
+  @IsIn(SITE_ROLES)
   role?: UserRole;
 
   @ApiPropertyOptional({ example: true })

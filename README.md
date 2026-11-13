@@ -37,6 +37,11 @@ npm run db:seed
 
 Le backend n'utilise plus de migrations Prisma dans ce workflow. Le schéma est synchronisé directement avec Supabase via `db push`, puis la base est peuplée avec le seed demo.
 
+> **Base existante créée avant les rôles OWNER / ADMIN_ORGANIZATION** : lancer
+> `npm run db:roles` **avant** `npm run db:push`. Le script renomme le rôle
+> `admin` en `owner` et ajoute `admin_organization`. Voir
+> [docs/roles-et-permissions.md](docs/roles-et-permissions.md).
+
 ## Lancer le serveur en développement 🚀
 ```bash
 npm run start:dev

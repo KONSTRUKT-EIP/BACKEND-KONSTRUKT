@@ -39,6 +39,12 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../../shared/types/roles.enum';
 import type { requestWithUser } from '../auth/jwt.strategy';
+import {
+  RequireSiteAccess,
+  SitePermission,
+} from '../../shared/authorization/site-access.decorator';
+import { SiteAccessGuard } from '../../shared/authorization/site-access.guard';
+import { SiteAction } from '../../shared/authorization/site-policies';
 
 @ApiTags('Sites')
 @ApiBearerAuth()
@@ -48,7 +54,12 @@ export class SiteController {
   constructor(private readonly service: SiteService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Lister tous les chantiers' })
   @ApiQuery({
     name: 'organizationId',
@@ -64,7 +75,9 @@ export class SiteController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.VIEW_SITE)
   @ApiOperation({ summary: 'Récupérer un chantier par ID' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier trouvé' })
@@ -78,7 +91,7 @@ export class SiteController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @Roles(UserRole.OWNER, UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET)
   @ApiOperation({ summary: 'Créer un chantier' })
   @ApiResponse({ status: 201, description: 'Chantier créé' })
   create(@Body() dto: CreateSiteDto, @Request() request: requestWithUser) {
@@ -90,7 +103,9 @@ export class SiteController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.UPDATE_SITE)
   @ApiOperation({ summary: 'Mettre à jour un chantier' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier mis à jour' })
@@ -109,7 +124,9 @@ export class SiteController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.DELETE_SITE)
   @ApiOperation({ summary: 'Supprimer un chantier' })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Chantier supprimé' })
@@ -123,7 +140,15 @@ export class SiteController {
   }
 
   @Get(':id/photo')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @SitePermission(SiteAction.VIEW_SITE)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: "Récupérer la photo de couverture d'un chantier" })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Image du chantier' })
@@ -163,7 +188,14 @@ export class SiteController {
   }
 
   @Put(':id/photo')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @UseInterceptors(
     FileInterceptor('photo', { limits: { fileSize: SITE_PHOTO_MAX_SIZE } }),
   )
@@ -189,7 +221,14 @@ export class SiteController {
   }
 
   @Delete(':id/photo')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @UseGuards(SiteAccessGuard)
+  @RequireSiteAccess('param', 'id')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: "Supprimer la photo de couverture d'un chantier" })
   @ApiParam({ name: 'id', description: 'UUID du chantier' })
   @ApiResponse({ status: 200, description: 'Photo supprimée' })

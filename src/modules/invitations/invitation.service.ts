@@ -10,6 +10,13 @@ import { createHash, randomBytes } from 'crypto';
 import { hash } from 'bcrypt';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import type { userPayload } from '../auth/jwt.strategy';
+import { SiteAccessService } from '../../shared/authorization/site-access.service';
+import {
+  canAssignRole,
+  isOrganizationAdmin,
+  SiteAction,
+} from '../../shared/authorization/site-policies';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import {
@@ -48,16 +55,17 @@ export class InvitationService {
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly mailer: InvitationMailerService,
+    private readonly siteAccess: SiteAccessService,
   ) {}
 
   async create(
     siteId: string,
     dto: CreateInvitationDto,
     invitedById: string,
-    organizationId?: string | null,
-    role?: UserRole,
+    organizationId: string | null | undefined,
+    actorRole: UserRole,
   ) {
-    this.assertAdmin(role);
+    this.assertCanInvite(actorRole, dto.role);
     const site = await this.findSiteInOrganization(siteId, organizationId);
     const token = this.generateToken();
     const now = new Date();
@@ -97,7 +105,11 @@ export class InvitationService {
   }
 
   async findAll(organizationId?: string | null, role?: UserRole) {
-    this.assertAdmin(role);
+    if (!isOrganizationAdmin(role)) {
+      throw new ForbiddenException(
+        'Only organization admins can list invitations',
+      );
+    }
     if (!organizationId) {
       throw new ForbiddenException('Organization context is required');
     }
@@ -188,17 +200,9 @@ export class InvitationService {
     return { ...tokens, user: result };
   }
 
-  async resend(
-    invitationId: string,
-    invitedById: string,
-    organizationId?: string | null,
-    role?: UserRole,
-  ) {
-    this.assertAdmin(role);
-    const invitation = await this.findInvitationInOrganization(
-      invitationId,
-      organizationId,
-    );
+  async resend(invitationId: string, user: userPayload) {
+    const invitation = await this.findManageableInvitation(invitationId, user);
+    const invitedById = user.userId;
     if (invitation.acceptedAt) {
       throw new BadRequestException('Invitation has already been accepted');
     }
@@ -235,16 +239,8 @@ export class InvitationService {
     return { invitation: sentInvitation ?? updated, link };
   }
 
-  async remove(
-    invitationId: string,
-    organizationId?: string | null,
-    role?: UserRole,
-  ) {
-    this.assertAdmin(role);
-    const invitation = await this.findInvitationInOrganization(
-      invitationId,
-      organizationId,
-    );
+  async remove(invitationId: string, user: userPayload) {
+    const invitation = await this.findManageableInvitation(invitationId, user);
     if (invitation.acceptedAt) {
       throw new BadRequestException('Invitation has already been accepted');
     }
@@ -345,10 +341,27 @@ export class InvitationService {
     };
   }
 
-  private assertAdmin(role?: UserRole) {
-    if (role !== UserRole.ADMIN) {
+  private async findManageableInvitation(
+    invitationId: string,
+    user: userPayload,
+  ) {
+    const invitation = await this.findInvitationInOrganization(
+      invitationId,
+      user.organizationId,
+    );
+    const actorRole = await this.siteAccess.assertAccess(
+      invitation.siteId,
+      user,
+      SiteAction.MANAGE_INVITATIONS,
+    );
+    this.assertCanInvite(actorRole, invitation.role);
+    return invitation;
+  }
+
+  private assertCanInvite(actorRole: UserRole, invitedRole: UserRole) {
+    if (!canAssignRole(actorRole, invitedRole)) {
       throw new ForbiddenException(
-        'Only organization administrators can manage invitations',
+        `Role ${actorRole} cannot manage invitations for role ${invitedRole}`,
       );
     }
   }

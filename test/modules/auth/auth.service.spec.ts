@@ -6,6 +6,10 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from '../../../src/modules/auth/auth.service';
 import { UserService } from '../../../src/modules/users/user.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
+import {
+  getSitePermissions,
+  SiteAction,
+} from '../../../src/shared/authorization/site-policies';
 
 const mockUser = {
   id: 'user-uuid-1',
@@ -13,7 +17,7 @@ const mockUser = {
   password: '$2b$10$hashedpassword',
   firstName: 'John',
   lastName: 'Doe',
-  role: UserRole.ADMIN,
+  role: UserRole.OWNER,
   organizationId: null,
   createdAt: new Date(),
 };
@@ -97,10 +101,15 @@ describe('AuthService', () => {
         service.getAccessibleSites({
           userId: 'admin-1',
           organizationId: 'org-1',
-          role: UserRole.ADMIN,
+          role: UserRole.OWNER,
         }),
       ).resolves.toEqual([
-        { id: 'site-1', name: 'Site A', membershipRole: UserRole.ADMIN },
+        {
+          id: 'site-1',
+          name: 'Site A',
+          membershipRole: UserRole.OWNER,
+          permissions: getSitePermissions(UserRole.OWNER),
+        },
       ]);
 
       expect(prisma.siteMembership.findMany).not.toHaveBeenCalled();
@@ -118,7 +127,13 @@ describe('AuthService', () => {
           organizationId: 'org-1',
           role: UserRole.COLLABORATEUR,
         }),
-      ).resolves.toEqual([{ ...site, membershipRole: UserRole.COLLABORATEUR }]);
+      ).resolves.toEqual([
+        {
+          ...site,
+          membershipRole: UserRole.COLLABORATEUR,
+          permissions: [SiteAction.VIEW_SITE, SiteAction.VIEW_TEAMS],
+        },
+      ]);
 
       expect(prisma.siteMembership.findMany).toHaveBeenCalledWith({
         where: {
@@ -188,7 +203,7 @@ describe('AuthService', () => {
         ...mockUser,
         id: 'owner-uuid-1',
         email: 'owner@example.com',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         organizationId: organization.id,
       };
       (userService.findByEmail as jest.Mock).mockResolvedValue(null);
@@ -219,7 +234,7 @@ describe('AuthService', () => {
       expect(jwtService.signAsync).toHaveBeenCalledWith({
         userId: user.id,
         organizationId: organization.id,
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
       });
     });
 

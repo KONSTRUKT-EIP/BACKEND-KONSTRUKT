@@ -54,7 +54,8 @@ export class AttendanceController {
 
   @Get()
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -87,7 +88,12 @@ export class AttendanceController {
   }
 
   @Get('summary')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({
     summary: 'Résumé journalier par équipe (présents/absents/retards/congés)',
   })
@@ -116,7 +122,8 @@ export class AttendanceController {
 
   @Get(':id')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -135,7 +142,8 @@ export class AttendanceController {
 
   @Post()
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -161,7 +169,8 @@ export class AttendanceController {
 
   @Put(':id')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,
@@ -184,7 +193,12 @@ export class AttendanceController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.CHEF_PROJET, UserRole.CONDUCTEUR_TRAVAUX)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
+    UserRole.CHEF_PROJET,
+    UserRole.CONDUCTEUR_TRAVAUX,
+  )
   @ApiOperation({ summary: 'Supprimer un pointage' })
   @ApiParam({ name: 'id', description: 'UUID du pointage' })
   @ApiResponse({ status: 200, description: 'Pointage supprimé' })
@@ -199,7 +213,8 @@ export class AttendanceController {
 
   @Patch('upsert')
   @Roles(
-    UserRole.ADMIN,
+    UserRole.OWNER,
+    UserRole.ADMIN_ORGANIZATION,
     UserRole.CHEF_PROJET,
     UserRole.CONDUCTEUR_TRAVAUX,
     UserRole.COLLABORATEUR,

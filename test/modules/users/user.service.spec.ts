@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../../../src/modules/users/user.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
@@ -64,7 +68,7 @@ describe('UserService', () => {
       const createUserDto: CreateUserDto = {
         email: 'test@example.com',
         password: 'hashedPassword123',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -111,7 +115,7 @@ describe('UserService', () => {
           id: '123e4567-e89b-12d3-a456-426614174001',
           email: 'user1@example.com',
           passwordHash: 'hash1',
-          role: UserRole.ADMIN,
+          role: UserRole.OWNER,
           firstName: 'John',
           lastName: 'Doe',
           organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -167,7 +171,7 @@ describe('UserService', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -198,7 +202,7 @@ describe('UserService', () => {
       const updateUserDto: UpdateUserDto = {
         email: 'updated@example.com',
         password: 'updatedHash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -207,7 +211,7 @@ describe('UserService', () => {
       const expectedUser = {
         id: userId,
         email: 'updated@example.com',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'UpdatedFirst',
         lastName: 'UpdatedLast',
         organizationId: '123e4567-e89b-12d3-a456-426614174099',
@@ -260,7 +264,7 @@ describe('UserService', () => {
         id: userId,
         email: 'test@example.com',
         passwordHash: 'hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         firstName: 'John',
         lastName: 'Doe',
         organizationId: '123e4567-e89b-12d3-a456-426614174000',
@@ -296,7 +300,7 @@ describe('UserService', () => {
         email: input.email,
         firstName: input.firstName,
         lastName: input.lastName,
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         organizationId: null,
         createdAt: new Date(),
       };
@@ -353,7 +357,7 @@ describe('UserService', () => {
         id: 'u-3',
         email,
         password: '$2b$hash',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
       };
       mockPrismaService.user.findUnique.mockResolvedValue(user);
 
@@ -406,7 +410,7 @@ describe('UserService', () => {
       ).resolves.toMatchObject({ role: UserRole.CHEF_PROJET });
       expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
         where: { id: 'user-1', organizationId: 'org-1' },
-        select: { id: true },
+        select: { id: true, role: true },
       });
     });
 
@@ -478,7 +482,7 @@ describe('UserService', () => {
 
       await service.updateProfile('user-1', {
         firstName: 'Jean',
-        role: UserRole.ADMIN,
+        role: UserRole.OWNER,
         organizationId: 'org-b',
       } as never);
 
@@ -515,6 +519,72 @@ describe('UserService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(service.findMe('user-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('role hierarchy', () => {
+    const orgId = '123e4567-e89b-12d3-a456-426614174000';
+
+    it('prevents an ADMIN_ORGANIZATION from creating an OWNER', async () => {
+      await expect(
+        service.create(
+          {
+            email: 'owner@example.com',
+            password: 'password123',
+            firstName: 'New',
+            lastName: 'Owner',
+            role: UserRole.OWNER,
+          },
+          orgId,
+          'admin-1',
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.user.create).not.toHaveBeenCalled();
+    });
+
+    it('prevents an ADMIN_ORGANIZATION from promoting a user to OWNER', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'user-1',
+        role: UserRole.COLLABORATEUR,
+      });
+
+      await expect(
+        service.updateRole(
+          'user-1',
+          { role: UserRole.OWNER },
+          orgId,
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('prevents an ADMIN_ORGANIZATION from editing or deleting an OWNER', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'owner-1',
+        role: UserRole.OWNER,
+      });
+
+      await expect(
+        service.update(
+          'owner-1',
+          { firstName: 'Changed' },
+          orgId,
+          'admin-1',
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.remove(
+          'owner-1',
+          orgId,
+          'admin-1',
+          UserRole.ADMIN_ORGANIZATION,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.user.delete).not.toHaveBeenCalled();
     });
   });
 });

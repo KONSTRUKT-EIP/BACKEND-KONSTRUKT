@@ -9,7 +9,10 @@ export type userPayload = {
   organizationId?: string | null;
   role?: UserRole;
 };
-export type requestWithUser = { user: userPayload };
+export type requestWithUser = {
+  user: userPayload;
+  siteRole?: UserRole;
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
