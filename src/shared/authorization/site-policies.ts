@@ -5,7 +5,6 @@ export const ORGANIZATION_ADMIN_ROLES: readonly UserRole[] = [
   UserRole.ADMIN_ORGANIZATION,
 ];
 
-/** Rôles attribuables sur un chantier (SiteMembership / Invitation). */
 export const SITE_ROLES: readonly UserRole[] = [
   UserRole.CHEF_PROJET,
   UserRole.CONDUCTEUR_TRAVAUX,
@@ -28,7 +27,6 @@ export enum SiteAction {
 
 const ALL_ACTIONS = Object.values(SiteAction);
 
-/** Matrice des droits par rôle effectif sur un chantier. */
 export const SITE_PERMISSIONS: Record<UserRole, readonly SiteAction[]> = {
   [UserRole.OWNER]: ALL_ACTIONS,
   [UserRole.ADMIN_ORGANIZATION]: ALL_ACTIONS,

@@ -70,8 +70,6 @@ export class SiteAccessGuard implements CanActivate {
       if (!metadata.optional) {
         throw new BadRequestException(`Missing ${metadata.name}`);
       }
-      // Sans chantier ciblé, l'action est évaluée avec le rôle global ;
-      // le service filtre ensuite sur les chantiers accessibles.
       if (action && !can(request.user.role, action)) {
         throw new ForbiddenException(`Your role does not allow ${action}`);
       }

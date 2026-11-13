@@ -12,10 +12,6 @@ import { can, isOrganizationAdmin, SiteAction } from './site-policies';
 export class SiteAccessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Vérifie l'accès au chantier (et l'action si fournie) et retourne le rôle
-   * effectif de l'utilisateur sur ce chantier.
-   */
   async assertAccess(
     siteId: string,
     user: userPayload,

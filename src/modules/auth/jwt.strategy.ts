@@ -11,7 +11,6 @@ export type userPayload = {
 };
 export type requestWithUser = {
   user: userPayload;
-  /** Rôle effectif sur le chantier, renseigné par SiteAccessGuard. */
   siteRole?: UserRole;
 };
 
