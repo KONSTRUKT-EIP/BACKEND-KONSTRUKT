@@ -1,6 +1,7 @@
 import { UserRole } from '@prisma/client';
 import {
   can,
+  canAssignRole,
   isOrganizationAdmin,
   SITE_PERMISSIONS,
   SITE_ROLES,
@@ -37,5 +38,19 @@ describe('site policies', () => {
 
   it('denies every action without a role', () => {
     expect(can(undefined, SiteAction.VIEW_SITE)).toBe(false);
+  });
+
+  it.each([
+    [UserRole.OWNER, UserRole.OWNER, true],
+    [UserRole.ADMIN_ORGANIZATION, UserRole.OWNER, false],
+    [UserRole.ADMIN_ORGANIZATION, UserRole.ADMIN_ORGANIZATION, false],
+    [UserRole.ADMIN_ORGANIZATION, UserRole.CHEF_PROJET, true],
+    [UserRole.CHEF_PROJET, UserRole.CHEF_PROJET, false],
+    [UserRole.CHEF_PROJET, UserRole.CLIENT, true],
+    [UserRole.CONDUCTEUR_TRAVAUX, UserRole.COLLABORATEUR, true],
+    [UserRole.COLLABORATEUR, UserRole.CLIENT, true],
+    [UserRole.CLIENT, UserRole.CLIENT, false],
+  ])('%s can assign %s: %s', (actor, target, expected) => {
+    expect(canAssignRole(actor, target)).toBe(expected);
   });
 });

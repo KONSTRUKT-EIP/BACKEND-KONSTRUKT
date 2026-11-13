@@ -6,7 +6,9 @@ import { UserRole } from '@prisma/client';
 
 describe('UserController', () => {
   let controller: UserController;
-  const request = { user: { userId: 'user-1', organizationId: 'org-1' } };
+  const request = {
+    user: { userId: 'user-1', organizationId: 'org-1', role: UserRole.OWNER },
+  };
 
   const mockUserService = {
     create: jest.fn(),
@@ -84,6 +86,7 @@ describe('UserController', () => {
         },
         'org-1',
         'user-1',
+        UserRole.OWNER,
       );
     });
 
@@ -243,6 +246,7 @@ describe('UserController', () => {
         },
         'org-1',
         'user-1',
+        UserRole.OWNER,
       );
     });
   });
@@ -270,6 +274,7 @@ describe('UserController', () => {
         userId,
         'org-1',
         'user-1',
+        UserRole.OWNER,
       );
     });
   });

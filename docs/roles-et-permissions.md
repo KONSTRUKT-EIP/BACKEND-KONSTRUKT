@@ -33,6 +33,20 @@ Ce document doit rester aligné avec ce fichier.
 | `dashboard.view` — tableaux du dashboard | ✅ | ✅ | ✅ | ✅ | | |
 | `dashboard.edit` — créer des tableaux | ✅ | ✅ | ✅ | ✅ | | |
 
+## Qui peut attribuer quel rôle ?
+
+Hiérarchie : `OWNER` > `ADMIN_ORGANIZATION` > `CHEF_PROJET` > `CONDUCTEUR_TRAVAUX` > `COLLABORATEUR` > `CLIENT`.
+
+- `OWNER` peut attribuer n'importe quel rôle.
+- Les autres ne peuvent attribuer, modifier ou retirer qu'un rôle **strictement
+  inférieur** au leur (un `CHEF_PROJET` ne peut ni inviter ni retirer un autre
+  `CHEF_PROJET`, un `ADMIN_ORGANIZATION` ne peut pas toucher à un `OWNER`).
+- Affectations et invitations n'acceptent que les rôles chantier
+  (`CHEF_PROJET` … `CLIENT`). Les rôles d'organisation se gèrent via `/users`.
+
+Règle appliquée dans : affectations (`/sites/:siteId/memberships`), invitations
+(`/sites/:siteId/invitations`, `/invitations/:id`) et utilisateurs (`/users`).
+
 ## Côté front / mobile
 
 `GET /auth/sites` renvoie pour chaque chantier accessible :

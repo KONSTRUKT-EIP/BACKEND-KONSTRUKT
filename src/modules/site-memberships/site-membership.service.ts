@@ -4,7 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../lib/prisma/prisma.service';
+import { canAssignRole } from '../../shared/authorization/site-policies';
 import { CreateSiteMembershipDto } from './dto/create-site-membership.dto';
 import { UpdateSiteMembershipDto } from './dto/update-site-membership.dto';
 
@@ -52,11 +54,13 @@ export class SiteMembershipService {
   async create(
     siteId: string,
     dto: CreateSiteMembershipDto,
-    organizationId?: string | null,
+    organizationId: string | null | undefined,
+    actorRole: UserRole,
   ) {
     if (!organizationId) {
       throw new ForbiddenException('Organization context is required');
     }
+    this.assertCanAssign(actorRole, dto.role);
 
     const site = await this.prisma.site.findFirst({
       where: {
@@ -122,7 +126,8 @@ export class SiteMembershipService {
     siteId: string,
     membershipId: string,
     dto: UpdateSiteMembershipDto,
-    organizationId?: string | null,
+    organizationId: string | null | undefined,
+    actorRole: UserRole,
   ) {
     if (!organizationId) {
       throw new ForbiddenException('Organization context is required');
@@ -141,6 +146,9 @@ export class SiteMembershipService {
     if (!membership) {
       throw new NotFoundException('Affectation introuvable');
     }
+
+    this.assertCanAssign(actorRole, membership.role);
+    if (dto.role) this.assertCanAssign(actorRole, dto.role);
 
     return this.prisma.siteMembership.update({
       where: {
@@ -151,8 +159,20 @@ export class SiteMembershipService {
         isActive: dto.isActive,
       },
       include: {
-        user: true,
-        site: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        site: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
   }
@@ -160,7 +180,8 @@ export class SiteMembershipService {
   async remove(
     siteId: string,
     membershipId: string,
-    organizationId?: string | null,
+    organizationId: string | null | undefined,
+    actorRole: UserRole,
   ) {
     if (!organizationId) {
       throw new ForbiddenException('Organization context is required');
@@ -180,6 +201,8 @@ export class SiteMembershipService {
       throw new NotFoundException('Affectation introuvable');
     }
 
+    this.assertCanAssign(actorRole, membership.role);
+
     await this.prisma.siteMembership.delete({
       where: {
         id: membershipId,
@@ -189,5 +212,13 @@ export class SiteMembershipService {
     return {
       message: 'Affectation supprimée',
     };
+  }
+
+  private assertCanAssign(actorRole: UserRole, targetRole: UserRole) {
+    if (!canAssignRole(actorRole, targetRole)) {
+      throw new ForbiddenException(
+        `Le rôle ${actorRole} ne peut pas gérer une affectation ${targetRole}`,
+      );
+    }
   }
 }
