@@ -70,6 +70,8 @@ jobs:
         run: npm ci
       - name: Sync database schema
         run: npx prisma db push
+      - name: Enable Row Level Security
+        run: npm run db:rls
       - name: Run Unit Tests (TU)
         run: npm run test
       - name: Run Integration Tests (TI)
