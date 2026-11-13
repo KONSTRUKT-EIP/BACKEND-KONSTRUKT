@@ -6,6 +6,10 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from '../../../src/modules/auth/auth.service';
 import { UserService } from '../../../src/modules/users/user.service';
 import { PrismaService } from '../../../src/lib/prisma/prisma.service';
+import {
+  getSitePermissions,
+  SiteAction,
+} from '../../../src/shared/authorization/site-policies';
 
 const mockUser = {
   id: 'user-uuid-1',
@@ -100,7 +104,12 @@ describe('AuthService', () => {
           role: UserRole.OWNER,
         }),
       ).resolves.toEqual([
-        { id: 'site-1', name: 'Site A', membershipRole: UserRole.OWNER },
+        {
+          id: 'site-1',
+          name: 'Site A',
+          membershipRole: UserRole.OWNER,
+          permissions: getSitePermissions(UserRole.OWNER),
+        },
       ]);
 
       expect(prisma.siteMembership.findMany).not.toHaveBeenCalled();
@@ -118,7 +127,13 @@ describe('AuthService', () => {
           organizationId: 'org-1',
           role: UserRole.COLLABORATEUR,
         }),
-      ).resolves.toEqual([{ ...site, membershipRole: UserRole.COLLABORATEUR }]);
+      ).resolves.toEqual([
+        {
+          ...site,
+          membershipRole: UserRole.COLLABORATEUR,
+          permissions: [SiteAction.VIEW_SITE, SiteAction.VIEW_TEAMS],
+        },
+      ]);
 
       expect(prisma.siteMembership.findMany).toHaveBeenCalledWith({
         where: {

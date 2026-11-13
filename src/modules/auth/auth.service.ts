@@ -14,7 +14,10 @@ import { UserService } from '../users/user.service';
 import { PrismaService } from '../../lib/prisma/prisma.service';
 import { randomBytes, createHash } from 'crypto';
 import { UserRole } from '../../shared/types/roles.enum';
-import { isOrganizationAdmin } from '../../shared/authorization/site-policies';
+import {
+  getSitePermissions,
+  isOrganizationAdmin,
+} from '../../shared/authorization/site-policies';
 import { CreateOrganizationOnboardingDto } from './dto/create-organization-onboarding.dto';
 
 @Injectable()
@@ -181,6 +184,7 @@ export class AuthService {
       return sites.map((site) => ({
         ...site,
         membershipRole: organizationRole,
+        permissions: getSitePermissions(organizationRole),
       }));
     }
 
@@ -200,6 +204,7 @@ export class AuthService {
     return memberships.map(({ site, role }) => ({
       ...site,
       membershipRole: role,
+      permissions: getSitePermissions(role),
     }));
   }
 
